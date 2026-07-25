@@ -1,0 +1,20 @@
+{
+  "name": "yckf-monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "dashboard",
+    "mobile-app",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:dashboard": "npm run dev --workspace=dashboard",
+    "dev:mobile": "npm run start --workspace=mobile-app",
+    "build:backend": "npm run build --workspace=backend",
+    "build:dashboard": "npm run build --workspace=dashboard",
+    "lint:dashboard": "npm run lint --workspace=dashboard",
+    "typecheck:backend": "npm run typecheck --workspace=backend",
+    "typecheck:dashboard": "npx tsc --noEmit --workspace=dashboard"
+  }
+}

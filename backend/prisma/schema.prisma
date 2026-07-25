@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  INVESTIGATOR
+  USER
+}
+
+model User {
+  id                      Int            @id @default(autoincrement())
+  email                   String         @unique
+  passwordHash            String
+  fullName                String
+  role                    Role           @default(USER)
+  isActive                Boolean        @default(true)
+  failedLoginAttempts     Int            @default(0)
+  lockoutUntil            DateTime?
+  suspendedUntil          DateTime?
+  passwordChangedAt       DateTime?
+  createdAt               DateTime       @default(now())
+  lastLogin               DateTime?
+  twoFactorEnabled        Boolean        @default(false)
+  twoFactorSecret         String?
+  twoFactorBackupCodes    String[]       @default([])
+  twoFactorTrustedDevices Json?
+  fcmTokens               String[]       @default([])
+  reports                 Report[]
+  casesAssigned           Case[]         @relation("InvestigatorCases")
+  uploadedEvidence        Evidence[]
+  auditLogs               AuditLog[]
+  investigationNotes      InvestigationNote[]
+  caseHistoryChanges      CaseHistory[]
+  refreshTokens           RefreshToken[]
+  notifications           Notification[] @relation("UserNotifications")
+  sentNotifications       Notification[] @relation("SentNotifications")
+}
+
+model Report {
+  id           Int       @id @default(autoincrement())
+  user         User      @relation(fields: [userId], references: [id])
+  userId       Int
+  title        String
+  description  String
+  incidentType String
+  priority     String
+  status       String
+  location     String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  cases        Case[]
+  evidence     Evidence[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([userId])
+}
+
+model Case {
+  id                     Int                 @id @default(autoincrement())
+  report                 Report              @relation(fields: [reportId], references: [id])
+  reportId               Int
+  assignedInvestigator   User?               @relation("InvestigatorCases", fields: [assignedInvestigatorId], references: [id])
+  assignedInvestigatorId Int?
+  status                 String
+  resolutionNotes        String?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  notes                  InvestigationNote[]
+  history                CaseHistory[]
+  notifications          Notification[]
+
+  @@index([assignedInvestigatorId])
+  @@index([status])
+}
+
+model Evidence {
+  id           Int      @id @default(autoincrement())
+  report       Report   @relation(fields: [reportId], references: [id])
+  reportId     Int
+  fileUrl      String
+  fileHash     String
+  fileType     String
+  metadata     Json?
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  uploadedById Int
+  uploadedAt   DateTime @default(now())
+
+  @@index([reportId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+  action    String
+  targetId  Int?
+  ipAddress String
+  timestamp DateTime @default(now())
+}
+
+model InvestigationNote {
+  id        Int      @id @default(autoincrement())
+  case      Case     @relation(fields: [caseId], references: [id])
+  caseId    Int
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+  note      String
+  createdAt DateTime @default(now())
+}
+
+model CaseHistory {
+  id         Int      @id @default(autoincrement())
+  case       Case     @relation(fields: [caseId], references: [id])
+  caseId     Int
+  oldStatus  String
+  newStatus  String
+  changedBy  User     @relation(fields: [changedById], references: [id])
+  changedById Int
+  changedAt  DateTime @default(now())
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  type        String
+  title       String
+  body        String
+  link        String?
+  recipient   User?    @relation("UserNotifications", fields: [recipientId], references: [id])
+  recipientId Int?
+  sender      User?    @relation("SentNotifications", fields: [senderId], references: [id])
+  senderId    Int?
+  case        Case?    @relation(fields: [caseId], references: [id])
+  caseId      Int?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([recipientId, isRead])
+}
