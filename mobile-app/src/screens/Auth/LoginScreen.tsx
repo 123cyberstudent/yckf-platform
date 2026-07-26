@@ -617,6 +617,35 @@ const handleResetPassword = async () => {
                 <View style={styles.dividerLine} />
               </View>
 
+              {/* Quick Login Buttons */}
+              <View style={styles.quickLoginContainer}>
+                <Text style={styles.quickLoginLabel}>Quick Login</Text>
+                <View style={styles.quickLoginRow}>
+                  <TouchableOpacity
+                    style={styles.quickLoginButton}
+                    onPress={() => {
+                      setEmail('yckfadmin@youngcyberknightsfoundation.org');
+                      setPassword('admin@123');
+                    }}
+                    disabled={isLoading}
+                  >
+                    <Ionicons name="shield-checkmark" size={16} color="#fff" />
+                    <Text style={styles.quickLoginButtonText}>Admin</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.quickLoginButton, styles.quickLoginButtonUser]}
+                    onPress={() => {
+                      setEmail('user@youngcyberknightsfoundation.org');
+                      setPassword('user@123');
+                    }}
+                    disabled={isLoading}
+                  >
+                    <Ionicons name="person" size={16} color="#fff" />
+                    <Text style={styles.quickLoginButtonText}>User</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {/* Register Link */}
               <View style={styles.registerContainer}>
                 <Text style={styles.registerText}>Don't have an account? </Text>
@@ -810,6 +839,42 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     marginHorizontal: SPACING.md,
     fontWeight: '600',
+  },
+  quickLoginContainer: {
+    marginBottom: SPACING.lg,
+  },
+  quickLoginLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  quickLoginRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  quickLoginButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  quickLoginButtonUser: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  quickLoginButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
   },
   registerContainer: {
     flexDirection: 'row',

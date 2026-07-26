@@ -1,7 +1,17 @@
-import { NextRequest } from 'next/server';
-import { backendFetch } from '@/lib/backend';
+import { NextResponse } from 'next/server';
+import { backendFetch, getBackendAuthToken } from '@/lib/backend';
 
-export async function GET(request: NextRequest) {
-  const token = request.cookies.get('yckf-auth-token')?.value;
-  return backendFetch('/api/admin/login-logs/stats', { method: 'GET' }, token);
+export async function GET() {
+  try {
+    const token = await getBackendAuthToken();
+    if (!token) return NextResponse.json({ total: 0, successful: 0, failed: 0, uniqueUsers: 0 }, { status: 401 });
+
+    const res = await backendFetch('/api/admin/login-logs/stats', { method: 'GET' }, token);
+    if (!res.ok) return NextResponse.json({ total: 0, successful: 0, failed: 0, uniqueUsers: 0 }, { status: res.status });
+
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json({ total: 0, successful: 0, failed: 0, uniqueUsers: 0 }, { status: 500 });
+  }
 }

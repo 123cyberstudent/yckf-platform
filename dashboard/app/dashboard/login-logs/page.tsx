@@ -39,11 +39,14 @@ export default function LoginLogsPage() {
   const [total, setTotal] = useState(0);
   const [emailFilter, setEmailFilter] = useState('');
   const [successFilter, setSuccessFilter] = useState<string>('all');
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     getRoleFromCookie().then((role) => {
-      if (role && role !== 'admin') {
+      if (!role || role !== 'admin') {
         router.replace('/dashboard');
+      } else {
+        setAuthorized(true);
       }
     });
   }, [router]);
@@ -63,9 +66,14 @@ export default function LoginLogsPage() {
         setLogs(data.logs || []);
         setTotalPages(data.totalPages || 1);
         setTotal(data.total || 0);
+      } else {
+        setLogs([]);
       }
     } catch (err) {
       console.error('Failed to fetch login logs:', err);
+      setLogs([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,12 +89,14 @@ export default function LoginLogsPage() {
   };
 
   useEffect(() => {
+    if (!authorized) return;
     fetchStats();
-  }, []);
+  }, [authorized]);
 
   useEffect(() => {
+    if (!authorized) return;
     fetchLogs();
-  }, [page, successFilter]);
+  }, [authorized, page, successFilter]);
 
   const handleSearch = () => {
     setPage(1);
