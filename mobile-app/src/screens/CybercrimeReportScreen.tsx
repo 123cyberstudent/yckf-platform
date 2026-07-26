@@ -144,12 +144,6 @@ const CybercrimeReportScreen: React.FC = () => {
     }
   }, [getCurrentLocation, setValue, getValues]);
 
-  const generateCaseId = (): string => {
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `YCKF${timestamp}${random}`;
-  };
-
   const pickImages = useCallback(async () => {
   try {
     // Request permission first
@@ -211,7 +205,7 @@ const CybercrimeReportScreen: React.FC = () => {
     setSelectedPhotos(prev => prev.filter(u => u !== uri));
   }, []);
 
- const saveToEvidenceBox = useCallback(async (reportData: CybercrimeReportForm): Promise<string> => {
+ const saveToEvidenceBox = useCallback(async (reportData: CybercrimeReportForm, caseId: string): Promise<void> => {
   
   // Get current user to tie report to their account
   const currentUser = await authService.getCurrentUser();
@@ -231,7 +225,6 @@ const CybercrimeReportScreen: React.FC = () => {
     }
   }
   
-  const caseId = generateCaseId();
   const evidenceItem: EvidenceItem = {
     id: caseId,
     type: 'report',
@@ -250,7 +243,6 @@ const CybercrimeReportScreen: React.FC = () => {
   const ok = await saveEvidenceItem(evidenceItem);
   if (!ok) throw new Error('Failed to save evidence locally');
   await NotificationService.showDataSavedNotification('Cybercrime Report');
-  return caseId;
 }, [capturedLocation, selectedPhotos, saveEvidenceItem]);
 
   const submitViaEmail = useCallback(async (reportData: CybercrimeReportForm, caseId: string) => {
@@ -302,7 +294,7 @@ const CybercrimeReportScreen: React.FC = () => {
     }
   }, [capturedLocation]);
 
-  const submitToAPI = useCallback(async (reportData: CybercrimeReportForm): Promise<boolean> => {
+  const submitToAPI = useCallback(async (reportData: CybercrimeReportForm): Promise<{ success: boolean; ticketNumber?: string; reportId?: number }> => {
     try {
       const token = await authService.getToken();
       const locationStr = capturedLocation
@@ -337,96 +329,126 @@ const CybercrimeReportScreen: React.FC = () => {
 
       if (!response.ok) {
         console.warn('Backend report submission failed:', response.status);
-        return false;
+        return { success: false };
       }
 
-      console.log('Report submitted to backend API');
-      return true;
+      const result = await response.json();
+      console.log('Report submitted to backend API:', result);
+
+      if (result.success && result.ticketNumber) {
+        return {
+          success: true,
+          ticketNumber: result.ticketNumber,
+          reportId: result.reportId,
+        };
+      }
+
+      return { success: false };
     } catch (err) {
       console.warn('Backend API submission failed (non-blocking):', err);
-      return false;
+      return { success: false };
     }
   }, [capturedLocation]);
+
+  const uploadEvidenceFiles = useCallback(async (reportId: number, photos: string[]) => {
+    try {
+      const token = await authService.getToken();
+      for (const photoUri of photos) {
+        try {
+          const formData = new FormData();
+          formData.append('reportId', String(reportId));
+          formData.append('file', {
+            uri: photoUri,
+            type: 'image/jpeg',
+            name: `evidence_${Date.now()}.jpg`,
+          } as any);
+
+          const headers: Record<string, string> = {};
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+
+          const resp = await fetch(`${API_BASE_URL}/api/evidence/upload`, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+          if (!resp.ok) {
+            console.warn('Evidence upload failed for', photoUri, resp.status);
+          }
+        } catch (e) {
+          console.warn('Evidence upload error for', photoUri, e);
+        }
+      }
+    } catch (err) {
+      console.warn('Evidence upload skipped (non-blocking):', err);
+    }
+  }, []);
 
   const onSubmit = useCallback(async (data: CybercrimeReportForm) => {
     setIsSubmitting(true);
     try {
-      // Save first to evidence box (local)
-      const caseId = await saveToEvidenceBox(data);
-
+      // Offline: save locally with a temp ID, do NOT clear form
       if (!state.isOnline) {
+        const tempId = `YCKF-OFFLINE-${Date.now()}`;
+        try {
+          await saveToEvidenceBox(data, tempId);
+        } catch (e) {
+          console.error('Local save failed', e);
+        }
         Alert.alert(
           'Saved Offline',
-          `Your report has been saved locally with Case ID: ${caseId}. It will be submitted when you are back online.`,
-          [{
-            text: 'OK', onPress: () => {
-              reset(); // reset form
-              navigation.goBack();
-            }
-          }]
+          `Your report has been saved locally (${tempId}). It will be submitted when you are back online.`,
+          [{ text: 'OK' }]
         );
         return;
       }
 
-      // Online -> ask submit method
+      // Online: submit to API first to get server-generated ticket
+      const apiResult = await submitToAPI(data);
+
+      if (!apiResult.success || !apiResult.ticketNumber) {
+        // Failed submission: show error, retain evidence and form state
+        Alert.alert('Submission Failed', 'Could not submit your report to the server. Please try again.');
+        return;
+      }
+
+      const ticketNumber = apiResult.ticketNumber;
+      const reportId = apiResult.reportId;
+
+      // Save to local evidence box using server ticket
+      try {
+        await saveToEvidenceBox(data, ticketNumber);
+      } catch (e) {
+        console.warn('Local evidence save failed (non-blocking):', e);
+      }
+
+      // Upload evidence files best-effort (non-blocking)
+      if (reportId && selectedPhotos.length > 0) {
+        uploadEvidenceFiles(reportId, selectedPhotos).catch(() => {});
+      }
+
+      // Fire notification in try/catch so it never blocks success flow
+      try {
+        await NotificationService.showReportSubmittedNotification(ticketNumber);
+      } catch (e) {
+        console.warn('Notification failed (non-blocking):', e);
+      }
+
+      // Show success with server-generated ticket
       Alert.alert(
-        'Submit Report',
-        `Your report is saved locally (Case ID: ${caseId}). How would you like to submit it now?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Email',
-            onPress: async () => {
-              setIsSubmitting(true);
-              const [emailOk] = await Promise.all([
-                submitViaEmail(data, caseId),
-                submitToAPI(data),
-              ]);
-              setIsSubmitting(false);
-              if (emailOk) {
-                await NotificationService.showReportSubmittedNotification(caseId);
-                Alert.alert('Success', SUCCESS_MESSAGES.REPORT_SUBMITTED, [{ text: 'OK', onPress: () => { reset(); navigation.goBack(); } }]);
-              } else {
-                Alert.alert('Email Failed', 'Saved offline. You can submit later from Evidence SafeBox.');
-              }
-            },
+        'Success',
+        `Your report has been received. Ticket: ${ticketNumber}`,
+        [{
+          text: 'OK',
+          onPress: () => {
+            // Clear all form state only after confirmed success
+            setSelectedPhotos([]);
+            setCapturedLocation(null);
+            reset();
+            navigation.goBack();
           },
-          {
-            text: 'WhatsApp',
-            onPress: async () => {
-              setIsSubmitting(true);
-              const [waOk] = await Promise.all([
-                submitViaWhatsApp(data, caseId),
-                submitToAPI(data),
-              ]);
-              setIsSubmitting(false);
-              if (waOk) {
-                await NotificationService.showReportSubmittedNotification(caseId);
-                Alert.alert('Success', SUCCESS_MESSAGES.REPORT_SUBMITTED, [{ text: 'OK', onPress: () => { reset(); navigation.goBack(); } }]);
-              } else {
-                Alert.alert('WhatsApp Failed', 'Saved offline. You can submit later from Evidence SafeBox.');
-              }
-            },
-          },
-          {
-            text: 'Both',
-            onPress: async () => {
-              setIsSubmitting(true);
-              const [emailOk, waOk] = await Promise.all([
-                submitViaEmail(data, caseId),
-                submitViaWhatsApp(data, caseId),
-                submitToAPI(data),
-              ]);
-              setIsSubmitting(false);
-              if (emailOk || waOk) {
-                await NotificationService.showReportSubmittedNotification(caseId);
-                Alert.alert('Success', SUCCESS_MESSAGES.REPORT_SUBMITTED, [{ text: 'OK', onPress: () => { reset(); navigation.goBack(); } }]);
-              } else {
-                Alert.alert('Submission Failed', 'Saved offline. You can submit later from Evidence SafeBox.');
-              }
-            },
-          },
-        ]
+        }]
       );
     } catch (err) {
       console.error('Report submission flow failed', err);
@@ -434,7 +456,7 @@ const CybercrimeReportScreen: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [navigation, reset, saveToEvidenceBox, state.isOnline, submitViaEmail, submitViaWhatsApp, submitToAPI]);
+  }, [navigation, reset, saveToEvidenceBox, state.isOnline, submitToAPI, selectedPhotos, uploadEvidenceFiles]);
 
   // Temporary debug watcher - remove in production if noisy
   useEffect(() => {

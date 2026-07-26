@@ -117,11 +117,10 @@ async showNotification(
       content.channelId = channelId;
     }
 
-    // For immediate delivery, omit trigger or set to undefined
+    // For immediate delivery, trigger must be null (not undefined)
     const notificationId = await Notifications.scheduleNotificationAsync({
       content,
-      // `trigger: undefined` -> show immediately (this avoids some TS complaints about `null`)
-      trigger: undefined,
+      trigger: null,
     });
 
     return {

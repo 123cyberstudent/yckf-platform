@@ -465,7 +465,7 @@ const EmergencyReportScreen: React.FC = () => {
         console.log('Could not get file info');
       }
 
-      message += `⚠️ Voice recording attached\n\n`;
+      message += `🎤 Voice recording available\n\n`;
     }
 
     message += `⏰ TIMESTAMP:\n`;
@@ -850,8 +850,101 @@ const sendViaEmailAuto = async () => {
       ]
     );
   }
-};
-  
+  };
+
+  const isDemoStation = (): boolean => {
+    return nearestStation?.station.id.startsWith('police-demo-') ?? false;
+  };
+
+  const submitToBackend = async () => {
+    setIsSending(true);
+
+    try {
+      const userData = await authService.getCurrentUser();
+      const userEmail = userData?.email || '';
+      const userPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || '';
+      const userName = (userData as any)?.displayName || (userData as any)?.full_name || '';
+
+      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
+
+      const formData = new FormData();
+
+      formData.append('reporterName', userName);
+      formData.append('reporterPhone', userPhone);
+      formData.append('reporterEmail', userEmail);
+
+      let description = '';
+      if (mode === 'text' && messages.length > 0) {
+        description = messages.filter(m => m.isUser).map(m => m.text).join('\n');
+      } else if (mode === 'voice') {
+        description = 'Voice emergency report';
+      }
+      formData.append('description', description);
+
+      if (mode === 'voice' && audioUri) {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(audioUri);
+          if (fileInfo.exists) {
+            formData.append('audio', {
+              uri: audioUri,
+              type: 'audio/m4a',
+              name: 'recording.m4a',
+            } as any);
+          }
+        } catch (error) {
+          console.error('Failed to read audio file:', error);
+        }
+      }
+
+      formData.append('audioDuration', String(recordingDuration / 1000));
+
+      if (nearestStation) {
+        formData.append('stationName', nearestStation.station.name);
+        formData.append('stationPhone', nearestStation.station.emergencyLine);
+        formData.append('stationAddress', nearestStation.station.address);
+        formData.append('stationLatitude', String(nearestStation.station.latitude));
+        formData.append('stationLongitude', String(nearestStation.station.longitude));
+      }
+
+      if (currentLocation?.coords) {
+        formData.append('gpsLatitude', String(currentLocation.coords.latitude));
+        formData.append('gpsLongitude', String(currentLocation.coords.longitude));
+        formData.append('gpsAccuracy', String(currentLocation.coords.accuracy || 0));
+      }
+
+      const response = await fetch(`${API_URL}/api/emergency-reports`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      setIsSending(false);
+
+      if (result.success) {
+        const ticketNumber = result.ticketNumber || 'N/A';
+        Alert.alert(
+          'Emergency Report Submitted',
+          `Your emergency report has been securely uploaded to YCKF.\n\nTicket: ${ticketNumber}\n\nPlease save this ticket number for reference.`,
+          [{ text: 'OK', onPress: () => resetForm() }]
+        );
+      } else {
+        throw new Error(result.error || 'Failed to submit report');
+      }
+    } catch (error) {
+      setIsSending(false);
+      console.error('Backend submission error:', error);
+      Alert.alert(
+        'Submission Failed',
+        'Could not submit to YCKF server. Would you like to try another method?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Try Other Options', onPress: () => showSendOptions() },
+        ]
+      );
+    }
+  };
+
   /**
    * Call police station - FIXED phone number
    */
@@ -926,7 +1019,6 @@ const sendViaEmailAuto = async () => {
     setRecordingDuration(0);
     setMessages([]);
     setInputText('');
-    Alert.alert('🔄 Reset', 'Form cleared. You can submit a new report.');
   };
 
 
@@ -975,7 +1067,6 @@ const sendViaEmailAuto = async () => {
               placeholder="Enter phone number"
               placeholderTextColor={COLORS.text.light}
               keyboardType="phone-pad"
-              autoFocus
               returnKeyType="done"
             />
 
@@ -1036,6 +1127,26 @@ const sendViaEmailAuto = async () => {
 
             {/* Options List */}
             <ScrollView style={styles.sendOptionsScroll}>
+              {/* Submit to YCKF Server - PRIMARY */}
+              <TouchableOpacity
+                style={styles.sendOption}
+                onPress={() => {
+                  setSendOptionsModalVisible(false);
+                  submitToBackend();
+                }}
+              >
+                <View style={[styles.sendOptionIcon, { backgroundColor: '#fee2e2' }]}>
+                  <Ionicons name="server-outline" size={28} color="#dc2626" />
+                </View>
+                <View style={styles.sendOptionText}>
+                  <Text style={[styles.sendOptionTitle, { color: '#dc2626' }]}>Submit to YCKF Server</Text>
+                  <Text style={styles.sendOptionSubtitle}>
+                    Securely upload report with voice recording
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.text.light} />
+              </TouchableOpacity>
+
               {/* WhatsApp 1 Option */}
               <TouchableOpacity
                 style={styles.sendOption}
@@ -1255,6 +1366,13 @@ const sendViaEmailAuto = async () => {
             <Text style={styles.stationAddress}>
               {nearestStation.station.address}
             </Text>
+            {isDemoStation() && (
+              <View style={{ marginTop: 8, padding: 8, backgroundColor: '#fef3c7', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}>
+                <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '600' }}>
+                  Demo Data: This station info is for testing only. Real station data will be available in production.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 

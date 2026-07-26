@@ -170,12 +170,18 @@ const [bookingData, setBookingData] = useState<BookingData>({
     Alert.alert('Required Field', 'Please enter your phone number');
     return false;
   }
-  if (bookingData.phone.trim().length < 10) {
-    Alert.alert('Invalid Phone', 'Please enter a valid phone number');
+  if (bookingData.phone.trim().replace(/\D/g, '').length < 10) {
+    Alert.alert('Invalid Phone', 'Please enter a valid phone number with at least 10 digits');
     return false;
   }
   if (!bookingData.date.trim()) {
     Alert.alert('Required Field', 'Please select your preferred date');
+    return false;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (selectedDate < today) {
+    Alert.alert('Invalid Date', 'Preferred date cannot be in the past');
     return false;
   }
   if (!bookingData.time.trim()) {
@@ -196,22 +202,21 @@ const [bookingData, setBookingData] = useState<BookingData>({
 
   const sendBookingToBackend = async () => {
     try {
-   const bookingPayload = {
-  fullName: bookingData.fullName.trim(),
-  email: bookingData.email.trim(),
-  phone: bookingData.phone.trim(),
-  date: bookingData.date,
-  time: bookingData.time,
-  caseDescription: bookingData.caseDescription.trim(),
-  specialist: specialist.name,
-  paymentReference: paymentReference || 'Pending',
-  paymentMethod: paymentMethod || 'Not specified',
-  submittedAt: new Date().toISOString(),
-};
+      const bookingPayload = {
+        fullName: bookingData.fullName.trim(),
+        email: bookingData.email.trim(),
+        phone: bookingData.phone.trim(),
+        preferredDate: bookingData.date,
+        preferredTime: bookingData.time,
+        caseDescription: bookingData.caseDescription.trim(),
+        specialist: specialist.name,
+        paymentMethod: paymentMethod || 'Not specified',
+        paymentReference: paymentReference || 'Pending',
+      };
 
       console.log('Sending booking to backend:', bookingPayload);
 
-      const response = await fetch(`${BACKEND_URL}/api/email/booking-submission`, {
+      const response = await fetch(`${BACKEND_URL}/api/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -225,7 +230,13 @@ const [bookingData, setBookingData] = useState<BookingData>({
         throw new Error(result.error || 'Failed to submit booking');
       }
 
-      return { success: true, data: result };
+      return {
+        success: true,
+        ticketNumber: result.ticketNumber,
+        bookingId: result.bookingId,
+        status: result.status,
+        createdAt: result.createdAt,
+      };
     } catch (error: any) {
       console.error('Backend submission error:', error);
       return { success: false, error: error.message || 'Network error' };
@@ -244,36 +255,32 @@ const [bookingData, setBookingData] = useState<BookingData>({
       const result = await sendBookingToBackend();
 
       if (result.success) {
-        // Success - show confirmation and navigate
-      Alert.alert(
-  '🎉 Booking Submitted Successfully!',
-  `Thank you ${bookingData.fullName}!\n\nYour booking request has been sent to YCKF.\n\nSpecialist: ${specialist.name}\nDate: ${bookingData.date}\nTime: ${bookingData.time}\n\nWe will contact you at ${bookingData.phone} shortly to confirm your appointment.`,
-  [
-    {
-      text: 'Done',
-      onPress: () => {
-        // Reset form data
-        // Reset form data
-setBookingData({
-  fullName: '',
-  email: '',
-  phone: '',
-  date: '',
-  time: '',
-  caseDescription: '',
-  specialist: specialist.name,
-});
-        // Reset date/time pickers
-        setSelectedDate(new Date());
-        setSelectedTime(new Date());
-        setTempDate(new Date());
-        setTempTime(new Date());
-        // Navigate back to home or specialist selection
-        navigation.navigate('Home');
-      },
-    },
-  ]
-);
+        const ticketLabel = result.ticketNumber ? `Ticket: ${result.ticketNumber}` : '';
+        Alert.alert(
+          'Booking Submitted Successfully!',
+          `Thank you ${bookingData.fullName}!\n\n${ticketLabel}\n\nSpecialist: ${specialist.name}\nDate: ${bookingData.date}\nTime: ${bookingData.time}\n\nWe will contact you at ${bookingData.phone} shortly to confirm your appointment.`,
+          [
+            {
+              text: 'Done',
+              onPress: () => {
+                setBookingData({
+                  fullName: '',
+                  email: '',
+                  phone: '',
+                  date: '',
+                  time: '',
+                  caseDescription: '',
+                  specialist: specialist.name,
+                });
+                setSelectedDate(new Date());
+                setSelectedTime(new Date());
+                setTempDate(new Date());
+                setTempTime(new Date());
+                navigation.navigate('Root' as never);
+              },
+            },
+          ]
+        );
       } else {
         // Error - show error message
         Alert.alert(

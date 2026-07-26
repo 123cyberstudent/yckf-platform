@@ -22,6 +22,9 @@ import reportsRouter from './reports/routes.js';
 import whatsappRouter from './whatsapp/routes.js';
 import telegramRouter from './telegram/routes.js';
 import volunteerRequestRouter from './volunteerRequest/routes.js';
+import emergencyReportsRouter from './emergencyReports/routes.js';
+import bookingsRouter from './bookings/routes.js';
+import enquiriesRouter from './enquiries/routes.js';
 import { siteStatsPublicRouter } from './admin/siteStats.js';
 import { generalRateLimiter } from './shared/rateLimiter.js';
 import { requestAuditLogger } from './audit/middleware.js';
@@ -109,6 +112,9 @@ app.use('/api/reports', reportsRouter);
 app.use('/api/whatsapp', whatsappRouter);
 app.use('/api/telegram', telegramRouter);
 app.use('/api/volunteer-request', volunteerRequestRouter);
+app.use('/api/emergency-reports', emergencyReportsRouter);
+app.use('/api/bookings', bookingsRouter);
+app.use('/api/enquiries', enquiriesRouter);
 
 app.get('/', (_req, res) => {
   res.json({

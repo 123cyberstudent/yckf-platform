@@ -48,6 +48,7 @@ model User {
 
 model Report {
   id           Int       @id @default(autoincrement())
+  ticketNumber String    @unique
   user         User      @relation(fields: [userId], references: [id])
   userId       Int
   title        String
@@ -56,6 +57,14 @@ model Report {
   priority     String
   status       String
   location     String
+  reporterName String?
+  reporterEmail String?
+  reporterPhone String?
+  gpsLatitude  Float?
+  gpsLongitude Float?
+  gpsAccuracy  Float?
+  gpsAddress   String?
+  submittedAt  DateTime  @default(now())
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   cases        Case[]
@@ -64,6 +73,7 @@ model Report {
   @@index([createdAt])
   @@index([status])
   @@index([userId])
+  @@index([ticketNumber])
 }
 
 model Case {
@@ -248,4 +258,101 @@ model VolunteerRequest {
 
   @@index([email])
   @@index([status])
+}
+
+model EmergencyReport {
+  id                Int      @id @default(autoincrement())
+  ticketNumber      String   @unique
+  reporterName      String?
+  reporterPhone     String?
+  reporterEmail     String?
+  description       String?
+  audioFileUrl      String?
+  audioDuration     Float?
+  audioMimeType     String?
+  stationName       String?
+  stationPhone      String?
+  stationAddress    String?
+  stationLatitude   Float?
+  stationLongitude  Float?
+  gpsLatitude       Float?
+  gpsLongitude      Float?
+  gpsAccuracy       Float?
+  gpsAddress        String?
+  status            String   @default("new")
+  priority          String   @default("high")
+  assignedVolunteerId Int?
+  adminNotes        String?
+  emailStatus       String   @default("queued")
+  submittedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([ticketNumber])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Booking {
+  id                Int      @id @default(autoincrement())
+  ticketNumber      String   @unique
+  fullName          String
+  email             String
+  phone             String
+  specialist        String?
+  preferredDate     DateTime?
+  preferredTime     String?
+  caseDescription   String
+  paymentMethod     String?
+  paymentReference  String?
+  status            String   @default("new")
+  assignedVolunteerId Int?
+  adminNotes        String?
+  emailStatus       String   @default("queued")
+  submittedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([ticketNumber])
+  @@index([status])
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Enquiry {
+  id                Int      @id @default(autoincrement())
+  ticketNumber      String   @unique
+  name              String
+  email             String
+  phone             String?
+  subject           String?
+  message           String
+  channel           String   @default("form")
+  status            String   @default("new")
+  adminNotes        String?
+  emailStatus       String   @default("queued")
+  submittedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([ticketNumber])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model EmailLog {
+  id                Int      @id @default(autoincrement())
+  ticketNumber      String?
+  reportType        String
+  recipientEmail    String
+  subject           String
+  status            String   @default("queued")
+  errorMessage      String?
+  sentAt            DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([ticketNumber])
+  @@index([reportType])
+  @@index([status])
+  @@index([createdAt])
 }

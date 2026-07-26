@@ -19,6 +19,9 @@ import {
   Ticket,
   ClipboardList,
   Hash,
+  Phone,
+  AlertCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getRoleFromCookie } from '@/lib/permissions';
@@ -58,6 +61,9 @@ export function DashboardSidebar() {
     { icon: Globe, label: 'Content Manager', href: '/dashboard/content' },
     { icon: Hash, label: 'Site Stats', href: '/dashboard/site-stats' },
     { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
+    { icon: AlertCircle, label: 'Emergency Reports', href: '/dashboard/emergencies' },
+    { icon: Phone, label: 'Bookings', href: '/dashboard/bookings' },
+    { icon: MessageSquare, label: 'Enquiries', href: '/dashboard/enquiries' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
     { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },
     { icon: ClipboardList, label: 'Login Logs', href: '/dashboard/login-logs' },

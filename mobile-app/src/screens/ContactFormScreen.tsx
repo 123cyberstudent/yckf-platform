@@ -79,9 +79,9 @@ const ContactFormScreen: React.FC = () => {
 
   const submitViaEmail = async (data: ContactForm) => {
   try {
-    console.log('📧 Sending contact message to backend...');
+    console.log('Sending enquiry to backend...');
     
-    const response = await fetch(`${API_URL}/api/email/contact-message`, {
+    const response = await fetch(`${API_URL}/api/enquiries`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -89,22 +89,25 @@ const ContactFormScreen: React.FC = () => {
       body: JSON.stringify({
         name: data.name,
         email: data.email,
-        message: data.message
+        phone: '',
+        subject: 'Contact Form Enquiry',
+        message: data.message,
+        channel: 'form',
       })
     });
 
     const result = await response.json();
     
     if (response.ok && result.success) {
-      console.log('✅ Contact message sent successfully');
-      return true;
+      console.log('Enquiry submitted successfully');
+      return { success: true, ticketNumber: result.ticketNumber, enquiryId: result.enquiryId };
     } else {
-      console.error('❌ Backend error:', result.error);
-      return false;
+      console.error('Backend error:', result.error);
+      return { success: false };
     }
   } catch (error) {
-    console.error('❌ Email submission failed:', error);
-    return false;
+    console.error('Enquiry submission failed:', error);
+    return { success: false };
   }
 };
 
@@ -165,12 +168,13 @@ const onSubmit = async (data: ContactForm) => {
         onPress: async () => {
           setIsSubmitting(true);
           try {
-            const success = await submitViaEmail(data);
+            const result = await submitViaEmail(data);
             
-            if (success) {
+            if (result.success) {
+              const ticketLabel = result.ticketNumber ? `Ticket: ${result.ticketNumber}` : '';
               Alert.alert(
-                'Success! ✅',
-                'Your message has been sent successfully to YCKF via email. We will respond within 24-48 hours.',
+                'Message Sent Successfully!',
+                `Your enquiry has been received.\n\n${ticketLabel}\n\nWe will respond within 24-48 hours.`,
                 [
                   {
                     text: 'OK',
@@ -184,7 +188,7 @@ const onSubmit = async (data: ContactForm) => {
             } else {
               Alert.alert(
                 'Error',
-                'Failed to send message via email. Please try WhatsApp or contact us directly.',
+                'Failed to send your enquiry. Please try WhatsApp or contact us directly.',
                 [{ text: 'OK' }]
               );
             }

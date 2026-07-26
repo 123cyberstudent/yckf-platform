@@ -9,8 +9,13 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'application/pdf', 'application/zip', 'text/plain']);
-const allowedExtensions = new Set(['jpg', 'jpeg', 'png', 'pdf', 'zip', 'txt']);
+const allowedMimeTypes = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'application/pdf', 'application/zip', 'text/plain',
+  'audio/m4a', 'audio/mp4', 'audio/aac', 'audio/mpeg', 'audio/wav', 'audio/3gpp', 'audio/x-m4a',
+  'video/mp4', 'video/quicktime',
+]);
+const allowedExtensions = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'zip', 'txt', 'm4a', 'mp4', 'aac', 'mp3', 'wav', '3gp', 'mov']);
 
 function isTextBuffer(buffer: Buffer) {
   for (const byte of buffer) {
