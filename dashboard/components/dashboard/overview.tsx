@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, CheckCircle, Clock, Users, Shield, Activity, Smartphone, Globe } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Users, Shield, Activity, Smartphone, Globe, FileDown, Download } from 'lucide-react';
+import { generatePlatformActivityReport } from '@/lib/platform-report';
+import { logExport } from '@/lib/export-logger';
 
 interface DashboardStats {
   totalUsers: number;
@@ -91,7 +94,23 @@ export function DashboardOverview() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
   const dateTime = useFormattedDateTime();
+
+  const handleDownloadReport = async () => {
+    setReportLoading(true);
+    try {
+      const res = await fetch('/api/platform-report');
+      if (!res.ok) throw new Error('Failed to fetch report data');
+      const data = await res.json();
+      generatePlatformActivityReport(data);
+      logExport('platform-report', 'pdf', 1, 'admin-download');
+    } catch (err) {
+      console.error('Failed to generate report:', err);
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -235,6 +254,16 @@ export function DashboardOverview() {
             <p className="text-xs text-teal-300/60 uppercase tracking-widest font-semibold">
               {dateTime}
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadReport}
+              disabled={reportLoading}
+              className="mt-2 bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs"
+            >
+              <FileDown className="mr-1.5 size-3.5" />
+              {reportLoading ? 'Generating...' : 'Download Platform Report'}
+            </Button>
           </div>
         </div>
         <div
