@@ -1,0 +1,11 @@
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.91.1:3000
+✓ Ready in 724ms
+
+ GET / 200 in 798ms (next.js: 298ms, application-code: 499ms)
+ GET / 200 in 117ms (next.js: 4ms, application-code: 113ms)
+ GET / 200 in 120ms (next.js: 5ms, application-code: 115ms)
+ GET / 200 in 403ms (next.js: 29ms, application-code: 374ms)
+ GET /api/site-stats/public?section=hero 200 in 236ms (next.js: 165ms, application-code: 71ms)
+ GET /api/site-stats/public?section=impact 200 in 302ms (next.js: 192ms, application-code: 110ms)
