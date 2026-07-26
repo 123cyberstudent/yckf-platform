@@ -55,9 +55,13 @@
       ],
       "expo-font",
       "expo-mail-composer",
-      "expo-sharing",
-      "expo-web-browser"
+      "expo-sharing"
     ],
-    "owner": "yckflab"
+    "owner": "yckflab",
+    "extra": {
+      "eas": {
+        "projectId": "5e76d348-6cfa-4810-82dc-6b1ad8776174"
+      }
+    }
   }
 }

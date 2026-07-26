@@ -39,7 +39,7 @@ const AboutScreen: React.FC = () => {
   };
 
   const openEmail = () => {
-    openUrl('mailto:contact@yckf.local');
+    openUrl('mailto:yckfadmin@youngcyberknightsfoundation.org');
   };
 
   const openPhone = () => {

@@ -72,7 +72,7 @@ export function isAdmin(req: AuthRequest, res: Response, next: NextFunction) {
 }
 
 export function isInvestigator(req: AuthRequest, res: Response, next: NextFunction) {
-  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'INVESTIGATOR')) {
+  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'INVESTIGATOR' && req.user.role !== 'VOLUNTEER')) {
     return res.status(403).json({ error: 'Investigator access required' });
   }
   next();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -15,13 +15,23 @@ import {
   X,
   Home,
   Shield,
+  Globe,
+  Ticket,
+  ClipboardList,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getRoleFromCookie } from '@/lib/permissions';
 
 export function DashboardSidebar() {
   const [open, setOpen] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    getRoleFromCookie().then(setRole);
+  }, []);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
@@ -33,14 +43,23 @@ export function DashboardSidebar() {
     router.push('/login');
   };
 
+  const isPrivileged = role === 'admin' || role === 'investigator' || role === 'volunteer';
+
   const menuItems = [
-    { icon: Home, label: 'Dashboard', href: '/dashboard' },
-    { icon: AlertTriangle, label: 'Incidents', href: '/dashboard/incidents' },
+    { icon: Home, label: 'Dashboard', href: '/dashboard', roles: ['admin', 'investigator', 'volunteer', 'user'] },
+    { icon: AlertTriangle, label: 'Incidents', href: '/dashboard/incidents', roles: ['admin', 'investigator', 'volunteer'] },
+    { icon: Shield, label: 'Volunteers', href: '/dashboard/volunteers', roles: ['admin', 'investigator', 'volunteer'] },
+    { icon: FileText, label: 'Evidence Vault', href: '/dashboard/evidence', roles: ['admin', 'investigator', 'volunteer'] },
+    { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', roles: ['admin', 'investigator', 'volunteer'] },
+    { icon: Bell, label: 'Notifications', href: '/dashboard/notifications', roles: ['admin', 'investigator', 'volunteer', 'user'] },
+  ];
+
+  const adminOnlyItems = [
+    { icon: Globe, label: 'Content Manager', href: '/dashboard/content' },
+    { icon: Hash, label: 'Site Stats', href: '/dashboard/site-stats' },
+    { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
-    { icon: Shield, label: 'Investigators', href: '/dashboard/investigators' },
-    { icon: FileText, label: 'Evidence Vault', href: '/dashboard/evidence' },
-    { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics' },
-    { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
+    { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
   ];
 
@@ -85,7 +104,7 @@ export function DashboardSidebar() {
               Menu
             </p>
             <div className="space-y-1">
-              {menuItems.map((item) => {
+              {menuItems.filter((item) => role && item.roles.includes(role)).map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 return (
@@ -105,6 +124,34 @@ export function DashboardSidebar() {
                 );
               })}
             </div>
+            {role === 'admin' && (
+              <>
+                <p className="px-3 mt-5 mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  Admin
+                </p>
+                <div className="space-y-1">
+                  {adminOnlyItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors border-l-[3px] pl-[9px] ${
+                          active
+                            ? 'bg-blue-50 text-[#2563EB] border-[#2563EB]'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent'
+                        }`}
+                        onClick={() => setOpen(false)}
+                      >
+                        <Icon className="size-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </nav>
 
           {/* Logout */}

@@ -81,7 +81,7 @@ export default function IncidentDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div><span className="text-muted-foreground">Reporter:</span> {incident.reportedByName}</div>
-            <div><span className="text-muted-foreground">Assigned investigator:</span> {incident.assignedToName ?? 'Unassigned'}</div>
+            <div><span className="text-muted-foreground">Assigned volunteer:</span> {incident.assignedToName ?? 'Unassigned'}</div>
             <div><span className="text-muted-foreground">Category:</span> {incident.category ?? incident.type}</div>
             <div><span className="text-muted-foreground">Created:</span> {new Date(incident.createdAt).toLocaleString()}</div>
             <div><span className="text-muted-foreground">Updated:</span> {new Date(incident.updatedAt).toLocaleString()}</div>

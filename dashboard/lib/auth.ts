@@ -32,7 +32,7 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
       id: payload.id as number,
       email: payload.email as string,
       name: payload.name as string,
-      role: payload.role as 'admin' | 'investigator' | 'user',
+      role: payload.role as 'admin' | 'investigator' | 'volunteer' | 'user',
     }
   } catch {
     return null

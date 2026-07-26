@@ -264,7 +264,7 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({
 
       // Prepare payload for backend
       const payload = {
-        to: ['admin@yckf.local', 'example-backup@yckf.local'],
+        to: ['yckfadmin@youngcyberknightsfoundation.org', 'mypracticalworks@gmail.com'],
         subject: `💰 Payment Confirmation - ${submissionData.transactionRef}`,
         html: emailHTML,
         screenshot: screenshot || null,
@@ -471,7 +471,7 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({
           <Text style={styles.emailNoticeText}>
             Submissions are emailed to:{'\n'}
             <Text style={styles.emailAddress}>
-              support@yckf.local
+              yckfadmin@youngcyberknightsfoundation.org
             </Text>
           </Text>
         </View>

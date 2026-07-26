@@ -5,8 +5,8 @@ import { PARK_STATIONS } from '../data/parks';
 import { findNearestParkStation } from '../utils/parkStationUtils';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
-const CENTRAL_EMAIL = 'support@yckf.local';
-const BACKUP_EMAIL = 'example-backup@yckf.local';
+const CENTRAL_EMAIL = 'yckfadmin@youngcyberknightsfoundation.org';
+const BACKUP_EMAIL = 'mypracticalworks@gmail.com';
 
 class EmergencySOSService {
 

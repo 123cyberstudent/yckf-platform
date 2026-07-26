@@ -110,7 +110,7 @@ const PaymentOptionsScreen: React.FC<PaymentOptionsScreenProps> = ({
               
               var handler = PaystackPop.setup({
                 key: '${PAYSTACK_PUBLIC_KEY}',
-                email: 'user@yckf.org',
+                email: 'mypracticalworks@gmail.com',
                 amount: ${amount},
                 ref: '${reference}',
                 currency: 'GHS',

@@ -39,6 +39,11 @@ interface AnalyticsData {
     resolved: number;
     investigating: number;
   }>;
+  volunteerPerformance?: Array<{
+    name: string;
+    resolved: number;
+    investigating: number;
+  }>;
   recentActivity?: Array<{
     id: string;
     action: string;
@@ -297,15 +302,15 @@ export function AnalyticsDashboard() {
         </Card>
       )}
 
-      {/* Investigator Performance */}
-      {data.investigatorPerformance && data.investigatorPerformance.length > 0 && (
+      {/* Volunteer Performance */}
+      {(data.volunteerPerformance ?? data.investigatorPerformance) && (data.volunteerPerformance ?? data.investigatorPerformance)!.length > 0 && (
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle>Investigator Performance</CardTitle>
+            <CardTitle>Volunteer Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.investigatorPerformance.map((inv, index) => (
+              {(data.volunteerPerformance ?? data.investigatorPerformance)!.map((inv, index) => (
                 <div key={index} className="flex items-center gap-4">
                   <div className="w-24 font-medium">{inv.name}</div>
                   <div className="flex-1">

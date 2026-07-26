@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Shield, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 const links = [
   { href: '/', label: 'Home' },
   { href: '/about', label: 'About' },
-  { href: '/team', label: 'Volunteers' },
+  { href: '/volunteers', label: 'Volunteer' },
+  { href: '/report-a-cybercrime', label: 'Report Crime' },
   { href: '/news', label: 'News' },
   { href: '/events', label: 'Events' },
   { href: '/courses', label: 'Courses' },
@@ -22,12 +23,15 @@ export function SiteNav() {
     <header className="border-b border-gray-200 bg-white px-4 py-3 sm:px-6 lg:px-10">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#06292D]">
-            <Shield className="h-5 w-5 text-[#2DD4BF]" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/logo.jpeg"
+            alt="YCKF Logo"
+            className="h-11 w-11 rounded-lg object-cover"
+          />
           <div className="flex flex-col">
-            <span className="text-base font-bold tracking-tight text-[#111827]">YCKF</span>
-            <span className="text-[11px] leading-tight text-[#6B7280]">Young Cyber Knights Foundation</span>
+            <span className="text-xl font-extrabold tracking-tight text-[#111827]">YCKF</span>
+            <span className="text-sm leading-tight text-[#6B7280] font-medium">Young Cyber Knights Foundation</span>
           </div>
         </Link>
 
@@ -46,7 +50,7 @@ export function SiteNav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-[#6B7280] transition hover:text-[#2563EB]"
+                className="text-base font-semibold text-[#374151] transition hover:text-[#2563EB]"
                 onClick={() => setOpen(false)}
               >
                 {link.label}
@@ -57,14 +61,14 @@ export function SiteNav() {
           <div className="mt-4 flex flex-col gap-3 border-t border-gray-200 pt-4 md:mt-0 md:flex-row md:border-t-0 md:pt-0">
             <Link
               href="/login"
-              className="inline-flex w-full items-center justify-center rounded-full border border-[#2563EB] bg-transparent px-5 py-2 text-sm font-semibold text-[#2563EB] transition hover:bg-[#2563EB] hover:text-white md:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full border border-[#2563EB] bg-transparent px-6 py-2.5 text-base font-bold text-[#2563EB] transition hover:bg-[#2563EB] hover:text-white md:w-auto"
               onClick={() => setOpen(false)}
             >
               Login
             </Link>
             <Link
               href="/signup"
-              className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] md:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-6 py-2.5 text-base font-bold text-white transition hover:bg-[#1D4ED8] md:w-auto"
               onClick={() => setOpen(false)}
             >
               Sign Up

@@ -200,7 +200,7 @@ const SubscriptionTermsScreen: React.FC = () => {
                 For questions about subscriptions or payments, please contact us at:
               </Text>
               <Text style={styles.paragraph}>
-                Email: support@yckf.org{'\n'}
+                Email: yckfadmin@youngcyberknightsfoundation.org{'\n'}
                 Phone: +233 XX XXX XXXX
               </Text>
             </View>

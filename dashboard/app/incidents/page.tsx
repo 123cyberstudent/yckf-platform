@@ -19,7 +19,7 @@ export default function IncidentsPage() {
         <div className="grid gap-4 md:grid-cols-3">
           {[
             { title: 'Critical Alerts', value: '8', detail: 'Need immediate review' },
-            { title: 'Open Cases', value: '24', detail: 'Awaiting investigator action' },
+            { title: 'Open Cases', value: '24', detail: 'Awaiting volunteer action' },
             { title: 'Resolved This Week', value: '12', detail: 'Recovered with monitoring' },
           ].map((item) => (
             <Card key={item.title} className="glass-card">
@@ -37,7 +37,7 @@ export default function IncidentsPage() {
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-xl font-semibold">Latest Incident Activity</h2>
-                <p className="text-sm text-muted-foreground">Investigators are actively tracking logged threats and containment steps.</p>
+                <p className="text-sm text-muted-foreground">Volunteers are actively tracking logged threats and containment steps.</p>
               </div>
               <Link href="/dashboard/incidents">
                 <Button>Open Operations Console</Button>

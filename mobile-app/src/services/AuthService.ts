@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, AppStateStatus } from 'react-native';
 
 // ✅ UPDATED: Your Render backend URL
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001'
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001'
 
 // ============================================
 // AUTO-LOGOUT CONFIGURATION
@@ -20,7 +20,7 @@ export interface User {
   name: string;
   fullName?: string;
   phoneNumber?: string;
-  role: 'admin' | 'investigator' | 'user';
+  role: 'admin' | 'volunteer' | 'user';
   profileImage?: string;
 }
 
@@ -531,7 +531,7 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
   }
    async isAdmin(): Promise<boolean> {
     const user = await this.getCurrentUser();
-    return user?.role === 'admin' || user?.role === 'investigator';
+    return user?.role === 'admin' || user?.role === 'volunteer';
   }
 
   async refreshUser(): Promise<User | null> {
@@ -629,7 +629,7 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
                 <p>Administrative Notification System</p>
                 <p style="margin-top: 15px;">
                   This is an automated notification from the YCKF Mobile App.<br>
-                  For support, contact: <a href="mailto:admin@yckf.local" style="color: #0066cc;">admin@yckf.local</a>
+                  For support, contact: <a href="mailto:yckfadmin@youngcyberknightsfoundation.org" style="color: #0066cc;">yckfadmin@youngcyberknightsfoundation.org</a>
                 </p>
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
                 <p style="font-size: 11px; color: #999;">
@@ -648,7 +648,7 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          to: ['admin@yckf.local', 'example-backup@yckf.local'],
+          to: ['yckfadmin@youngcyberknightsfoundation.org', 'mypracticalworks@gmail.com'],
           subject: '🎉 New User Registration - YCKF Platform',
           html: htmlTemplate,
           metadata: {

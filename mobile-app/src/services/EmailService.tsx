@@ -90,7 +90,7 @@ class EmailService {
       if (!token) {
         console.warn('[EmailService] No auth token - attempting manual fallback');
         const manualSuccess = await this.openManualEmail(
-          ['admin@yckf.local'],
+          ['yckfadmin@youngcyberknightsfoundation.org'],
           `Cybercrime Report - ${reportData.caseId}`,
           `Case ID: ${reportData.caseId}\n\nName: ${reportData.fullName}\nEmail: ${reportData.email}\nPhone: ${reportData.phoneNumber}\n\nDetails:\n${reportData.details}`
         );
@@ -126,7 +126,7 @@ class EmailService {
       // Auto-send failed, try manual fallback
       console.warn('[EmailService] Auto-send failed, trying manual fallback...');
       const manualSuccess = await this.openManualEmail(
-        ['admin@yckf.local'],
+        ['yckfadmin@youngcyberknightsfoundation.org'],
         `Cybercrime Report - ${reportData.caseId}`,
         `Case ID: ${reportData.caseId}\n\nName: ${reportData.fullName}\nEmail: ${reportData.email}\nPhone: ${reportData.phoneNumber}\n\nDetails:\n${reportData.details}`
       );
@@ -142,7 +142,7 @@ class EmailService {
       
       // Try manual fallback on error
       const manualSuccess = await this.openManualEmail(
-        ['admin@yckf.local'],
+        ['yckfadmin@youngcyberknightsfoundation.org'],
         `Cybercrime Report - ${reportData.caseId}`,
         `Case ID: ${reportData.caseId}\n\nName: ${reportData.fullName}\nEmail: ${reportData.email}\nDetails:\n${reportData.details}`
       );
@@ -190,7 +190,7 @@ class EmailService {
       // Auto-send failed, try manual fallback
       console.warn('[EmailService] Auto-send failed, trying manual fallback...');
       const manualSuccess = await this.openManualEmail(
-        ['admin@yckf.local'],
+        ['yckfadmin@youngcyberknightsfoundation.org'],
         `Contact Form - ${contactData.name}`,
         `From: ${contactData.name}\nEmail: ${contactData.email}\n\nMessage:\n${contactData.message}`
       );
@@ -206,7 +206,7 @@ class EmailService {
       
       // Try manual fallback on error
       const manualSuccess = await this.openManualEmail(
-        ['admin@yckf.local'],
+        ['yckfadmin@youngcyberknightsfoundation.org'],
         `Contact Form - ${contactData.name}`,
         `From: ${contactData.name}\nEmail: ${contactData.email}\n\nMessage:\n${contactData.message}`
       );
@@ -307,7 +307,7 @@ class EmailService {
     const body = `Coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}\nhttps://maps.google.com/?q=${location.latitude},${location.longitude}`;
     
     const success = await this.openManualEmail(
-      ['admin@yckf.local'],
+      ['yckfadmin@youngcyberknightsfoundation.org'],
       subject,
       body
     );
@@ -325,7 +325,7 @@ class EmailService {
     }
 
     const success = await this.openManualEmail(
-      ['admin@yckf.local'],
+      ['yckfadmin@youngcyberknightsfoundation.org'],
       subject,
       body
     );
@@ -343,7 +343,7 @@ class EmailService {
     const body = `Type: ${feedbackData.type}\n${feedbackData.userEmail ? `User: ${feedbackData.userEmail}\n` : ''}\n${feedbackData.message}`;
 
     const success = await this.openManualEmail(
-      ['admin@yckf.local'],
+      ['yckfadmin@youngcyberknightsfoundation.org'],
       subject,
       body
     );

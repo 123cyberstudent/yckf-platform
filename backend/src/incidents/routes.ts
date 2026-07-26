@@ -46,7 +46,7 @@ router.get(
   async (req: AuthRequest, res: Response) => {
     try {
       const { status } = req.query;
-      const where: any = { assignedInvestigatorId: req.user!.id };
+      const where: any = req.user!.role === 'VOLUNTEER' ? {} : { assignedInvestigatorId: req.user!.id };
       if (status) where.status = status;
       const cases = await prisma.case.findMany({
         where,
@@ -104,7 +104,7 @@ router.put(
       const caseId = Number(req.params.id);
       const assignedInvestigatorId = req.body.assignedInvestigatorId;
       const investigator = await prisma.user.findUnique({ where: { id: assignedInvestigatorId } });
-      if (!investigator || investigator.role !== 'INVESTIGATOR') {
+      if (!investigator || (investigator.role !== 'INVESTIGATOR' && investigator.role !== 'VOLUNTEER')) {
         return res.status(400).json({ error: 'Assigned user must be an investigator' });
       }
       const updatedCase = await prisma.case.update({

@@ -79,6 +79,7 @@ export function normalizeRole(role?: string) {
   const normalized = role.toLowerCase()
   if (normalized === 'admin') return 'admin'
   if (normalized === 'investigator') return 'investigator'
+  if (normalized === 'volunteer') return 'volunteer'
   return 'user'
 }
 

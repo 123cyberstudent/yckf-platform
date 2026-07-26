@@ -86,7 +86,7 @@ export interface CaseInfo {
   description?: string;
   dateReported: Date;
   lastUpdated: Date;
-  investigator?: string;
+  volunteer?: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
   updates: CaseUpdate[];
 }

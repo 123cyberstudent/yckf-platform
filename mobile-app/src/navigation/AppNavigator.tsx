@@ -43,6 +43,12 @@ import SubscriptionTermsScreen from '../screens/SubscriptionTermsScreen';
 // ⭐ Profile Screen (NEW)
 import ProfileScreen from '../screens/ProfileScreen';
 
+// CMS Content Screens
+import NewsScreen from '../screens/NewsScreen';
+import EventsScreen from '../screens/EventsScreen';
+import CoursesScreen from '../screens/CoursesScreen';
+import ResourcesScreen from '../screens/ResourcesScreen';
+
 // Placeholder for missing screens
 const MissingScreenPlaceholder: React.FC<{ name: string }> = ({ name }) => (
   <View style={styles.placeholder}>
@@ -114,6 +120,10 @@ type RootStackParamList = {
   PaymentSubmitted: {
     transactionRef?: string;
   };
+  News: undefined;
+  Events: undefined;
+  Courses: undefined;
+  Resources: undefined;
 };
 const Stack = createNativeStackNavigator<RootStackParamList>(); // ⭐ UPDATED - Added generic type
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -326,6 +336,28 @@ const AppNavigator: React.FC = () => {
   component={PaymentSubmittedScreen}
   options={{ headerShown: false }}
 />
+
+      {/* CMS Content Screens */}
+      <Stack.Screen
+        name="News"
+        component={ensureScreen(NewsScreen, 'NewsScreen')}
+        options={{ title: 'News' }}
+      />
+      <Stack.Screen
+        name="Events"
+        component={ensureScreen(EventsScreen, 'EventsScreen')}
+        options={{ title: 'Events' }}
+      />
+      <Stack.Screen
+        name="Courses"
+        component={ensureScreen(CoursesScreen, 'CoursesScreen')}
+        options={{ title: 'Courses' }}
+      />
+      <Stack.Screen
+        name="Resources"
+        component={ensureScreen(ResourcesScreen, 'ResourcesScreen')}
+        options={{ title: 'Resources' }}
+      />
     </Stack.Navigator>
   );
 };

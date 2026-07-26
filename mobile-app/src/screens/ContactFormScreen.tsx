@@ -343,7 +343,7 @@ const onSubmit = async (data: ContactForm) => {
     {/* Email Button */}
     <TouchableOpacity 
       style={styles.linkButton}
-      onPress={() => sendEmail('admin@yckf.local')}
+      onPress={() => sendEmail('yckfadmin@youngcyberknightsfoundation.org')}
       activeOpacity={0.7}
     >
       <View style={styles.linkButtonIcon}>

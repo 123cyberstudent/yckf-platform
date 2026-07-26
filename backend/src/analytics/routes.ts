@@ -114,7 +114,7 @@ router.get('/data', verifyToken, isInvestigator, async (req, res) => {
     const closureRate = totalCases > 0 ? (resolvedCases / totalCases) * 100 : 0;
     const averageResponseTimeHours = caseResolutionTimes.length > 0 ? caseResolutionTimes.reduce((sum, time) => sum + time, 0) / caseResolutionTimes.length : 0;
     const mostCommonIncidentType = Object.entries(incidentTypeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-    const activeInvestigators = await prisma.user.count({ where: { role: 'INVESTIGATOR', isActive: true } });
+    const activeInvestigators = await prisma.user.count({ where: { role: { in: ['INVESTIGATOR', 'VOLUNTEER'] }, isActive: true } });
 
     res.json({
       incidentsPerMonth,

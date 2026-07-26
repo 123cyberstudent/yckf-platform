@@ -39,8 +39,8 @@ export const APP_CONFIG = {
 export const CONTACT_INFO = {
   // Testing contacts (replace with YCKF official contacts after testing)
   email: {
-    test: 'example-backup@yckf.local', // Development testing email
-    official: 'admin@yckf.local', // YCKF official email
+    test: 'mypracticalworks@gmail.com', // Development testing email
+    official: 'yckfadmin@youngcyberknightsfoundation.org', // YCKF official email
   },
   
   whatsapp: {
@@ -341,6 +341,10 @@ export const SCREEN_NAMES = {
   LAST_DETECTED_LOCATION: 'LastDetectedLocation',
   SECURITY_ALERT_SENT: 'SecurityAlertSent',
   INCIDENT_HISTORY: 'IncidentHistory',
+  NEWS: 'News',
+  EVENTS: 'Events',
+  COURSES: 'Courses',
+  RESOURCES: 'Resources',
 };
 
 /**
@@ -478,8 +482,8 @@ export const WHATSAPP_CONFIG = {
  * ============================================================================
  */
 export const THIEF_DETECTION_CONFIG = {
-  ADMIN_EMAIL: 'admin@yckf.local',
-  BACKUP_EMAIL: 'example-backup@yckf.local',
+  ADMIN_EMAIL: 'yckfadmin@youngcyberknightsfoundation.org',
+  BACKUP_EMAIL: 'mypracticalworks@gmail.com',
   
   DEFAULT_SETTINGS: {
     THRESHOLD: 1,

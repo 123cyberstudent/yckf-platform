@@ -13,6 +13,11 @@ describe('Backend Helper Functions', () => {
       expect(normalizeRole('investigator')).toBe('investigator');
     });
 
+    it('should return volunteer for VOLUNTEER', () => {
+      expect(normalizeRole('VOLUNTEER')).toBe('volunteer');
+      expect(normalizeRole('volunteer')).toBe('volunteer');
+    });
+
     it('should return user for USER and unknown roles', () => {
       expect(normalizeRole('USER')).toBe('user');
       expect(normalizeRole('user')).toBe('user');

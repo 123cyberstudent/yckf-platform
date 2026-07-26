@@ -64,11 +64,11 @@ export async function GET() {
   }
 }
 
-// Helper function to transform mock users to investigators
+// Helper function to transform mock users to investigators/volunteers
 function transformMockInvestigators() {
-  // Filter users with role 'investigator' or 'admin' (admins can also be investigators)
+  // Filter users with role 'investigator', 'volunteer', or 'admin' (admins can also be investigators)
   const investigators = users.filter(user => 
-    user.role === 'investigator' || user.role === 'admin'
+    user.role === 'investigator' || user.role === 'volunteer' || user.role === 'admin'
   )
   
   return investigators.map(user => ({
@@ -77,8 +77,8 @@ function transformMockInvestigators() {
     name: user.name,
     role: user.role,
     status: user.status,
-    createdAt: user.createdAt.toISOString(),
-    lastLogin: user.lastLogin ? user.lastLogin.toISOString() : null,
+    createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
+    lastLogin: user.lastLogin ? (user.lastLogin instanceof Date ? user.lastLogin.toISOString() : String(user.lastLogin)) : null,
   }))
 }
 
@@ -90,11 +90,11 @@ export async function POST(request: Request) {
     
     // If no token, use mock creation
     if (!token) {
-      console.log('No auth token found, creating mock investigator')
+      console.log('No auth token found, creating mock volunteer')
       const newInvestigator = {
         id: `inv-${Date.now()}`,
         ...body,
-        role: 'investigator',
+        role: 'volunteer',
         status: 'active',
         createdAt: new Date().toISOString(),
         lastLogin: null,
@@ -110,13 +110,13 @@ export async function POST(request: Request) {
       }, token)
 
       if (response.status === 401) {
-        console.log('Auth token invalid, creating mock investigator')
+        console.log('Auth token invalid, creating mock volunteer')
         const { clearBackendAuthCookie } = await import('@/lib/backend')
         await clearBackendAuthCookie()
         const newInvestigator = {
           id: `inv-${Date.now()}`,
           ...body,
-          role: 'investigator',
+          role: 'volunteer',
           status: 'active',
           createdAt: new Date().toISOString(),
           lastLogin: null,
@@ -126,11 +126,11 @@ export async function POST(request: Request) {
 
       if (!response.ok) {
         // If backend fails, still return a mock success response
-        console.log(`Backend error ${response.status}, returning mock investigator`)
+        console.log(`Backend error ${response.status}, returning mock volunteer`)
         const newInvestigator = {
           id: `inv-${Date.now()}`,
           ...body,
-          role: 'investigator',
+          role: 'volunteer',
           status: 'active',
           createdAt: new Date().toISOString(),
           lastLogin: null,
@@ -142,17 +142,17 @@ export async function POST(request: Request) {
       return NextResponse.json({
         id: payload.id ?? `inv-${Date.now()}`,
         ...body,
-        role: 'investigator',
+        role: 'volunteer',
         status: 'active',
         createdAt: payload.createdAt ?? new Date().toISOString(),
         lastLogin: null,
       }, { status: 201 })
     } catch (fetchError) {
-      console.log('Backend unreachable, creating mock investigator')
+      console.log('Backend unreachable, creating mock volunteer')
       const newInvestigator = {
         id: `inv-${Date.now()}`,
         ...body,
-        role: 'investigator',
+        role: 'volunteer',
         status: 'active',
         createdAt: new Date().toISOString(),
         lastLogin: null,
@@ -160,9 +160,9 @@ export async function POST(request: Request) {
       return NextResponse.json(newInvestigator, { status: 201 })
     }
   } catch (error) {
-    console.error('Create investigator error:', error)
+    console.error('Create volunteer error:', error)
     return NextResponse.json(
-      { error: 'Failed to create investigator' },
+      { error: 'Failed to create volunteer' },
       { status: 500 }
     )
   }
@@ -176,7 +176,7 @@ export async function PUT(request: Request) {
     const token = await getBackendAuthToken()
     
     if (!token) {
-      console.log('No auth token found, updating mock investigator')
+      console.log('No auth token found, updating mock volunteer')
       return NextResponse.json({
         id,
         ...updateData,
@@ -192,7 +192,7 @@ export async function PUT(request: Request) {
       }, token)
 
       if (response.status === 401) {
-        console.log('Auth token invalid, updating mock investigator')
+        console.log('Auth token invalid, updating mock volunteer')
         return NextResponse.json({
           id,
           ...updateData,
@@ -201,13 +201,13 @@ export async function PUT(request: Request) {
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to update investigator: ${response.status}`)
+        throw new Error(`Failed to update volunteer: ${response.status}`)
       }
 
       const payload = await response.json()
       return NextResponse.json(payload)
     } catch (fetchError) {
-      console.log('Backend unreachable, updating mock investigator')
+      console.log('Backend unreachable, updating mock volunteer')
       return NextResponse.json({
         id,
         ...updateData,
@@ -215,9 +215,9 @@ export async function PUT(request: Request) {
       })
     }
   } catch (error) {
-    console.error('Update investigator error:', error)
+    console.error('Update volunteer error:', error)
     return NextResponse.json(
-      { error: 'Failed to update investigator' },
+      { error: 'Failed to update volunteer' },
       { status: 500 }
     )
   }
@@ -230,7 +230,7 @@ export async function DELETE(request: Request) {
     
     if (!id) {
       return NextResponse.json(
-        { error: 'Investigator ID is required' },
+        { error: 'Volunteer ID is required' },
         { status: 400 }
       )
     }
@@ -238,10 +238,10 @@ export async function DELETE(request: Request) {
     const token = await getBackendAuthToken()
     
     if (!token) {
-      console.log('No auth token found, deleting mock investigator')
+      console.log('No auth token found, deleting mock volunteer')
       return NextResponse.json({
         success: true,
-        message: 'Investigator deleted successfully'
+        message: 'Volunteer deleted successfully'
       })
     }
 
@@ -251,32 +251,32 @@ export async function DELETE(request: Request) {
       }, token)
 
       if (response.status === 401) {
-        console.log('Auth token invalid, deleting mock investigator')
+        console.log('Auth token invalid, deleting mock volunteer')
         return NextResponse.json({
           success: true,
-          message: 'Investigator deleted successfully'
+          message: 'Volunteer deleted successfully'
         })
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to delete investigator: ${response.status}`)
+        throw new Error(`Failed to delete volunteer: ${response.status}`)
       }
 
       return NextResponse.json({
         success: true,
-        message: 'Investigator deleted successfully'
+        message: 'Volunteer deleted successfully'
       })
     } catch (fetchError) {
-      console.log('Backend unreachable, deleting mock investigator')
+      console.log('Backend unreachable, deleting mock volunteer')
       return NextResponse.json({
         success: true,
-        message: 'Investigator deleted successfully'
+        message: 'Volunteer deleted successfully'
       })
     }
   } catch (error) {
-    console.error('Delete investigator error:', error)
+    console.error('Delete volunteer error:', error)
     return NextResponse.json(
-      { error: 'Failed to delete investigator' },
+      { error: 'Failed to delete volunteer' },
       { status: 500 }
     )
   }

@@ -5,7 +5,7 @@ const router = Router();
 
 router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
   const user = req.user;
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'INVESTIGATOR';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'INVESTIGATOR' || user?.role === 'VOLUNTEER';
 
   res.json({
     premium: isAdmin,

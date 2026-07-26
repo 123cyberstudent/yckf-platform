@@ -738,7 +738,7 @@ const EmergencyReportScreen: React.FC = () => {
       }
 
       const emailOptions: any = {
-        recipients: ['admin@yckf.local'],
+        recipients: ['yckfadmin@youngcyberknightsfoundation.org'],
         subject: `🚨 EMERGENCY - ${new Date().toLocaleString()}`,
         body: message,
         isHtml: false,

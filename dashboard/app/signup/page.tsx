@@ -76,42 +76,49 @@ export default function SignUpPage() {
       <div className="mx-auto max-w-3xl space-y-10">
         <section className="rounded-3xl border border-border/70 bg-card/80 p-8 shadow-lg shadow-black/5">
           <div className="space-y-4 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary">Join the YCKF Community</p>
+            <p className="text-base font-semibold uppercase tracking-[0.35em] text-primary">Join the YCKF Community</p>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Create an account </h1>
-            <p className="text-sm text-muted-foreground">Sign up to access exclusive features and stay connected with the YCKF community.</p>
+            <p className="text-base text-muted-foreground">Sign up to access exclusive features and stay connected with the YCKF community.</p>
           </div>
 
           {!submitted ? (
-            <form onSubmit={handleSubmit} className="mt-8 grid gap-4">
+            <form onSubmit={handleSubmit} className="mt-8 grid gap-4" autoComplete="off">
               {error && (
-                <div className="rounded-3xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-500 text-center">
+                <div className="rounded-3xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-base text-red-500 text-center">
                   {error}
                 </div>
               )}
               
+              {/* Hidden dummy fields to prevent browser autofill */}
+              <input type="text" name="fake-username" autoComplete="username" className="hidden" tabIndex={-1} />
+              <input type="password" name="fake-password" autoComplete="new-password" className="hidden" tabIndex={-1} />
+              
               <input 
-                className="rounded-3xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-foreground outline-none" 
+                className="rounded-3xl border border-border/70 bg-background/70 px-4 py-3 text-base text-foreground outline-none" 
                 type="text" 
                 placeholder="Full Name" 
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                autoComplete="name"
                 required 
               />
               <input 
-                className="rounded-3xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-foreground outline-none" 
+                className="rounded-3xl border border-border/70 bg-background/70 px-4 py-3 text-base text-foreground outline-none" 
                 type="email" 
                 placeholder="Email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
                 required 
               />
               <div className="relative">
                 <input 
-                  className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 pr-12 text-sm text-foreground outline-none" 
+                  className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 pr-12 text-base text-foreground outline-none" 
                   type={showPassword ? 'text' : 'password'} 
                   placeholder="Password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
                   required 
                 />
                 <button
@@ -125,11 +132,12 @@ export default function SignUpPage() {
               </div>
               <div className="relative">
                 <input 
-                  className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 pr-12 text-sm text-foreground outline-none" 
+                  className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 pr-12 text-base text-foreground outline-none" 
                   type={showConfirmPassword ? 'text' : 'password'} 
                   placeholder="Confirm Password" 
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="off"
                   required 
                 />
                 <button
@@ -141,7 +149,7 @@ export default function SignUpPage() {
                   {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
-              <label className="flex items-center gap-3 text-sm text-muted-foreground">
+              <label className="flex items-center gap-3 text-base text-muted-foreground">
                 <input 
                   type="checkbox" 
                   className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary" 
@@ -154,7 +162,7 @@ export default function SignUpPage() {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
-              <p className="text-center text-sm text-muted-foreground">
+              <p className="text-center text-base text-muted-foreground">
                 Already have an account?{' '}
                 <Link href="/login" className="text-primary hover:text-primary/80">
                   Login
@@ -163,9 +171,9 @@ export default function SignUpPage() {
             </form>
           ) : (
             <div className="rounded-3xl border border-border/70 bg-background/80 p-8 text-center">
-              <p className="text-xl font-semibold text-white">Thank you for signing up.</p>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">We have sent a confirmation link to your email address. Please check your inbox to activate your account.</p>
-              <Link href="/login" className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
+              <p className="text-2xl font-semibold text-white">Thank you for signing up.</p>
+              <p className="mt-3 text-base leading-8 text-muted-foreground">We have sent a confirmation link to your email address. Please check your inbox to activate your account.</p>
+              <Link href="/login" className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition hover:bg-primary/90">
                 Go to Login
               </Link>
             </div>

@@ -99,7 +99,7 @@ const AdminLoginScreen: React.FC = () => {
               <Ionicons name="mail" size={20} color={COLORS.text.secondary} />
               <TextInput
                 style={styles.input}
-                placeholder="admin@yckf.org"
+                placeholder="Enter your email"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"

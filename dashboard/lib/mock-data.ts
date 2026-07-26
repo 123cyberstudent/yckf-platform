@@ -8,6 +8,7 @@ import type {
   IncidentTrend,
   SeverityDistribution,
   InvestigatorPerformance,
+  VolunteerPerformance,
   RecentActivity,
 } from './types'
 
@@ -18,7 +19,7 @@ const hoursAgo = (hours: number) => new Date(Date.now() - hours * 60 * 60 * 1000
 export const users: User[] = [
   {
     id: 'user-1',
-    email: 'admin@yckf.org',
+    email: 'yckfadmin@youngcyberknightsfoundation.org',
     name: 'Sarah Chen',
     role: 'admin',
     avatar: undefined,
@@ -28,9 +29,9 @@ export const users: User[] = [
   },
   {
     id: 'user-2',
-    email: 'mike.torres@yckf.org',
-    name: 'Mike Torres',
-    role: 'investigator',
+    email: 'mypracticalworks@gmail.com',
+    name: 'First Volunteer',
+    role: 'volunteer',
     avatar: undefined,
     status: 'active',
     createdAt: daysAgo(180),
@@ -40,7 +41,7 @@ export const users: User[] = [
     id: 'user-3',
     email: 'emily.watson@yckf.org',
     name: 'Emily Watson',
-    role: 'investigator',
+    role: 'volunteer',
     avatar: undefined,
     status: 'active',
     createdAt: daysAgo(120),
@@ -50,7 +51,7 @@ export const users: User[] = [
     id: 'user-4',
     email: 'james.kim@yckf.org',
     name: 'James Kim',
-    role: 'investigator',
+    role: 'volunteer',
     avatar: undefined,
     status: 'active',
     createdAt: daysAgo(90),
@@ -435,7 +436,7 @@ export const notifications: Notification[] = [
     priority: 'urgent',
     createdAt: hoursAgo(6),
     read: false,
-    targetRoles: ['admin', 'investigator'],
+    targetRoles: ['admin', 'volunteer'],
   },
   {
     id: 'notif-002',
@@ -445,7 +446,7 @@ export const notifications: Notification[] = [
     priority: 'high',
     createdAt: daysAgo(1),
     read: true,
-    targetRoles: ['admin', 'investigator'],
+    targetRoles: ['admin', 'volunteer'],
   },
   {
     id: 'notif-003',
@@ -525,14 +526,16 @@ export function getSeverityDistribution(): SeverityDistribution[] {
   ]
 }
 
-export function getInvestigatorPerformance(): InvestigatorPerformance[] {
-  const investigators = users.filter(u => u.role === 'investigator')
-  return investigators.map(inv => ({
+export function getVolunteerPerformance(): VolunteerPerformance[] {
+  const volunteers = users.filter(u => u.role === 'volunteer')
+  return volunteers.map(inv => ({
     name: inv.name.split(' ')[0],
     resolved: incidents.filter(i => i.assignedTo === inv.id && (i.status === 'resolved' || i.status === 'closed')).length,
     investigating: incidents.filter(i => i.assignedTo === inv.id && i.status === 'investigating').length,
   }))
 }
+
+export const getInvestigatorPerformance = getVolunteerPerformance
 
 export function getRecentActivity(): RecentActivity[] {
   return [

@@ -1,4 +1,4 @@
-import authService from '../services/AuthService';
+import authService, { API_BASE_URL } from '../services/AuthService';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
@@ -302,6 +302,52 @@ const CybercrimeReportScreen: React.FC = () => {
     }
   }, [capturedLocation]);
 
+  const submitToAPI = useCallback(async (reportData: CybercrimeReportForm): Promise<boolean> => {
+    try {
+      const token = await authService.getToken();
+      const locationStr = capturedLocation
+        ? `${capturedLocation.latitude ?? ''},${capturedLocation.longitude ?? ''}`
+        : '';
+
+      const body = {
+        fullName: reportData.fullName,
+        email: reportData.email,
+        phone: reportData.phoneNumber || '',
+        address: reportData.city || '',
+        incidentDate: reportData.dateOfIncident
+          ? new Date(reportData.dateOfIncident).toISOString()
+          : '',
+        incidentType: reportData.typeOfCybercrime,
+        description: reportData.details,
+        location: locationStr,
+      };
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/reports`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        console.warn('Backend report submission failed:', response.status);
+        return false;
+      }
+
+      console.log('Report submitted to backend API');
+      return true;
+    } catch (err) {
+      console.warn('Backend API submission failed (non-blocking):', err);
+      return false;
+    }
+  }, [capturedLocation]);
+
   const onSubmit = useCallback(async (data: CybercrimeReportForm) => {
     setIsSubmitting(true);
     try {
@@ -332,7 +378,10 @@ const CybercrimeReportScreen: React.FC = () => {
             text: 'Email',
             onPress: async () => {
               setIsSubmitting(true);
-              const emailOk = await submitViaEmail(data, caseId);
+              const [emailOk] = await Promise.all([
+                submitViaEmail(data, caseId),
+                submitToAPI(data),
+              ]);
               setIsSubmitting(false);
               if (emailOk) {
                 await NotificationService.showReportSubmittedNotification(caseId);
@@ -346,7 +395,10 @@ const CybercrimeReportScreen: React.FC = () => {
             text: 'WhatsApp',
             onPress: async () => {
               setIsSubmitting(true);
-              const waOk = await submitViaWhatsApp(data, caseId);
+              const [waOk] = await Promise.all([
+                submitViaWhatsApp(data, caseId),
+                submitToAPI(data),
+              ]);
               setIsSubmitting(false);
               if (waOk) {
                 await NotificationService.showReportSubmittedNotification(caseId);
@@ -363,6 +415,7 @@ const CybercrimeReportScreen: React.FC = () => {
               const [emailOk, waOk] = await Promise.all([
                 submitViaEmail(data, caseId),
                 submitViaWhatsApp(data, caseId),
+                submitToAPI(data),
               ]);
               setIsSubmitting(false);
               if (emailOk || waOk) {
@@ -381,7 +434,7 @@ const CybercrimeReportScreen: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [navigation, reset, saveToEvidenceBox, state.isOnline, submitViaEmail, submitViaWhatsApp]);
+  }, [navigation, reset, saveToEvidenceBox, state.isOnline, submitViaEmail, submitViaWhatsApp, submitToAPI]);
 
   // Temporary debug watcher - remove in production if noisy
   useEffect(() => {

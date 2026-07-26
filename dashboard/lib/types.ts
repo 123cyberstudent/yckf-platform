@@ -1,6 +1,6 @@
 // Core Types for YCKF Incident Management Dashboard
 
-export type UserRole = 'admin' | 'investigator' | 'user'
+export type UserRole = 'admin' | 'investigator' | 'volunteer' | 'user'
 export type UserStatus = 'active' | 'inactive' | 'suspended'
 
 export interface User {
@@ -139,11 +139,13 @@ export interface SeverityDistribution {
   count: number
 }
 
-export interface InvestigatorPerformance {
+export interface VolunteerPerformance {
   name: string
   resolved: number
   investigating: number
 }
+
+export type InvestigatorPerformance = VolunteerPerformance
 
 export interface RecentActivity {
   id: string

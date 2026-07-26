@@ -12,7 +12,7 @@ export default function ReportsPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary">Insights & Reports</p>
             <h1 className="text-4xl font-semibold tracking-tight text-white">Operational intelligence for YCKF investigations.</h1>
             <p className="max-w-3xl text-base leading-8 text-muted-foreground">
-              Review structured reports that summarize incident trends, investigator activity, and the outcomes of our cybercrime response efforts.
+              Review structured reports that summarize incident trends, volunteer activity, and the outcomes of our cybercrime response efforts.
             </p>
           </div>
         </section>

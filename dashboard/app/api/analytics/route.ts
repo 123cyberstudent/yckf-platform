@@ -5,6 +5,7 @@ import {
   getIncidentTrends, 
   getSeverityDistribution,
   getInvestigatorPerformance,
+  getVolunteerPerformance,
   getRecentActivity,
   incidents,
   users
@@ -103,6 +104,7 @@ export async function GET() {
         // Include additional data for charts
         severityDistribution: payload?.severityDistribution ?? [],
         investigatorPerformance: payload?.investigatorPerformance ?? [],
+        volunteerPerformance: payload?.volunteerPerformance ?? payload?.investigatorPerformance ?? [],
         recentActivity: payload?.recentActivity ?? [],
       });
     } catch (fetchError) {
@@ -122,7 +124,7 @@ function generateMockAnalytics() {
   const stats = getDashboardStats()
   const trends = getIncidentTrends()
   const severityDist = getSeverityDistribution()
-  const performance = getInvestigatorPerformance()
+  const performance = getVolunteerPerformance()
   const activity = getRecentActivity()
   
   // Calculate derived metrics
@@ -191,6 +193,7 @@ function generateMockAnalytics() {
     workloadData,
     severityDistribution: severityDist,
     investigatorPerformance: performance,
+    volunteerPerformance: performance,
     recentActivity: activity.slice(0, 5).map(act => ({
       ...act,
       timestamp: act.timestamp.toISOString ? act.timestamp.toISOString() : act.timestamp,

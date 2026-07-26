@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, File, Upload, Download, AlertCircle, Calendar, User } from 'lucide-react';
+import { Search, Upload, Download, AlertCircle, Calendar, User, X } from 'lucide-react';
+import { getRoleFromCookie } from '@/lib/permissions';
 
 interface EvidenceItem {
   id: string;
@@ -35,47 +36,62 @@ export function EvidenceVault() {
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
   const [search, setSearch] = useState('');
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
+
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadReportId, setUploadReportId] = useState('');
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [chainOpen, setChainOpen] = useState(false);
+  const [chainItem, setChainItem] = useState<EvidenceItem | null>(null);
 
   useEffect(() => {
-    const fetchEvidence = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setUsingMockData(false);
-        
-        const response = await fetch('/api/evidence');
-        
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 404) {
-            console.warn('Authentication required, using mock data');
-            setUsingMockData(true);
-          }
-          throw new Error(`Failed to load evidence: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setEvidence(data);
-      } catch (error) {
-        console.error('Failed to fetch evidence:', error);
-        setError('Failed to load evidence. Please try again later.');
-        
-        // Try to load from mock endpoint as fallback
-        try {
-          console.log('Attempting to fetch from mock endpoint...');
-          const mockResponse = await fetch('/api/evidence/mock');
-          if (mockResponse.ok) {
-            const mockData = await mockResponse.json();
-            setEvidence(mockData);
-            setUsingMockData(true);
-          }
-        } catch (mockError) {
-          console.error('Failed to load mock evidence:', mockError);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+    getRoleFromCookie().then(setCurrentRole);
+  }, []);
 
+  const canPerformActions = currentRole === 'admin';
+
+  const fetchEvidence = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setUsingMockData(false);
+
+      const response = await fetch('/api/evidence');
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 404) {
+          setUsingMockData(true);
+        }
+        throw new Error(`Failed to load evidence: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setEvidence(data);
+    } catch (error) {
+      console.error('Failed to fetch evidence:', error);
+      setError('Failed to load evidence. Please try again later.');
+
+      try {
+        const mockResponse = await fetch('/api/evidence/mock');
+        if (mockResponse.ok) {
+          const mockData = await mockResponse.json();
+          setEvidence(mockData);
+          setUsingMockData(true);
+        }
+      } catch (mockError) {
+        console.error('Failed to load mock evidence:', mockError);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchEvidence();
   }, []);
 
@@ -104,6 +120,56 @@ export function EvidenceVault() {
       .toLowerCase()
       .includes(query);
   });
+
+  const handleUpload = async () => {
+    if (!uploadFile) {
+      setUploadError('Please select a file');
+      return;
+    }
+    const reportId = parseInt(uploadReportId, 10);
+    if (isNaN(reportId) || reportId <= 0) {
+      setUploadError('Please enter a valid incident/case ID');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('reportId', String(reportId));
+      formData.append('description', uploadDescription.trim());
+
+      const response = await fetch('/api/evidence', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || `Upload failed (${response.status})`);
+      }
+
+      setUploadOpen(false);
+      setUploadFile(null);
+      setUploadReportId('');
+      setUploadDescription('');
+      await fetchEvidence();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = (item: EvidenceItem) => {
+    window.open(`/api/evidence/dl?id=${item.id}`, '_blank');
+  };
+
+  const handleViewChain = (item: EvidenceItem) => {
+    setChainItem(item);
+    setChainOpen(true);
+  };
 
   if (loading) {
     return (
@@ -141,11 +207,7 @@ export function EvidenceVault() {
         <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
           <AlertCircle className="mx-auto size-12 text-red-500 mb-4" />
           <p className="text-red-600">{error}</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
+          <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
             Retry
           </Button>
         </div>
@@ -160,7 +222,7 @@ export function EvidenceVault() {
           <h2 className="text-2xl font-bold">Evidence Vault</h2>
           <p className="text-muted-foreground">Manage digital evidence and chain of custody</p>
         </div>
-        <Button>
+        <Button onClick={() => { setUploadError(''); setUploadOpen(true); }} className={currentRole && currentRole !== 'admin' ? 'hidden' : ''}>
           <Upload className="mr-2 size-4" />
           Upload Evidence
         </Button>
@@ -191,9 +253,7 @@ export function EvidenceVault() {
 
       {filteredEvidence.length === 0 ? (
         <div className="rounded-lg border border-border bg-card/60 p-10 text-center text-muted-foreground">
-          {evidence.length === 0 
-            ? 'No evidence found.' 
-            : 'No evidence matches the current search.'}
+          {evidence.length === 0 ? 'No evidence found.' : 'No evidence matches the current search.'}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -204,17 +264,11 @@ export function EvidenceVault() {
                   <div className="flex items-center gap-3">
                     <div className="text-3xl">{getFileIcon(item.fileType)}</div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate" title={item.filename}>
-                        {item.filename}
-                      </p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {item.incidentTitle}
-                      </p>
+                      <p className="font-medium truncate" title={item.filename}>{item.filename}</p>
+                      <p className="text-sm text-muted-foreground truncate">{item.incidentTitle}</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="shrink-0">
-                    {formatFileSize(item.fileSize)}
-                  </Badge>
+                  <Badge variant="outline" className="shrink-0">{formatFileSize(item.fileSize)}</Badge>
                 </div>
 
                 <div className="mt-3 space-y-2">
@@ -227,34 +281,128 @@ export function EvidenceVault() {
                     <span>{new Date(item.uploadedAt).toLocaleString()}</span>
                   </div>
                   {item.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {item.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {item.fileType}
-                    </Badge>
+                    <Badge variant="secondary" className="text-xs">{item.fileType}</Badge>
                     {item.chainOfCustody.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {item.chainOfCustody.length} audits
-                      </Badge>
+                      <Badge variant="secondary" className="text-xs">{item.chainOfCustody.length} audits</Badge>
                     )}
                   </div>
                 </div>
 
                 <div className="mt-4 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDownload(item)}>
                     <Download className="mr-2 size-3" />
                     Download
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewChain(item)}>
                     View Chain
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {uploadOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !uploading && setUploadOpen(false)} />
+          <div className="relative z-50 w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Upload Evidence</h2>
+              <button onClick={() => !uploading && setUploadOpen(false)} className="rounded-md p-1 hover:bg-muted">
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">File *</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                  disabled={uploading}
+                  className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm file:mr-2 file:border-0 file:bg-transparent file:text-sm file:font-medium"
+                />
+                {uploadFile && (
+                  <p className="mt-1 text-xs text-muted-foreground">{uploadFile.name} ({formatFileSize(uploadFile.size)})</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Incident/Case ID *</label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 1"
+                  value={uploadReportId}
+                  onChange={(e) => setUploadReportId(e.target.value)}
+                  disabled={uploading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Describe the evidence"
+                  value={uploadDescription}
+                  onChange={(e) => setUploadDescription(e.target.value)}
+                  disabled={uploading}
+                />
+              </div>
+              {uploadError && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{uploadError}</div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setUploadOpen(false)} disabled={uploading}>Cancel</Button>
+                <Button onClick={handleUpload} disabled={uploading}>
+                  {uploading ? 'Uploading...' : 'Upload'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chainOpen && chainItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setChainOpen(false)} />
+          <div className="relative z-50 w-full max-w-xl max-h-[80vh] overflow-auto rounded-lg border border-border bg-card p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold">Chain of Custody</h2>
+                <p className="text-sm text-muted-foreground">{chainItem.filename}</p>
+              </div>
+              <button onClick={() => setChainOpen(false)} className="rounded-md p-1 hover:bg-muted">
+                <X className="size-4" />
+              </button>
+            </div>
+            {chainItem.chainOfCustody.length === 0 ? (
+              <div className="rounded-md border border-border bg-muted/50 p-6 text-center text-muted-foreground">
+                No custody records available for this item.
+              </div>
+            ) : (
+              <div className="relative ml-3 border-l-2 border-border pl-6 space-y-6">
+                {chainItem.chainOfCustody.map((entry, idx) => (
+                  <div key={entry.id} className="relative">
+                    <div className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-primary bg-background" />
+                    <div className="rounded-md border border-border bg-muted/30 p-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm">{entry.action}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">By: {entry.performedByName}</p>
+                      {entry.details && (
+                        <p className="text-sm mt-2 text-muted-foreground">{entry.details}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

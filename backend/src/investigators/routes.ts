@@ -12,7 +12,7 @@ router.get(
   async (req: AuthRequest, res: Response) => {
     try {
       const investigators = await prisma.user.findMany({
-        where: { role: 'INVESTIGATOR' },
+        where: { role: { in: ['INVESTIGATOR', 'VOLUNTEER'] }, isActive: true },
         select: {
           id: true,
           email: true,
@@ -39,7 +39,7 @@ router.get(
   async (req: AuthRequest, res: Response) => {
     try {
       const investigators = await prisma.user.findMany({
-        where: { role: 'INVESTIGATOR' },
+        where: { role: { in: ['INVESTIGATOR', 'VOLUNTEER'] } },
         include: {
           casesAssigned: {
             include: {
@@ -102,7 +102,7 @@ router.get(
         },
       });
 
-      if (!investigator || investigator.role !== 'INVESTIGATOR') {
+      if (!investigator || (investigator.role !== 'INVESTIGATOR' && investigator.role !== 'VOLUNTEER')) {
         return res.status(404).json({ error: 'Investigator not found' });
       }
 

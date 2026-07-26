@@ -16,6 +16,32 @@ import {
   verifyTwoFactorCode,
 } from './twoFactor.js';
 
+export async function logLoginAttempt(data: {
+  email: string;
+  userId?: number;
+  success: boolean;
+  ipAddress: string;
+  userAgent?: string;
+  deviceInfo?: string;
+  failureReason?: string;
+}) {
+  try {
+    await prisma.loginLog.create({
+      data: {
+        email: data.email,
+        userId: data.userId,
+        success: data.success,
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+        deviceInfo: data.deviceInfo,
+        failureReason: data.failureReason,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to log login attempt:', err);
+  }
+}
+
 const isProd = process.env.NODE_ENV === 'production';
 
 if (isProd && (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET)) {
@@ -92,6 +118,9 @@ export async function loginUser({
   backupCode,
   rememberDeviceToken,
   rememberDevice: rememberDeviceFlag,
+  ipAddress,
+  userAgent,
+  deviceInfo,
 }: {
   email: string;
   password: string;
@@ -99,24 +128,32 @@ export async function loginUser({
   backupCode?: string;
   rememberDeviceToken?: string;
   rememberDevice?: boolean;
+  ipAddress?: string;
+  userAgent?: string;
+  deviceInfo?: string;
 }) {
+  const ip = ipAddress || 'unknown';
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.isActive) {
+    await logLoginAttempt({ email, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid credentials' });
     throw new Error('Invalid credentials');
   }
 
   const now = new Date();
   if (user.suspendedUntil && user.suspendedUntil > now) {
+    await logLoginAttempt({ email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Account suspended' });
     throw new Error('Account temporarily suspended. Please contact support.');
   }
 
   if (user.lockoutUntil && user.lockoutUntil > now) {
+    await logLoginAttempt({ email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Account locked' });
     throw new Error('Account locked due to multiple failed login attempts. Try again later.');
   }
 
   const validPassword = await bcrypt.compare(password, user.passwordHash);
   if (!validPassword) {
     await applyLoginFailure(user.id, user.failedLoginAttempts + 1, user.email);
+    await logLoginAttempt({ email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid password' });
     throw new Error('Invalid credentials');
   }
 
@@ -137,6 +174,7 @@ export async function loginUser({
       const backupValid = backupCode ? await verifyBackupCode(user.id, backupCode) : false;
       if (!totpValid && !backupValid) {
         await applyLoginFailure(user.id, user.failedLoginAttempts + 1, user.email);
+        await logLoginAttempt({ email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid 2FA code' });
         throw new Error('Invalid two-factor authentication code');
       }
       if (rememberDeviceFlag) {
@@ -157,6 +195,8 @@ export async function loginUser({
 
   const accessToken = generateAccessToken(user.id, user.role, user.email, has2FA);
   const refreshToken = await createRefreshToken(user.id);
+
+  await logLoginAttempt({ email, userId: user.id, success: true, ipAddress: ip, userAgent, deviceInfo });
 
   return {
     user,

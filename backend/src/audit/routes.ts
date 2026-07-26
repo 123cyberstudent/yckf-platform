@@ -5,7 +5,7 @@ import { prisma } from '../shared/db.js';
 import { validateRequest } from '../utils/validators.js';
 
 const router = Router();
-const ROLES = ['ADMIN', 'INVESTIGATOR', 'USER'];
+const ROLES = ['ADMIN', 'INVESTIGATOR', 'VOLUNTEER', 'USER'];
 const STATUS_OPTIONS = ['active', 'inactive'];
 
 router.get(
@@ -20,29 +20,33 @@ router.get(
   ],
   validateRequest,
   async (req: AuthRequest, res: Response) => {
-    const { start_date, end_date, userId, action } = req.query;
-    const where: any = {};
-    if (start_date || end_date) {
-      where.timestamp = {};
-      if (start_date) where.timestamp.gte = new Date(String(start_date));
-      if (end_date) {
-        const endDate = new Date(String(end_date));
-        endDate.setUTCHours(23, 59, 59, 999);
-        where.timestamp.lte = endDate;
+    try {
+      const { start_date, end_date, userId, action } = req.query;
+      const where: any = {};
+      if (start_date || end_date) {
+        where.timestamp = {};
+        if (start_date) where.timestamp.gte = new Date(String(start_date));
+        if (end_date) {
+          const endDate = new Date(String(end_date));
+          endDate.setUTCHours(23, 59, 59, 999);
+          where.timestamp.lte = endDate;
+        }
       }
+      if (userId) where.userId = Number(userId);
+      if (action) where.action = { contains: String(action), mode: 'insensitive' };
+
+      const auditLogs = await prisma.auditLog.findMany({
+        where,
+        include: {
+          user: { select: { id: true, email: true, fullName: true } },
+        },
+        orderBy: { timestamp: 'desc' },
+      });
+
+      res.json({ auditLogs });
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to load audit logs' });
     }
-    if (userId) where.userId = Number(userId);
-    if (action) where.action = { contains: String(action), mode: 'insensitive' };
-
-    const auditLogs = await prisma.auditLog.findMany({
-      where,
-      include: {
-        user: { select: { id: true, email: true, fullName: true } },
-      },
-      orderBy: { timestamp: 'desc' },
-    });
-
-    res.json({ auditLogs });
   }
 );
 
@@ -51,32 +55,36 @@ router.get(
   verifyToken,
   isAdmin,
   async (req: AuthRequest, res: Response) => {
-    const now = new Date();
-    const start = new Date(now);
-    start.setDate(start.getDate() - 30);
-    const logs = await prisma.auditLog.findMany({
-      where: { timestamp: { gte: start } },
-      include: { user: { select: { email: true, fullName: true } } },
-      orderBy: { timestamp: 'desc' },
-    });
+    try {
+      const now = new Date();
+      const start = new Date(now);
+      start.setDate(start.getDate() - 30);
+      const logs = await prisma.auditLog.findMany({
+        where: { timestamp: { gte: start } },
+        include: { user: { select: { email: true, fullName: true } } },
+        orderBy: { timestamp: 'desc' },
+      });
 
-    const csvHeader = 'timestamp,user_email,user_name,action,target_id,ip_address';
-    const csvRows = logs.map((log: { user: { email: string; fullName: string; }; timestamp: { toISOString: () => any; }; action: any; targetId: any; ipAddress: any; }) => {
-      const userEmail = log.user?.email ?? 'system';
-      const userName = log.user?.fullName ?? 'system';
-      return [
-        log.timestamp.toISOString(),
-        userEmail,
-        JSON.stringify(userName),
-        log.action,
-        log.targetId ?? '',
-        log.ipAddress,
-      ].join(',');
-    });
+      const csvHeader = 'timestamp,user_email,user_name,action,target_id,ip_address';
+      const csvRows = logs.map((log: { user: { email: string; fullName: string; }; timestamp: { toISOString: () => any; }; action: any; targetId: any; ipAddress: any; }) => {
+        const userEmail = log.user?.email ?? 'system';
+        const userName = log.user?.fullName ?? 'system';
+        return [
+          log.timestamp.toISOString(),
+          userEmail,
+          JSON.stringify(userName),
+          log.action,
+          log.targetId ?? '',
+          log.ipAddress,
+        ].join(',');
+      });
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=audit-logs.csv');
-    res.send([csvHeader, ...csvRows].join('\n'));
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=audit-logs.csv');
+      res.send([csvHeader, ...csvRows].join('\n'));
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to export audit logs' });
+    }
   }
 );
 

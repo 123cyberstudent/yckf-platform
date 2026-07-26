@@ -144,7 +144,7 @@ const handleEmailSupport = async () => {
     const { Linking } = require('react-native');
     
     // Create mailto link
-    const email = 'admin@yckf.local';
+    const email = 'yckfadmin@youngcyberknightsfoundation.org';
     const subject = 'Help & Support Request';
     const body = `Hello YCKF Support Team,\n\nName: ${user?.name || 'User'}\nEmail: ${user?.email || 'Not provided'}\n\nI need assistance with:\n\n`;
     
@@ -158,7 +158,7 @@ const handleEmailSupport = async () => {
     } else {
       Alert.alert(
         'Email Not Available',
-        'No email app found. Please contact us via WhatsApp or email us directly at admin@yckf.local',
+        'No email app found. Please contact us via WhatsApp or email us directly at yckfadmin@youngcyberknightsfoundation.org',
         [{ text: 'OK' }]
       );
     }
@@ -166,7 +166,7 @@ const handleEmailSupport = async () => {
     console.error('Email error:', error);
     Alert.alert(
       'Error',
-      'Failed to open email client. Please try WhatsApp or email us at admin@yckf.local',
+      'Failed to open email client. Please try WhatsApp or email us at yckfadmin@youngcyberknightsfoundation.org',
       [{ text: 'OK' }]
     );
   }
@@ -179,7 +179,7 @@ const handleEmailSupport = async () => {
     try {
       const result = await WhatsAppService.sendContactMessage({
         name: user?.name || 'YCKF User',
-        email: user?.email || 'support@yckf.org',
+        email: user?.email || 'yckfadmin@youngcyberknightsfoundation.org',
         message: 'Hello YCKF Support Team,\n\nI need assistance with...'
       });
       

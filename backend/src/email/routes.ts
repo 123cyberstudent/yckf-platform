@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { generalRateLimiter } from '../shared/rateLimiter.js';
+import { emailRateLimiter } from '../shared/rateLimiter.js';
 
 const router = Router();
 
-router.use(generalRateLimiter);
+router.use(emailRateLimiter);
 
 router.post('/send', async (req: Request, res: Response) => {
   const { to, subject } = req.body;

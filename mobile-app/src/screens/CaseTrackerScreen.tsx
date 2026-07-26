@@ -52,7 +52,7 @@ const CaseTrackerScreen: React.FC = () => {
       description: 'Your case is being actively investigated by our team.',
       dateReported: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       lastUpdated: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      investigator: 'Officer John Smith',
+      volunteer: 'Officer John Smith',
       priority: 'medium',
       updates: mockUpdates,
     };
@@ -179,7 +179,7 @@ const CaseTrackerScreen: React.FC = () => {
 
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Investigator:</Text>
-                    <Text style={styles.detailValue}>{caseInfo.investigator}</Text>
+                    <Text style={styles.detailValue}>{caseInfo.volunteer}</Text>
                   </View>
 
                   <View style={styles.detailRow}>

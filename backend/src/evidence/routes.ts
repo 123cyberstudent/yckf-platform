@@ -18,6 +18,18 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+router.get('/', verifyToken, isAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const evidence = await prisma.evidence.findMany({
+      include: { report: true, uploadedBy: { select: { id: true, email: true, fullName: true } } },
+      orderBy: { uploadedAt: 'desc' },
+    });
+    res.json({ evidence });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unable to load evidence' });
+  }
+});
+
 router.post(
   '/upload',
   verifyToken,
@@ -35,7 +47,7 @@ router.post(
       if (!report) {
         return res.status(404).json({ error: 'Report not found' });
       }
-      if (req.user!.role === 'INVESTIGATOR') {
+      if (req.user!.role === 'INVESTIGATOR' || req.user!.role === 'VOLUNTEER') {
         const assignedCase = await prisma.case.findFirst({ where: { reportId, assignedInvestigatorId: req.user!.id } });
         if (!assignedCase) {
           return res.status(403).json({ error: 'Access denied' });
@@ -91,7 +103,7 @@ router.get('/case/:caseId', verifyToken, [param('caseId').isInt().withMessage('C
     if (!caseItem) {
       return res.status(404).json({ error: 'Case not found' });
     }
-    if (req.user!.role === 'INVESTIGATOR') {
+    if (req.user!.role === 'INVESTIGATOR' || req.user!.role === 'VOLUNTEER') {
       if (caseItem.assignedInvestigatorId !== req.user!.id) {
         return res.status(403).json({ error: 'Access denied' });
       }
@@ -114,7 +126,7 @@ router.get('/:id/download', verifyToken, [param('id').isInt().withMessage('Evide
     if (!evidence) {
       return res.status(404).json({ error: 'Evidence not found' });
     }
-    if (req.user!.role === 'INVESTIGATOR') {
+    if (req.user!.role === 'INVESTIGATOR' || req.user!.role === 'VOLUNTEER') {
       const assignedCase = await prisma.case.findFirst({ where: { reportId: evidence.reportId, assignedInvestigatorId: req.user!.id } });
       if (!assignedCase) {
         return res.status(403).json({ error: 'Access denied' });
@@ -203,7 +215,7 @@ router.get('/:id/verify', verifyToken, [param('id').isInt().withMessage('Evidenc
     if (!evidence) {
       return res.status(404).json({ error: 'Evidence not found' });
     }
-    if (req.user!.role === 'INVESTIGATOR') {
+    if (req.user!.role === 'INVESTIGATOR' || req.user!.role === 'VOLUNTEER') {
       const assignedCase = await prisma.case.findFirst({ where: { reportId: evidence.reportId, assignedInvestigatorId: req.user!.id } });
       if (!assignedCase) {
         return res.status(403).json({ error: 'Access denied' });

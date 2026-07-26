@@ -6,8 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Filter, Plus, Search, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Download, Filter, Plus, Search, ShieldCheck, X } from 'lucide-react';
 import type { Incident } from '@/lib/types';
+import { getRoleFromCookie } from '@/lib/permissions';
 
 const PAGE_SIZE = 6;
 
@@ -45,6 +46,57 @@ export function IncidentsList() {
   const [sortOrder, setSortOrder] = useState('newest');
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formTitle, setFormTitle] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formType, setFormType] = useState('phishing');
+  const [formPriority, setFormPriority] = useState('medium');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    getRoleFromCookie().then(setCurrentRole);
+  }, []);
+
+  const canPerformActions = currentRole === 'admin';
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch('/api/incidents');
+      if (!response.ok) throw new Error('Failed to fetch incidents');
+      const payload = await response.json();
+      const items = payload.items ?? payload;
+
+      const headers = ['ID', 'Status', 'Report Title', 'Assigned Investigator', 'Created At'];
+      const rows = items.map((item: any) => [
+        item.id,
+        item.status,
+        item.title,
+        item.assignedToName || 'Unassigned',
+        item.createdAt,
+      ]);
+
+      const csvContent = [headers, ...rows]
+        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'incidents.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('CSV export failed:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const fetchIncidents = async () => {
     setLoading(true);
@@ -121,30 +173,46 @@ export function IncidentsList() {
   };
 
   const applyBulkAction = async (action: 'investigating' | 'resolved' | 'closed') => {
-    if (selectedIds.length === 0) {
-      return;
-    }
-    const updated = incidents.map((incident) => (selectedIds.includes(incident.id) ? { ...incident, status: action, updatedAt: new Date() } : incident));
+    if (selectedIds.length === 0) return;
+    const updated = incidents.map((incident) =>
+      selectedIds.includes(incident.id) ? { ...incident, status: action, updatedAt: new Date() } : incident
+    );
     setIncidents(updated);
     setSelectedIds([]);
   };
 
-  const createExampleIncident = async () => {
-    const response = await fetch('/api/incidents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: 'Suspicious login spike',
-        description: 'Additional monitoring triggered after a burst of MFA failures.',
-        type: 'phishing',
-        severity: 'high',
-        status: 'open',
-        priority: 'high',
-      }),
-    });
-    if (response.ok) {
-      const created = await response.json();
-      setIncidents((current) => [created, ...current]);
+  const handleCreateIncident = async () => {
+    if (!formTitle.trim()) {
+      setCreateError('Title is required');
+      return;
+    }
+    setCreating(true);
+    setCreateError('');
+    try {
+      const response = await fetch('/api/incidents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formTitle.trim(),
+          description: formDescription.trim(),
+          type: formType,
+          priority: formPriority,
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || `Failed to create incident (${response.status})`);
+      }
+      setDialogOpen(false);
+      setFormTitle('');
+      setFormDescription('');
+      setFormType('phishing');
+      setFormPriority('medium');
+      await fetchIncidents();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create incident');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -156,11 +224,15 @@ export function IncidentsList() {
           <p className="text-muted-foreground mt-1">Monitor alerts, coordinate response, and track resolution progress.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={createExampleIncident}>
+          <Button variant="outline" onClick={handleExportCsv} disabled={exporting}>
+            <Download className="mr-2 size-4" />
+            {exporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+          <Button variant="outline" onClick={() => setDialogOpen(true)} className={currentRole && currentRole !== 'admin' ? 'hidden' : ''}>
             <Plus className="mr-2 size-4" />
             Create Incident
           </Button>
-          <Button onClick={() => applyBulkAction('investigating')} disabled={selectedIds.length === 0}>
+          <Button onClick={() => applyBulkAction('investigating')} disabled={selectedIds.length === 0} className={currentRole && currentRole !== 'admin' ? 'hidden' : ''}>
             Update Selected
           </Button>
         </div>
@@ -267,7 +339,7 @@ export function IncidentsList() {
               <table className="w-full text-sm">
                 <thead className="border-b border-border bg-muted/50">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold">Select</th>
+                    {canPerformActions && <th className="px-4 py-3 text-left font-semibold">Select</th>}
                     <th className="px-4 py-3 text-left font-semibold">Incident</th>
                     <th className="px-4 py-3 text-left font-semibold">Severity</th>
                     <th className="px-4 py-3 text-left font-semibold">Priority</th>
@@ -279,9 +351,11 @@ export function IncidentsList() {
                 <tbody>
                   {pagedIncidents.map((incident) => (
                     <tr key={incident.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                      {canPerformActions && (
                       <td className="px-4 py-3">
                         <input type="checkbox" checked={selectedIds.includes(incident.id)} onChange={() => toggleSelection(incident.id)} className="size-4 rounded border-border" />
                       </td>
+                      )}
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-medium">{incident.title}</p>
@@ -326,6 +400,77 @@ export function IncidentsList() {
               <Button variant="outline" size="icon" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={page >= totalPages}>
                 <ChevronRight className="size-4" />
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {dialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !creating && setDialogOpen(false)} />
+          <div className="relative z-50 w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Create Incident</h2>
+              <button onClick={() => !creating && setDialogOpen(false)} className="rounded-md p-1 hover:bg-muted">
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Title *</label>
+                <Input placeholder="Incident title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} disabled={creating} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Describe the incident"
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  disabled={creating}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Type</label>
+                  <select
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value)}
+                    disabled={creating}
+                    className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="malware">Malware</option>
+                    <option value="phishing">Phishing</option>
+                    <option value="data_breach">Data Breach</option>
+                    <option value="ddos">DDoS</option>
+                    <option value="ransomware">Ransomware</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Priority</label>
+                  <select
+                    value={formPriority}
+                    onChange={(e) => setFormPriority(e.target.value)}
+                    disabled={creating}
+                    className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+              </div>
+              {createError && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{createError}</div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={creating}>Cancel</Button>
+                <Button onClick={handleCreateIncident} disabled={creating}>
+                  {creating ? 'Creating...' : 'Create Incident'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

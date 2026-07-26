@@ -1,0 +1,14 @@
+# Root-level .easignore — EAS archives from git root
+# Exclude everything except mobile-app
+
+backend/
+dashboard/
+packages/
+node_modules/
+.git/
+.expo/
+.expo-shared/
+*.md
+LICENSE
+.vscode/
+.idea/
