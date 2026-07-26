@@ -41,13 +41,14 @@ class SecureCouponService {
         };
       }
 
+      const normalizedCode = couponCode.trim().toUpperCase();
       const response = await fetch(`${API_BASE_URL}/api/coupons/validate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ couponCode }),
+        body: JSON.stringify({ couponCode: normalizedCode }),
       });
 
       const data = await response.json();
@@ -78,14 +79,14 @@ class SecureCouponService {
         };
       }
 
+      const normalizedCode = couponCode.trim().toUpperCase();
       const response = await fetch(`${API_BASE_URL}/api/coupons/redeem`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },  
-        // body: JSON.stringify({ couponCode, durationHours }),
-         body: JSON.stringify({ couponCode }),
+        body: JSON.stringify({ couponCode: normalizedCode }),
       });
 
       const data = await response.json();

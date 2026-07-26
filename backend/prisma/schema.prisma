@@ -195,6 +195,7 @@ model Coupon {
   code           String             @unique
   description    String?
   discountPercent Int?
+  durationHours  Int                @default(24)
   maxUses        Int?
   usedCount      Int                @default(0)
   isActive       Boolean            @default(true)

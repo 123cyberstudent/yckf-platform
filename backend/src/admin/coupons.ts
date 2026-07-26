@@ -30,7 +30,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/create', async (req: Request, res: Response) => {
   try {
-    const { code, description, discountPercent, maxUses, expiresAt } = req.body;
+    const { code, description, discountPercent, durationHours, maxUses, expiresAt } = req.body;
     if (!code) {
       return res.status(400).json({ error: 'code is required' });
     }
@@ -43,6 +43,7 @@ router.post('/create', async (req: Request, res: Response) => {
         code: code.toUpperCase(),
         description,
         discountPercent: discountPercent ? Number(discountPercent) : null,
+        durationHours: durationHours ? Number(durationHours) : 24,
         maxUses: maxUses ? Number(maxUses) : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         createdById: (req as any).user?.id,

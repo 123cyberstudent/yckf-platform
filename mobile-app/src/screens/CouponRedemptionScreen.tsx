@@ -94,17 +94,19 @@ const CouponRedemptionScreen: React.FC = () => {
     setIsLoading(true);
     try {
       // First validate
-      const validation = await SecureCouponService.validateCoupon(couponCode.trim());
+      const normalizedCode = couponCode.trim().toUpperCase();
+      const validation = await SecureCouponService.validateCoupon(normalizedCode);
       
       if (!validation.valid) {
-        Alert.alert('Invalid Coupon', validation.message);
+        const isNetworkError = validation.message.includes('Network error') || validation.message.includes('check your connection');
+        Alert.alert(isNetworkError ? 'Connection Error' : 'Invalid Coupon', validation.message);
         setIsLoading(false);
         return;
       }
 
       
    // Redeem the coupon (duration is set by admin in the coupon)
-      const result = await SecureCouponService.redeemCoupon(couponCode.trim());      
+      const result = await SecureCouponService.redeemCoupon(normalizedCode);      
       if (result.success && result.redemption) {
       // Calculate duration for display
         const durationMs = new Date(result.redemption.expiresAt).getTime() - Date.now();
