@@ -140,12 +140,12 @@ const HomeScreen: React.FC = () => {
           );
           break;
 
-        case 'find_park_station':
-          navigation.navigate(SCREEN_NAMES.PARK_STATION as never);
+        case 'find_police_station':
+          navigation.navigate(SCREEN_NAMES.POLICE_STATION as never);
           break;
 
-        case 'Find Market':
-          navigation.navigate(SCREEN_NAMES.MARKET_STATION as never);
+        case 'find_fire_station':
+          navigation.navigate(SCREEN_NAMES.FIRE_STATION as never);
           break;
 
         case 'report_cybercrime':
@@ -231,16 +231,16 @@ const HomeScreen: React.FC = () => {
         case 'Emergency SOS':
           navigation.navigate(SCREEN_NAMES.EMERGENCY_REPORT as never);
           break;
-        case 'Find Park':
-          navigation.navigate(SCREEN_NAMES.PARK_STATION as never);
+        case 'Find Police Station':
+          navigation.navigate(SCREEN_NAMES.POLICE_STATION as never);
           break;
-        case 'Find Market':
-          navigation.navigate(SCREEN_NAMES.MARKET_STATION as never);
+        case 'Find Fire Station':
+          navigation.navigate(SCREEN_NAMES.FIRE_STATION as never);
           break;
         case 'Send Emergency Alert':
           Alert.alert(
             '🚨 Send Emergency Alert',
-            'This will immediately send your exact location and contact details to the nearest park. Proceed?',
+            'This will immediately send your exact location and contact details to the nearest police station. Proceed?',
             [
               { text: 'Cancel', style: 'cancel' },
               {
@@ -300,19 +300,19 @@ const HomeScreen: React.FC = () => {
       // case 'Thief Detection':
       // return 'Thief Detection helps protect your device by automatically capturing photos when someone tries to access it without authorization. Upgrade to premium to activate this security feature.';
       case 'Emergency SOS':
-        return 'Emergency SOS allows you to send voice or text alerts directly to park with your location. Upgrade to premium for instant emergency response.';
-      case 'Find Park':
-        return 'Find Park helps you locate the nearest park with directions and contact information. Upgrade to premium to access this feature.';
-      case 'Find Market':
-        return 'Find Market helps you locate the nearest market with directions and contact info. Upgrade to premium to access this feature.';
+        return 'Emergency SOS allows you to send voice or text alerts directly to police stations with your location. Upgrade to premium for instant emergency response.';
+      case 'Find Police Station':
+        return 'Find Police Station helps you locate the nearest police station with directions and contact information. Upgrade to premium to access this feature.';
+      case 'Find Fire Station':
+        return 'Find Fire Station helps you locate the nearest fire station with directions and contact info. Upgrade to premium to access this feature.';
       case 'Send Emergency Alert':
-        return 'Send Emergency Alert automatically sends your exact GPS location and contact details to the nearest park instantly. Upgrade to premium to access this feature.';
+        return 'Send Emergency Alert automatically sends your exact GPS location and contact details to the nearest police station instantly. Upgrade to premium to access this feature.';
       case 'Book Expert':
         return 'Book Expert lets you schedule consultations with YCKF cybersecurity specialists. Upgrade to premium to get expert guidance.';
       case 'Subscribe':
-        return 'Unlock all premium features including Emergency SOS, Find Park, Book Expert, and Thief Detection.';
+        return 'Unlock all premium features including Emergency SOS, Find Police Station, Book Expert, and Thief Detection.';
       default:
-        return 'Unlock all premium features including Emergency SOS, Find Park, Book Expert, and Thief Detection.';
+        return 'Unlock all premium features including Emergency SOS, Find Police Station, Book Expert, and Thief Detection.';
     }
   };
 
@@ -510,7 +510,7 @@ const HomeScreen: React.FC = () => {
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.featureSubtitle}>Voice/Text Park Alert</Text>
+                  <Text style={styles.featureSubtitle}>Voice/Text Police Station Alert</Text>
                 </View>
                 <Ionicons
                   name={isPremium ? 'lock-open' : 'lock-closed'}
@@ -519,24 +519,24 @@ const HomeScreen: React.FC = () => {
                 />
               </TouchableOpacity>
 
-              {/* Find Park */}
+              {/* Find Police Station */}
               <TouchableOpacity
                 style={styles.featureItem}
-                onPress={() => handlePremiumAction('Find Park')}
+                onPress={() => handlePremiumAction('Find Police Station')}
               >
                 <View style={[styles.featureIcon, { backgroundColor: isPremium ? '#E8F5E9' : '#FFF3E0' }]}>
                   <Ionicons name="car" size={24} color={isPremium ? '#4CAF50' : '#F57C00'} />
                 </View>
                 <View style={styles.featureContent}>
                   <View style={styles.featureHeader}>
-                    <Text style={styles.featureTitle}>Find Park</Text>
+                    <Text style={styles.featureTitle}>Find Police Station</Text>
                     <View style={isPremium ? styles.accessBadge : styles.premiumBadge}>
                       <Text style={isPremium ? styles.accessBadgeText : styles.premiumBadgeText}>
                         {isPremium ? 'ACCESS' : 'Premium'}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.featureSubtitle}>Locate nearest park</Text>
+                  <Text style={styles.featureSubtitle}>Locate nearest police station</Text>
                 </View>
                 <Ionicons
                   name={isPremium ? 'lock-open' : 'lock-closed'}
@@ -545,24 +545,24 @@ const HomeScreen: React.FC = () => {
                 />
               </TouchableOpacity>
 
-              {/* Find Market */}
+              {/* Find Fire Station */}
               <TouchableOpacity
                 style={styles.featureItem}
-                onPress={() => handlePremiumAction('Find Market')}
+                onPress={() => handlePremiumAction('Find Fire Station')}
               >
                 <View style={[styles.featureIcon, { backgroundColor: isPremium ? '#E8F5E9' : '#FFF3E0' }]}>
                   <Ionicons name="flame" size={24} color={isPremium ? '#4CAF50' : '#FF5722'} />
                 </View>
                 <View style={styles.featureContent}>
                   <View style={styles.featureHeader}>
-                    <Text style={styles.featureTitle}>Find Market</Text>
+                    <Text style={styles.featureTitle}>Find Fire Station</Text>
                     <View style={isPremium ? styles.accessBadge : styles.premiumBadge}>
                       <Text style={isPremium ? styles.accessBadgeText : styles.premiumBadgeText}>
                         {isPremium ? 'ACCESS' : 'Premium'}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.featureSubtitle}>Locate nearest market</Text>
+                  <Text style={styles.featureSubtitle}>Locate nearest fire station</Text>
                 </View>
                 <Ionicons
                   name={isPremium ? 'lock-open' : 'lock-closed'}
@@ -589,7 +589,7 @@ const HomeScreen: React.FC = () => {
                     </View>
                   </View>
                   <Text style={[styles.featureSubtitle, { color: 'rgba(255,255,255,0.8)' }]}>
-                    Auto-send location to nearest park
+                    Auto-send location to nearest police station
                   </Text>
                 </View>
                 <Ionicons

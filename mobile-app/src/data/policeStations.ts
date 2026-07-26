@@ -1,8 +1,7 @@
-// src/data/parks.tsx
-// Sanitized dummy parks data for internship training.
-// Interns should replace or extend this using an approved database/API.
+// src/data/policeStations.ts
+// Police station data for YCKF Mobile App.
 
-export interface ParkStation {
+export interface PoliceStation {
   id: string;
   name: string;
   phoneNumber: string;
@@ -16,28 +15,28 @@ export interface ParkStation {
   googleMapsLink: string;
 }
 
-export const PARK_STATIONS: ParkStation[] = [
+export const POLICE_STATIONS: PoliceStation[] = [
   {
-    id: 'park-demo-001',
-    name: 'Demo Central Park Station',
+    id: 'police-demo-001',
+    name: 'Demo Central Police Station',
     phoneNumber: '+233000000000',
-    emergencyLine: '000',
+    emergencyLine: '191',
     latitude: 5.6037,
     longitude: -0.1870,
-    address: 'Demo Park Address',
+    address: 'Demo Police Address',
     city: 'Accra',
     region: 'Greater Accra',
     division: 'Training Division',
     googleMapsLink: 'https://www.google.com/maps?q=5.6037,-0.1870',
   },
   {
-    id: 'park-demo-002',
-    name: 'Demo Community Park Station',
+    id: 'police-demo-002',
+    name: 'Demo Community Police Station',
     phoneNumber: '+233000000001',
-    emergencyLine: '000',
+    emergencyLine: '191',
     latitude: 6.6885,
     longitude: -1.6244,
-    address: 'Demo Community Park Address',
+    address: 'Demo Community Police Address',
     city: 'Kumasi',
     region: 'Ashanti',
     division: 'Training Division',

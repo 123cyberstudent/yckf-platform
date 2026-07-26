@@ -380,7 +380,7 @@ const handleEmailSupport = async () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Premium Feature</Text>
             <Text style={styles.modalMessage}>
-              Unlock all premium features including Emergency SOS, Find Park, Book Expert, and Thief Detection.
+              Unlock all premium features including Emergency SOS, Find Police Station, Book Expert, and Thief Detection.
             </Text>
             
             <TouchableOpacity

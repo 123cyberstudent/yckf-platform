@@ -1,4 +1,4 @@
-// src/screens/ParkStationScreen.tsx
+// src/screens/FireStationScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
-  ActivityIndicator,
   TouchableOpacity,
   TextInput,
   RefreshControl,
@@ -20,60 +19,56 @@ import LocationService from '../services/LocationService';
 import WhatsAppService from '../services/WhatsAppService';
 import authService from '../services/AuthService';
 
-
 // Data
-import { PARK_STATIONS, ParkStation } from '../data/parks';
+import { FIRE_STATIONS, FireStation } from '../data/fireStations';
 
 // Utils
 import {
-  findNearestParkStation,
-  getParkStationsByDistance,
+  findNearestStation,
+  getStationsByDistance,
   openGoogleMapsDirections,
-  callParkStation,
+  callStation,
   formatDistance,
-  searchParkStations,
-} from '../utils/parkStationUtils';
+  searchStations,
+} from '../utils/stationUtils';
 import {
   COLORS,
   SPACING,
   APP_CONFIG,
   ERROR_MESSAGES,
-  SUCCESS_MESSAGES
 } from '../utils/constants';
 
 // Components
 import Button from '../components/common/Button';
 
 interface StationWithDistance {
-  station: ParkStation;
+  station: FireStation;
   distance: number;
 }
 
-const ParkStationScreen: React.FC = () => {
+const FireStationScreen: React.FC = () => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [nearestStation, setNearestStation] = useState<StationWithDistance | null>(null);
   const [nearbyStations, setNearbyStations] = useState<StationWithDistance[]>([]);
-  const [allStations, setAllStations] = useState<ParkStation[]>(PARK_STATIONS);
+  const [allStations, setAllStations] = useState<FireStation[]>(FIRE_STATIONS);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showNearby, setShowNearby] = useState(false);
 
   useEffect(() => {
-    // Filter stations based on search query
     if (searchQuery.trim()) {
-      const filtered = searchParkStations(PARK_STATIONS, searchQuery);
+      const filtered = searchStations(FIRE_STATIONS, searchQuery);
       setAllStations(filtered);
     } else {
-      setAllStations(PARK_STATIONS);
+      setAllStations(FIRE_STATIONS);
     }
   }, [searchQuery]);
 
   const handleFindNearest = async () => {
     setLoading(true);
     try {
-      // Request location permission and get current location
       const location = await LocationService.getCurrentLocation();
 
       if (!location) {
@@ -82,27 +77,21 @@ const ParkStationScreen: React.FC = () => {
         return;
       }
 
-      // Handle different location response structures
       let latitude: number;
       let longitude: number;
 
-      // Check if location has coords property (Expo Location format)
       if ('coords' in location && location.coords) {
         latitude = location.coords.latitude;
         longitude = location.coords.longitude;
-      }
-      // Check if location has latitude/longitude directly
-      else if ('latitude' in location && 'longitude' in location) {
+      } else if ('latitude' in location && 'longitude' in location) {
         latitude = location.latitude;
         longitude = location.longitude;
-      }
-      else {
+      } else {
         Alert.alert('Error', 'Invalid location format received. Please try again.');
         setLoading(false);
         return;
       }
 
-      // Validate coordinates
       if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
         Alert.alert('Error', 'Invalid location coordinates. Please try again.');
         setLoading(false);
@@ -111,25 +100,20 @@ const ParkStationScreen: React.FC = () => {
 
       setUserLocation({ latitude, longitude });
 
-      // Find nearest station using utility function
-      const nearest = findNearestParkStation(latitude, longitude, PARK_STATIONS);
+      const nearest = findNearestStation(latitude, longitude, FIRE_STATIONS);
 
       if (nearest) {
-        // Check if user is within reasonable distance (500km radius for all of Ghana)
         const MAX_REASONABLE_DISTANCE_KM = 500;
 
         if (nearest.distance > MAX_REASONABLE_DISTANCE_KM) {
-          // User is too far from Ghana
           Alert.alert(
             '⚠️ Out of Service Area',
-            `You appear to be ${formatDistance(nearest.distance)} away from the nearest park in our database.\n\n` +
+            `You appear to be ${formatDistance(nearest.distance)} away from the nearest fire station in our database.\n\n` +
             `This app currently serves Ghana only.\n\n` +
             `Nearest station found:\n${nearest.station.name}\n${nearest.station.region} Region\n\n` +
             `Emergency Tip: Please dial your local emergency number:\n` +
-            `• Ghana: 191\n` +
-            `• Nigeria: 112\n` +
-            `• USA/Canada: 911\n` +
-            `• UK/EU: 112`,
+            `• Ghana: 192\n` +
+            `• Ghana General: 191`,
             [
               { text: 'OK', style: 'cancel' },
               {
@@ -137,11 +121,11 @@ const ParkStationScreen: React.FC = () => {
                 style: 'default',
                 onPress: () => {
                   setNearestStation(nearest);
-                  const nearby = getParkStationsByDistance(
+                  const nearby = getStationsByDistance(
                     latitude,
                     longitude,
-                    PARK_STATIONS,
-                    APP_CONFIG.PARK_SEARCH_RADIUS_KM
+                    FIRE_STATIONS,
+                    APP_CONFIG.STATION_SEARCH_RADIUS_KM
                   ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS);
                   setNearbyStations(nearby);
                 },
@@ -151,21 +135,19 @@ const ParkStationScreen: React.FC = () => {
           return;
         }
 
-        // User is within reasonable distance
         setNearestStation(nearest);
 
-        // Get nearby stations using utility function
-        const nearby = getParkStationsByDistance(
+        const nearby = getStationsByDistance(
           latitude,
           longitude,
-          PARK_STATIONS,
-          APP_CONFIG.PARK_SEARCH_RADIUS_KM
+          FIRE_STATIONS,
+          APP_CONFIG.STATION_SEARCH_RADIUS_KM
         ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS);
 
         setNearbyStations(nearby);
 
         Alert.alert(
-          '✅ Station Found',
+          '🔥 Fire Station Found',
           `${nearest.station.name}\n${nearest.station.region} Region\n\nDistance: ${formatDistance(nearest.distance)}`,
           [
             { text: 'OK', style: 'default' },
@@ -177,7 +159,7 @@ const ParkStationScreen: React.FC = () => {
           ]
         );
       } else {
-        Alert.alert('Error', ERROR_MESSAGES.PARK_STATION_NOT_FOUND);
+        Alert.alert('Error', 'No fire station found nearby.');
       }
     } catch (error) {
       console.error('Error finding nearest station:', error);
@@ -190,40 +172,26 @@ const ParkStationScreen: React.FC = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     if (userLocation) {
-      // Recalculate distances if we have user location
-      const nearby = getParkStationsByDistance(
+      const nearby = getStationsByDistance(
         userLocation.latitude,
         userLocation.longitude,
-        PARK_STATIONS,
-        APP_CONFIG.PARK_SEARCH_RADIUS_KM
+        FIRE_STATIONS,
+        APP_CONFIG.STATION_SEARCH_RADIUS_KM
       ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS);
       setNearbyStations(nearby);
     }
     setTimeout(() => setRefreshing(false), 500);
   };
 
-  const handleGetDirections = async (station: ParkStation) => {
+  const handleGetDirections = async (station: FireStation) => {
     try {
-      // If we don't have user location yet, get it first
       if (!userLocation) {
-        Alert.alert(
-          'Getting Your Location',
-          'Please wait while we fetch your current location...',
-          [{ text: 'OK' }]
-        );
-
         const location = await LocationService.getCurrentLocation();
-        
         if (!location) {
-          Alert.alert(
-            'Location Required',
-            'We need your location to provide directions. Please enable location services and try again.',
-            [{ text: 'OK' }]
-          );
+          Alert.alert('Location Required', 'Please enable location services and try again.');
           return;
         }
 
-        // Handle different location response structures
         let latitude: number;
         let longitude: number;
 
@@ -234,132 +202,91 @@ const ParkStationScreen: React.FC = () => {
           latitude = location.latitude;
           longitude = location.longitude;
         } else {
-          Alert.alert('Error', 'Invalid location format received. Please try again.');
+          Alert.alert('Error', 'Invalid location format received.');
           return;
         }
 
-        // Validate coordinates
-        if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
-          Alert.alert('Error', 'Invalid location coordinates. Please try again.');
-          return;
-        }
-
-        // Update user location state
         setUserLocation({ latitude, longitude });
-
-        // Open Google Maps with the new location
         await openGoogleMapsDirections(station, latitude, longitude);
       } else {
-        // We already have user location, use it directly
-        await openGoogleMapsDirections(
-          station,
-          userLocation.latitude,
-          userLocation.longitude
-        );
+        await openGoogleMapsDirections(station, userLocation.latitude, userLocation.longitude);
       }
     } catch (error) {
       console.error('Navigation error:', error);
-      Alert.alert(
-        'Navigation Error',
-        'Unable to open Google Maps. Please make sure Google Maps is installed on your device.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Navigation Error', 'Unable to open Google Maps.');
     }
   };
 
   const handleCall = async (phoneNumber: string) => {
     Alert.alert(
-      'Call Park',
+      'Call Fire Station',
       `Do you want to call ${phoneNumber}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Call',
           style: 'default',
-          onPress: () => callParkStation(phoneNumber),
+          onPress: () => callStation(phoneNumber),
         },
       ]
     );
   };
 
-const handleWhatsApp = async (station: ParkStation) => {
-  try {
-    // ⭐ GET USER CONTACT DETAILS
-    const userData = await authService.getCurrentUser();
-    console.log('📞 User data from authService:', JSON.stringify(userData, null, 2));
-    
-    const userEmail = userData?.email || 'Not available';
-    const userPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || 'Not available';
-    
-    console.log('📧 User Email:', userEmail);
-    console.log('📱 User Phone:', userPhone);
-    
-    // Get user's current location first
-    const userLoc = userLocation || await LocationService.getCurrentLocation();
-    
-    let locationInfo = '';
-    
-    if (userLoc) {
-      // Extract coordinates properly
-      let latitude: number;
-      let longitude: number;
+  const handleWhatsApp = async (station: FireStation) => {
+    try {
+      const userData = await authService.getCurrentUser();
+      const userEmail = userData?.email || 'Not available';
+      const userPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || 'Not available';
 
-      if ('coords' in userLoc && userLoc.coords) {
-        latitude = userLoc.coords.latitude;
-        longitude = userLoc.coords.longitude;
-      } else if ('latitude' in userLoc && 'longitude' in userLoc) {
-        latitude = userLoc.latitude;
-        longitude = userLoc.longitude;
-      } else {
-        latitude = 0;
-        longitude = 0;
+      const userLoc = userLocation || await LocationService.getCurrentLocation();
+      let locationInfo = '';
+
+      if (userLoc) {
+        let latitude: number;
+        let longitude: number;
+
+        if ('coords' in userLoc && userLoc.coords) {
+          latitude = userLoc.coords.latitude;
+          longitude = userLoc.coords.longitude;
+        } else if ('latitude' in userLoc && 'longitude' in userLoc) {
+          latitude = userLoc.latitude;
+          longitude = userLoc.longitude;
+        } else {
+          latitude = 0;
+          longitude = 0;
+        }
+
+        if (latitude && longitude) {
+          const address = await LocationService.getAddressFromLocation({ latitude, longitude });
+          locationInfo = `\n\n📍 MY CURRENT LOCATION:\n`;
+          locationInfo += `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n`;
+          if (address?.name) locationInfo += `Place: ${address.name}\n`;
+          if (address?.city) locationInfo += `City: ${address.city}\n`;
+          locationInfo += `\nView on Google Maps:\nhttps://maps.google.com/?q=${latitude},${longitude}\n`;
+        }
       }
 
-      if (latitude && longitude) {
-        // Get address details
-        const address = await LocationService.getAddressFromLocation({ latitude, longitude });
-        
-        // Format location info like LocationShareScreen does
-        locationInfo = `\n\n📍 MY CURRENT LOCATION:\n`;
-        locationInfo += `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n`;
-        
-        if (address?.name) {
-          locationInfo += `Place: ${address.name}\n`;
-        }
-        if (address?.city) {
-          locationInfo += `City: ${address.city}\n`;
-        }
-        
-        // Add Google Maps link
-        locationInfo += `\nView on Google Maps:\nhttps://maps.google.com/?q=${latitude},${longitude}\n`;
+      const message =
+        `🔥 URGENT FIRE EMERGENCY\n\n` +
+        `👤 REPORTER INFORMATION:\n` +
+        `Email: ${userEmail}\n` +
+        `Phone: ${userPhone}\n\n` +
+        `Contacting Station: ${station.name}\n` +
+        `Station Location: ${station.address}, ${station.city}\n` +
+        `Region: ${station.region}\n` +
+        `${locationInfo}\n` +
+        `⚠️ Emergency alert: A fire outbreak or accident has been reported. Immediate response is required. Use the provided location link or coordinates to access the scene.\n\n` +
+        `Sent via YCKF Mobile App`;
+      const result = await WhatsAppService.sendMessage(station.phoneNumber, message);
+
+      if (!result.success) {
+        Alert.alert('Error', 'Failed to open WhatsApp. Please ensure WhatsApp is installed.');
       }
+    } catch (error) {
+      console.error('WhatsApp error:', error);
+      Alert.alert('Error', 'Could not open WhatsApp');
     }
-
-    // ⭐ UPDATED MESSAGE WITH USER INFO
-    const message = `🚨 URGENT PARK ASSISTANCE NEEDED\n\n` +
-      `👤 REPORTER INFORMATION:\n` +
-      `Email: ${userEmail}\n` +
-      `Phone: ${userPhone}\n\n` +
-      `Contacting Station: ${station.name}\n` +
-      `Station Location: ${station.address}, ${station.city}\n` +
-      `Region: ${station.region}\n` +
-      `${locationInfo}\n` +
-      `⚠️ Emergency alert: Park assistance required urgently. Please respond immediately and use the provided coordinates or location link to navigate to the scene.\n\n` +
-      `Sent via YCKF Mobile App`;
-
-    const result = await WhatsAppService.sendMessage(
-      station.phoneNumber,
-      message
-    );
-
-    if (!result.success) {
-      Alert.alert('Error', 'Failed to open WhatsApp. Please ensure WhatsApp is installed.');
-    }
-  } catch (error) {
-    console.error('WhatsApp error:', error);
-    Alert.alert('Error', 'Could not open WhatsApp');
-  }
-};
+  };
 
   const renderStationCard = (item: StationWithDistance, isNearest: boolean = false) => {
     const { station, distance } = item;
@@ -367,10 +294,7 @@ const handleWhatsApp = async (station: ParkStation) => {
     return (
       <View
         key={station.id}
-        style={[
-          styles.stationCard,
-          isNearest && styles.nearestStationCard,
-        ]}
+        style={[styles.stationCard, isNearest && styles.nearestStationCard]}
       >
         {isNearest && (
           <View style={styles.nearestBadge}>
@@ -381,7 +305,7 @@ const handleWhatsApp = async (station: ParkStation) => {
 
         <View style={styles.stationHeader}>
           <View style={styles.stationIcon}>
-            <Ionicons name="shield-checkmark" size={24} color={COLORS.primary} />
+            <Ionicons name="flame" size={24} color="#FF5722" />
           </View>
           <View style={styles.stationInfo}>
             <Text style={styles.stationName}>{station.name}</Text>
@@ -396,11 +320,19 @@ const handleWhatsApp = async (station: ParkStation) => {
         <View style={styles.stationDetails}>
           <View style={styles.detailRow}>
             <Ionicons name="location-outline" size={16} color={COLORS.text.secondary} />
-            <Text style={styles.detailText}>{station.address}, {station.city}</Text>
+            <Text style={styles.detailText}>
+              {station.address}, {station.city}
+            </Text>
           </View>
           <View style={styles.detailRow}>
             <Ionicons name="call-outline" size={16} color={COLORS.text.secondary} />
             <Text style={styles.detailText}>{station.phoneNumber}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="alert-circle-outline" size={16} color="#FF5722" />
+            <Text style={[styles.detailText, { color: '#FF5722', fontWeight: '600' }]}>
+              Emergency: {station.emergencyLine}
+            </Text>
           </View>
         </View>
 
@@ -433,12 +365,12 @@ const handleWhatsApp = async (station: ParkStation) => {
     );
   };
 
-  const renderAllStationCard = (station: ParkStation) => {
+  const renderAllStationCard = (station: FireStation) => {
     return (
       <View key={station.id} style={styles.stationCard}>
         <View style={styles.stationHeader}>
           <View style={styles.stationIcon}>
-            <Ionicons name="shield-checkmark" size={24} color={COLORS.primary} />
+            <Ionicons name="flame" size={24} color="#FF5722" />
           </View>
           <View style={styles.stationInfo}>
             <Text style={styles.stationName}>{station.name}</Text>
@@ -450,11 +382,19 @@ const handleWhatsApp = async (station: ParkStation) => {
         <View style={styles.stationDetails}>
           <View style={styles.detailRow}>
             <Ionicons name="location-outline" size={16} color={COLORS.text.secondary} />
-            <Text style={styles.detailText}>{station.address}, {station.city}</Text>
+            <Text style={styles.detailText}>
+              {station.address}, {station.city}
+            </Text>
           </View>
           <View style={styles.detailRow}>
             <Ionicons name="call-outline" size={16} color={COLORS.text.secondary} />
             <Text style={styles.detailText}>{station.phoneNumber}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="alert-circle-outline" size={16} color="#FF5722" />
+            <Text style={[styles.detailText, { color: '#FF5722', fontWeight: '600' }]}>
+              Emergency: {station.emergencyLine}
+            </Text>
           </View>
         </View>
 
@@ -490,17 +430,13 @@ const handleWhatsApp = async (station: ParkStation) => {
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor={COLORS.primary} />
-
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.surface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Find Park</Text>
-        <View style={styles.headerRight} />
+        <Text style={styles.headerTitle}>Find Fire Station</Text>
+        <View style={styles.headerRight} />  
       </View>
 
       <ScrollView
@@ -510,24 +446,24 @@ const handleWhatsApp = async (station: ParkStation) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
+            colors={['#FF5722']}
+            tintColor="#FF5722"
           />
         }
       >
         {/* Emergency Banner */}
         <View style={styles.emergencyBanner}>
-          <Ionicons name="warning" size={24} color={COLORS.error} />
+          <Ionicons name="flame" size={24} color="#FF5722" />
           <View style={styles.emergencyContent}>
-            <Text style={styles.emergencyTitle}>Emergency Hotline</Text>
-            <Text style={styles.emergencyNumber}>Call {APP_CONFIG.EMERGENCY_HOTLINE}</Text>
+            <Text style={styles.emergencyTitle}>Fire Emergency Hotline</Text>
+            <Text style={styles.emergencyNumber}>Call 192</Text>
           </View>
         </View>
 
         {/* Find Nearest Button */}
         <View style={styles.section}>
           <Button
-            title="Find Nearest Park"
+            title="Find Nearest Fire Station"
             onPress={handleFindNearest}
             icon="location"
             loading={loading}
@@ -535,7 +471,7 @@ const handleWhatsApp = async (station: ParkStation) => {
             variant="primary"
           />
           <Text style={styles.helperText}>
-            📍 We'll use your GPS to find the closest park
+            🔥 We'll use your GPS to find the closest fire station
           </Text>
         </View>
 
@@ -561,7 +497,7 @@ const handleWhatsApp = async (station: ParkStation) => {
         {/* Nearest Station */}
         {nearestStation && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nearest Station</Text>
+            <Text style={styles.sectionTitle}>Nearest Fire Station</Text>
             {renderStationCard(nearestStation, true)}
           </View>
         )}
@@ -582,24 +518,19 @@ const handleWhatsApp = async (station: ParkStation) => {
                 color={COLORS.text.primary}
               />
             </TouchableOpacity>
-
-            {showNearby &&
-              nearbyStations.slice(1).map((item) => renderStationCard(item))}
+            {showNearby && nearbyStations.slice(1).map((item) => renderStationCard(item))}
           </View>
         )}
 
         {/* All Stations List */}
         {!nearestStation && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              All Stations ({allStations.length})
-            </Text>
+            <Text style={styles.sectionTitle}>All Fire Stations ({allStations.length})</Text>
             <Text style={styles.sectionSubtitle}>
               {searchQuery
                 ? `Found ${allStations.length} stations matching "${searchQuery}"`
-                : 'Browse all parks across Ghana'}
+                : 'Browse all fire stations across Ghana'}
             </Text>
-
             {allStations.map((station) => renderAllStationCard(station))}
           </View>
         )}
@@ -641,7 +572,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emergencyBanner: {
-    backgroundColor: COLORS.error + '15',
+    backgroundColor: '#FF572215',
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.lg,
     padding: SPACING.lg,
@@ -649,7 +580,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.error,
+    borderLeftColor: '#FF5722',
   },
   emergencyContent: {
     marginLeft: SPACING.md,
@@ -663,7 +594,7 @@ const styles = StyleSheet.create({
   emergencyNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: COLORS.error,
+    color: '#FF5722',
   },
   section: {
     paddingHorizontal: SPACING.lg,
@@ -725,13 +656,13 @@ const styles = StyleSheet.create({
   },
   nearestStationCard: {
     borderWidth: 2,
-    borderColor: COLORS.secondary,
+    borderColor: '#FF5722',
   },
   nearestBadge: {
     position: 'absolute',
     top: SPACING.md,
     right: SPACING.md,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: '#FF5722',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.sm,
@@ -754,7 +685,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primary + '15',
+    backgroundColor: '#FF572215',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
@@ -774,12 +705,12 @@ const styles = StyleSheet.create({
   },
   stationRegion: {
     fontSize: 12,
-    color: COLORS.primary,
+    color: '#FF5722',
     fontWeight: '600',
     marginTop: 2,
   },
   distanceBadge: {
-    backgroundColor: COLORS.primary + '15',
+    backgroundColor: '#FF572215',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: 8,
@@ -787,7 +718,7 @@ const styles = StyleSheet.create({
   distanceText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: '#FF5722',
   },
   stationDetails: {
     marginBottom: SPACING.md,
@@ -820,7 +751,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   directionsButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#FF5722',
   },
   callButton: {
     backgroundColor: COLORS.secondary,
@@ -837,4 +768,5 @@ const styles = StyleSheet.create({
     height: SPACING.xl,
   },
 });
-export default ParkStationScreen;
+
+export default FireStationScreen;

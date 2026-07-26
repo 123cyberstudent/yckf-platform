@@ -26,8 +26,8 @@ export const APP_CONFIG = {
   // Emergency hotline numbers
   EMERGENCY_HOTLINE: '191', // Ghana Park Emergency Number
   
-  // Park station search parameters
-  PARK_SEARCH_RADIUS_KM: 20, // Maximum radius for nearby parks
+  // Station search parameters
+  STATION_SEARCH_RADIUS_KM: 20, // Maximum radius for nearby stations
   MAX_NEARBY_STATIONS: 10, // Maximum number of nearby stations to show
 };
 
@@ -326,8 +326,8 @@ export const SCREEN_NAMES = {
   CONTACT_FORM: 'ContactForm',
   EVIDENCE_SAFEBOX: 'EvidenceSafeBox',
   CASE_TRACKER: 'CaseTracker',
-  PARK_STATION: 'ParkStation',
-  MARKET_STATION: 'MarketStation',
+  POLICE_STATION: 'PoliceStation',
+  FIRE_STATION: 'FireStation',
   ABOUT: 'About',
   SETTINGS: 'Settings',
   SELECT_SPECIALIST: 'SelectSpecialist',
@@ -362,12 +362,20 @@ export const QUICK_ACTIONS = [
     color: '#dc2626',
   },
   {
-    id: 'find_park_station',
-    title: '🚓 Find Park',
-    subtitle: 'Locate nearest station',
+    id: 'find_police_station',
+    title: '🚓 Find Police Station',
+    subtitle: 'Locate nearest police station',
     icon: 'shield-checkmark',
-    screen: SCREEN_NAMES.PARK_STATION,
+    screen: SCREEN_NAMES.POLICE_STATION,
     color: '#2563EB',
+  },
+  {
+    id: 'find_fire_station',
+    title: '🔥 Find Fire Station',
+    subtitle: 'Locate nearest fire station',
+    icon: 'flame',
+    screen: SCREEN_NAMES.FIRE_STATION,
+    color: '#FF5722',
   },
   {
     id: 'report_cybercrime',
@@ -424,7 +432,7 @@ export const ERROR_MESSAGES = {
   INVALID_EMAIL: 'Please enter a valid email address.',
   REQUIRED_FIELD: 'This field is required.',
   GENERIC_ERROR: 'Something went wrong. Please try again.',
-  PARK_STATION_NOT_FOUND: 'No parks found nearby.',
+  STATION_NOT_FOUND: 'No stations found nearby.',
   MAPS_ERROR: 'Unable to open maps. Please ensure Google Maps is installed.',
   // WhatsApp 2 specific errors
   WHATSAPP2_INVALID_NUMBER: 'Invalid phone number. Please enter 9-15 digits.',
@@ -444,7 +452,7 @@ export const SUCCESS_MESSAGES = {
   CONTACT_SENT: 'Your message has been sent successfully.',
   LOCATION_SHARED: 'Location shared successfully.',
   DATA_SAVED: 'Data saved to Evidence SafeBox.',
-  PARK_STATION_FOUND: 'Nearest park found successfully.',
+  STATION_FOUND: 'Nearest station found successfully.',
   // WhatsApp 2 specific messages
   WHATSAPP2_OPENED: 'WhatsApp opened. Please send the emergency report.',
   // Thief Detection specific messages
@@ -461,7 +469,7 @@ export const WHATSAPP_CONFIG = {
   WHATSAPP_1: {
     enabled: true,
     source: 'ACTIVE_CONTACTS.whatsapp',
-    description: 'Send to park official number',
+    description: 'Send to station official number',
   },
   
   WHATSAPP_2: {
@@ -518,7 +526,7 @@ export const THIEF_DETECTION_CONFIG = {
  * ============================================================================
  */
 export const FEATURE_FLAGS = {
-  WHATSAPP_1_ENABLED: true, // Official park reports
+  WHATSAPP_1_ENABLED: true, // Official station reports
   WHATSAPP_2_ENABLED: true, // Forward to any number
   EMAIL_REPORTS_ENABLED: true,
   VOICE_RECORDING_ENABLED: true,

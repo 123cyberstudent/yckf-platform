@@ -149,11 +149,11 @@ const SubscriptionTermsScreen: React.FC = () => {
               <View style={styles.featureList}>
                 <View style={styles.featureItem}>
                   <Ionicons name="lock-closed" size={20} color="#F57C00" />
-                  <Text style={styles.featureText}>Emergency SOS (Voice/Text Park Alert)</Text>
+                  <Text style={styles.featureText}>Emergency SOS (Voice/Text Police Station Alert)</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <Ionicons name="lock-closed" size={20} color="#F57C00" />
-                  <Text style={styles.featureText}>Find Park</Text>
+                  <Text style={styles.featureText}>Find Police Station</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <Ionicons name="lock-closed" size={20} color="#F57C00" />

@@ -1,8 +1,8 @@
 // src/services/EmergencySOSService.ts
 import LocationService from './LocationService';
 import AuthService from './AuthService';
-import { PARK_STATIONS } from '../data/parks';
-import { findNearestParkStation } from '../utils/parkStationUtils';
+import { POLICE_STATIONS } from '../data/policeStations';
+import { findNearestStation } from '../utils/stationUtils';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
 const CENTRAL_EMAIL = 'yckfadmin@youngcyberknightsfoundation.org';
@@ -146,7 +146,7 @@ class EmergencySOSService {
 </div>
 
             <div class="section">
-              <div class="section-title">🚔 NEAREST PARK STATION</div>
+              <div class="section-title">🚔 NEAREST POLICE STATION</div>
               <div class="info-row"><span class="info-label">Station:</span> ${params.stationName}</div>
               <div class="info-row"><span class="info-label">Region:</span> ${params.stationRegion}</div>
               <div class="info-row"><span class="info-label">Station Address:</span> ${params.stationAddress}</div>
@@ -214,16 +214,16 @@ class EmergencySOSService {
         };
       }
 
-      // 2 — Find nearest park from local data
-      const nearest = findNearestParkStation(
+      // 2 — Find nearest police station from local data
+      const nearest = findNearestStation(
         location.latitude,
         location.longitude,
-        PARK_STATIONS
+        POLICE_STATIONS
       );
       if (!nearest) {
         return {
           success: false,
-          error: 'No park found in your area.',
+          error: 'No police station found in your area.',
         };
       }
 

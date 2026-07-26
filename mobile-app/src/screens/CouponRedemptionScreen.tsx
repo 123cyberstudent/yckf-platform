@@ -234,7 +234,7 @@ const CouponRedemptionScreen: React.FC = () => {
                 </View>
                 <View style={styles.featureItem}>
                   <Ionicons name="checkmark" size={20} color="#4CAF50" />
-                  <Text style={styles.featureText}>Find Park</Text>
+                  <Text style={styles.featureText}>Find Police Station</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <Ionicons name="checkmark" size={20} color="#4CAF50" />

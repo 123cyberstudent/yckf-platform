@@ -28,8 +28,8 @@ import CaseTrackerScreen from '../screens/CaseTrackerScreen';
 import AboutScreen from '../screens/AboutScreen';
 import LocationShareScreen from '../screens/LocationShareScreen';
 import EmergencyReportScreen from '../screens/EmergencyReportScreen';
-import ParkStationScreen from '../screens/ParkStationScreen';
-import MarketStationScreen from '../screens/MarketStationScreen';
+import PoliceStationScreen from '../screens/PoliceStationScreen';
+import FireStationScreen from '../screens/FireStationScreen';
 // Booking Module Screens
 import SelectSpecialistScreen from '../screens/Booking/SelectSpecialistScreen';
 import PaymentOptionsScreen from '../screens/Booking/PaymentOptionsScreen';
@@ -87,8 +87,8 @@ type RootStackParamList = {
   Root: undefined;
   [SCREEN_NAMES.ABOUT]: undefined;
   [SCREEN_NAMES.CASE_TRACKER]: undefined;
-  [SCREEN_NAMES.PARK_STATION]: undefined;
-  [SCREEN_NAMES.MARKET_STATION]: undefined;
+  [SCREEN_NAMES.POLICE_STATION]: undefined;
+  [SCREEN_NAMES.FIRE_STATION]: undefined;
   [SCREEN_NAMES.SECURITY_PROTECTION]: undefined;
   [SCREEN_NAMES.ENABLE_THIEF_DETECTION]: undefined;
   [SCREEN_NAMES.DETECTION_RULES]: undefined;
@@ -247,20 +247,20 @@ const AppNavigator: React.FC = () => {
       />
 
       <Stack.Screen
-        name={SCREEN_NAMES.PARK_STATION}
-        component={ensureScreen(ParkStationScreen, 'ParkStationScreen')}
+        name={SCREEN_NAMES.POLICE_STATION}
+        component={ensureScreen(PoliceStationScreen, 'PoliceStationScreen')}
         options={{
           headerShown: false,
-          title: 'Find Park',
+          title: 'Find Police Station',
         }}
       />
 
       <Stack.Screen
-  name={SCREEN_NAMES.MARKET_STATION}
-  component={ensureScreen(MarketStationScreen, 'MarketStationScreen')}
+  name={SCREEN_NAMES.FIRE_STATION}
+  component={ensureScreen(FireStationScreen, 'FireStationScreen')}
   options={{
     headerShown: false,
-    title: 'Find Market',
+    title: 'Find Fire Station',
   }}
 />
 

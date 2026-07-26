@@ -278,7 +278,7 @@ const PaymentOptionsScreen: React.FC<PaymentOptionsScreenProps> = ({
             </View>
             <View style={bookingStyles.featureItem}>
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-              <Text style={bookingStyles.featureText}>Find Park</Text>
+              <Text style={bookingStyles.featureText}>Find Police Station</Text>
             </View>
             <View style={bookingStyles.featureItem}>
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />

@@ -1,14 +1,22 @@
 
-import { ParkStation } from '../data/parks';
 import { Linking, Platform, Alert } from 'react-native';
+
+export interface Station {
+  id: string;
+  name: string;
+  phoneNumber: string;
+  emergencyLine: string;
+  latitude: number;
+  longitude: number;
+  address: string;
+  city: string;
+  region: string;
+  division?: string;
+  googleMapsLink: string;
+}
 
 /**
  * Calculate distance between two coordinates using Haversine formula
- * @param lat1 - User latitude
- * @param lon1 - User longitude
- * @param lat2 - Station latitude
- * @param lon2 - Station longitude
- * @returns Distance in kilometers
  */
 export function calculateDistance(
   lat1: number,
@@ -16,7 +24,7 @@ export function calculateDistance(
   lat2: number,
   lon2: number
 ): number {
-  const R = 6371; // Earth's radius in kilometers
+  const R = 6371;
   const dLat = toRadians(lat2 - lat1);
   const dLon = toRadians(lon2 - lon1);
 
@@ -33,25 +41,18 @@ export function calculateDistance(
   return distance;
 }
 
-/**
- * Convert degrees to radians
- */
 function toRadians(degrees: number): number {
   return degrees * (Math.PI / 180);
 }
 
 /**
- * Find the nearest park to given coordinates
- * @param userLat - User's current latitude
- * @param userLon - User's current longitude
- * @param stations - Array of parks
- * @returns Object containing nearest station and distance
+ * Find the nearest station to given coordinates
  */
-export function findNearestParkStation(
+export function findNearestStation<T extends Station>(
   userLat: number,
   userLon: number,
-  stations: ParkStation[]
-): { station: ParkStation; distance: number } | null {
+  stations: T[]
+): { station: T; distance: number } | null {
   if (stations.length === 0) return null;
 
   let nearest = stations[0];
@@ -84,19 +85,14 @@ export function findNearestParkStation(
 }
 
 /**
- * Get all parks sorted by distance from user
- * @param userLat - User's current latitude
- * @param userLon - User's current longitude
- * @param stations - Array of parks
- * @param maxDistance - Optional maximum distance in km (default: no limit)
- * @returns Array of stations with distances, sorted by proximity
+ * Get all stations sorted by distance from user
  */
-export function getParkStationsByDistance(
+export function getStationsByDistance<T extends Station>(
   userLat: number,
   userLon: number,
-  stations: ParkStation[],
+  stations: T[],
   maxDistance?: number
-): Array<{ station: ParkStation; distance: number }> {
+): Array<{ station: T; distance: number }> {
   let stationsWithDistance = stations.map((station) => ({
     station,
     distance: calculateDistance(
@@ -107,26 +103,20 @@ export function getParkStationsByDistance(
     ),
   }));
 
-  // Filter by max distance if provided
   if (maxDistance) {
     stationsWithDistance = stationsWithDistance.filter(
       (item) => item.distance <= maxDistance
     );
   }
 
-  // Sort by distance (nearest first)
   return stationsWithDistance.sort((a, b) => a.distance - b.distance);
 }
 
 /**
- * Open Google Maps with directions to a park
- * Works on both iOS and Android
- * @param station - Park station to navigate to
- * @param userLat - Optional user latitude for better routing
- * @param userLon - Optional user longitude for better routing
+ * Open Google Maps with directions to a station
  */
 export async function openGoogleMapsDirections(
-  station: ParkStation,
+  station: Station,
   userLat?: number,
   userLon?: number
 ): Promise<void> {
@@ -137,7 +127,6 @@ export async function openGoogleMapsDirections(
     let url: string;
 
     if (Platform.OS === 'ios') {
-      // iOS - Try Google Maps first, fallback to Apple Maps
       const googleMapsUrl = `comgooglemaps://?daddr=${destination}&directionsmode=driving`;
       
       try {
@@ -146,7 +135,6 @@ export async function openGoogleMapsDirections(
         if (canOpenGoogleMaps) {
           await Linking.openURL(googleMapsUrl);
         } else {
-          // Fallback to Apple Maps
           if (userLat && userLon) {
             url = `http://maps.apple.com/?saddr=${userLat},${userLon}&daddr=${destination}&dirflg=d`;
           } else {
@@ -155,12 +143,10 @@ export async function openGoogleMapsDirections(
           await Linking.openURL(url);
         }
       } catch (innerError) {
-        // Final fallback to browser-based Google Maps
         const browserUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
         await Linking.openURL(browserUrl);
       }
     } else {
-      // Android - Use Google Maps
       if (userLat && userLon) {
         url = `google.navigation:q=${destination}&origin=${userLat},${userLon}`;
       } else {
@@ -171,7 +157,6 @@ export async function openGoogleMapsDirections(
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        // Fallback to browser-based Google Maps
         const browserUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
         await Linking.openURL(browserUrl);
       }
@@ -186,10 +171,9 @@ export async function openGoogleMapsDirections(
 }
 
 /**
- * Call a park
- * @param phoneNumber - Park station phone number
+ * Call a station
  */
-export async function callParkStation(phoneNumber: string): Promise<void> {
+export async function callStation(phoneNumber: string): Promise<void> {
   try {
     const url = `tel:${phoneNumber}`;
     const canOpen = await Linking.canOpenURL(url);
@@ -207,8 +191,6 @@ export async function callParkStation(phoneNumber: string): Promise<void> {
 
 /**
  * Format distance for display
- * @param distance - Distance in kilometers
- * @returns Formatted distance string
  */
 export function formatDistance(distance: number): string {
   if (distance < 1) {
@@ -218,13 +200,11 @@ export function formatDistance(distance: number): string {
 }
 
 /**
- * Group parks by city
- * @param stations - Array of parks
- * @returns Object with cities as keys and stations as values
+ * Group stations by city
  */
-export function groupStationsByCity(
-  stations: ParkStation[]
-): Record<string, ParkStation[]> {
+export function groupStationsByCity<T extends Station>(
+  stations: T[]
+): Record<string, T[]> {
   return stations.reduce((acc, station) => {
     const city = station.city;
     if (!acc[city]) {
@@ -232,19 +212,16 @@ export function groupStationsByCity(
     }
     acc[city].push(station);
     return acc;
-  }, {} as Record<string, ParkStation[]>);
+  }, {} as Record<string, T[]>);
 }
 
 /**
- * Search parks by name, address, or division
- * @param stations - Array of parks
- * @param query - Search query
- * @returns Filtered array of stations
+ * Search stations by name, address, or division
  */
-export function searchParkStations(
-  stations: ParkStation[],
+export function searchStations<T extends Station>(
+  stations: T[],
   query: string
-): ParkStation[] {
+): T[] {
   const lowercaseQuery = query.toLowerCase().trim();
 
   if (!lowercaseQuery) {

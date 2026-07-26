@@ -1,4 +1,4 @@
-// src/screens/MarketStationScreen.tsx
+// src/screens/PoliceStationScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -20,50 +20,49 @@ import WhatsAppService from '../services/WhatsAppService';
 import authService from '../services/AuthService';
 
 // Data
-import { MARKET_STATIONS, MarketStation } from '../data/markets';
+import { POLICE_STATIONS, PoliceStation } from '../data/policeStations';
 
 // Utils
 import {
-  findNearestParkStation,
-  getParkStationsByDistance,
+  findNearestStation,
+  getStationsByDistance,
   openGoogleMapsDirections,
-  callParkStation,
+  callStation,
   formatDistance,
-  searchParkStations,
-} from '../utils/parkStationUtils';
+  searchStations,
+} from '../utils/stationUtils';
 import {
   COLORS,
   SPACING,
   APP_CONFIG,
   ERROR_MESSAGES,
-  SUCCESS_MESSAGES,
 } from '../utils/constants';
 
 // Components
 import Button from '../components/common/Button';
 
 interface StationWithDistance {
-  station: MarketStation;
+  station: PoliceStation;
   distance: number;
 }
 
-const MarketStationScreen: React.FC = () => {
+const PoliceStationScreen: React.FC = () => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [nearestStation, setNearestStation] = useState<StationWithDistance | null>(null);
   const [nearbyStations, setNearbyStations] = useState<StationWithDistance[]>([]);
-  const [allStations, setAllStations] = useState<MarketStation[]>(MARKET_STATIONS);
+  const [allStations, setAllStations] = useState<PoliceStation[]>(POLICE_STATIONS);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showNearby, setShowNearby] = useState(false);
 
   useEffect(() => {
     if (searchQuery.trim()) {
-      const filtered = searchParkStations(MARKET_STATIONS as any, searchQuery) as unknown as MarketStation[];
+      const filtered = searchStations(POLICE_STATIONS, searchQuery);
       setAllStations(filtered);
     } else {
-      setAllStations(MARKET_STATIONS);
+      setAllStations(POLICE_STATIONS);
     }
   }, [searchQuery]);
 
@@ -101,7 +100,7 @@ const MarketStationScreen: React.FC = () => {
 
       setUserLocation({ latitude, longitude });
 
-      const nearest = findNearestParkStation(latitude, longitude, MARKET_STATIONS as any) as unknown as StationWithDistance | null;
+      const nearest = findNearestStation(latitude, longitude, POLICE_STATIONS);
 
       if (nearest) {
         const MAX_REASONABLE_DISTANCE_KM = 500;
@@ -109,12 +108,14 @@ const MarketStationScreen: React.FC = () => {
         if (nearest.distance > MAX_REASONABLE_DISTANCE_KM) {
           Alert.alert(
             '⚠️ Out of Service Area',
-            `You appear to be ${formatDistance(nearest.distance)} away from the nearest market in our database.\n\n` +
+            `You appear to be ${formatDistance(nearest.distance)} away from the nearest police station in our database.\n\n` +
             `This app currently serves Ghana only.\n\n` +
             `Nearest station found:\n${nearest.station.name}\n${nearest.station.region} Region\n\n` +
             `Emergency Tip: Please dial your local emergency number:\n` +
-            `• Ghana Market: 192\n` +
-            `• Ghana General: 191`,
+            `• Ghana: 191\n` +
+            `• Nigeria: 112\n` +
+            `• USA/Canada: 911\n` +
+            `• UK/EU: 112`,
             [
               { text: 'OK', style: 'cancel' },
               {
@@ -122,12 +123,12 @@ const MarketStationScreen: React.FC = () => {
                 style: 'default',
                 onPress: () => {
                   setNearestStation(nearest);
-                  const nearby = getParkStationsByDistance(
+                  const nearby = getStationsByDistance(
                     latitude,
                     longitude,
-                    MARKET_STATIONS as any,
-                    APP_CONFIG.PARK_SEARCH_RADIUS_KM
-                  ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS) as unknown as StationWithDistance[];
+                    POLICE_STATIONS,
+                    APP_CONFIG.STATION_SEARCH_RADIUS_KM
+                  ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS);
                   setNearbyStations(nearby);
                 },
               },
@@ -138,17 +139,17 @@ const MarketStationScreen: React.FC = () => {
 
         setNearestStation(nearest);
 
-        const nearby = getParkStationsByDistance(
+        const nearby = getStationsByDistance(
           latitude,
           longitude,
-          MARKET_STATIONS as any,
-          APP_CONFIG.PARK_SEARCH_RADIUS_KM
-        ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS) as unknown as StationWithDistance[];
+          POLICE_STATIONS,
+          APP_CONFIG.STATION_SEARCH_RADIUS_KM
+        ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS);
 
         setNearbyStations(nearby);
 
         Alert.alert(
-          '🔥 Market Found',
+          '✅ Station Found',
           `${nearest.station.name}\n${nearest.station.region} Region\n\nDistance: ${formatDistance(nearest.distance)}`,
           [
             { text: 'OK', style: 'default' },
@@ -160,7 +161,7 @@ const MarketStationScreen: React.FC = () => {
           ]
         );
       } else {
-        Alert.alert('Error', 'No market found nearby.');
+        Alert.alert('Error', ERROR_MESSAGES.STATION_NOT_FOUND);
       }
     } catch (error) {
       console.error('Error finding nearest station:', error);
@@ -173,23 +174,34 @@ const MarketStationScreen: React.FC = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     if (userLocation) {
-      const nearby = getParkStationsByDistance(
+      const nearby = getStationsByDistance(
         userLocation.latitude,
         userLocation.longitude,
-        MARKET_STATIONS as any,
-        APP_CONFIG.PARK_SEARCH_RADIUS_KM
-      ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS) as unknown as StationWithDistance[];
+        POLICE_STATIONS,
+        APP_CONFIG.STATION_SEARCH_RADIUS_KM
+      ).slice(0, APP_CONFIG.MAX_NEARBY_STATIONS);
       setNearbyStations(nearby);
     }
     setTimeout(() => setRefreshing(false), 500);
   };
 
-  const handleGetDirections = async (station: MarketStation) => {
+  const handleGetDirections = async (station: PoliceStation) => {
     try {
       if (!userLocation) {
+        Alert.alert(
+          'Getting Your Location',
+          'Please wait while we fetch your current location...',
+          [{ text: 'OK' }]
+        );
+
         const location = await LocationService.getCurrentLocation();
+        
         if (!location) {
-          Alert.alert('Location Required', 'Please enable location services and try again.');
+          Alert.alert(
+            'Location Required',
+            'We need your location to provide directions. Please enable location services and try again.',
+            [{ text: 'OK' }]
+          );
           return;
         }
 
@@ -203,91 +215,115 @@ const MarketStationScreen: React.FC = () => {
           latitude = location.latitude;
           longitude = location.longitude;
         } else {
-          Alert.alert('Error', 'Invalid location format received.');
+          Alert.alert('Error', 'Invalid location format received. Please try again.');
+          return;
+        }
+
+        if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
+          Alert.alert('Error', 'Invalid location coordinates. Please try again.');
           return;
         }
 
         setUserLocation({ latitude, longitude });
-        await openGoogleMapsDirections(station as any, latitude, longitude);
+        await openGoogleMapsDirections(station, latitude, longitude);
       } else {
-        await openGoogleMapsDirections(station as any, userLocation.latitude, userLocation.longitude);
+        await openGoogleMapsDirections(
+          station,
+          userLocation.latitude,
+          userLocation.longitude
+        );
       }
     } catch (error) {
       console.error('Navigation error:', error);
-      Alert.alert('Navigation Error', 'Unable to open Google Maps.');
+      Alert.alert(
+        'Navigation Error',
+        'Unable to open Google Maps. Please make sure Google Maps is installed on your device.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const handleCall = async (phoneNumber: string) => {
     Alert.alert(
-      'Call Market',
+      'Call Police Station',
       `Do you want to call ${phoneNumber}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Call',
           style: 'default',
-          onPress: () => callParkStation(phoneNumber),
+          onPress: () => callStation(phoneNumber),
         },
       ]
     );
   };
 
-  const handleWhatsApp = async (station: MarketStation) => {
-    try {
-      const userData = await authService.getCurrentUser();
-      const userEmail = userData?.email || 'Not available';
-      const userPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || 'Not available';
+const handleWhatsApp = async (station: PoliceStation) => {
+  try {
+    const userData = await authService.getCurrentUser();
+    const userEmail = userData?.email || 'Not available';
+    const userPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || 'Not available';
+    
+    const userLoc = userLocation || await LocationService.getCurrentLocation();
+    
+    let locationInfo = '';
+    
+    if (userLoc) {
+      let latitude: number;
+      let longitude: number;
 
-      const userLoc = userLocation || await LocationService.getCurrentLocation();
-      let locationInfo = '';
-
-      if (userLoc) {
-        let latitude: number;
-        let longitude: number;
-
-        if ('coords' in userLoc && userLoc.coords) {
-          latitude = userLoc.coords.latitude;
-          longitude = userLoc.coords.longitude;
-        } else if ('latitude' in userLoc && 'longitude' in userLoc) {
-          latitude = userLoc.latitude;
-          longitude = userLoc.longitude;
-        } else {
-          latitude = 0;
-          longitude = 0;
-        }
-
-        if (latitude && longitude) {
-          const address = await LocationService.getAddressFromLocation({ latitude, longitude });
-          locationInfo = `\n\n📍 MY CURRENT LOCATION:\n`;
-          locationInfo += `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n`;
-          if (address?.name) locationInfo += `Place: ${address.name}\n`;
-          if (address?.city) locationInfo += `City: ${address.city}\n`;
-          locationInfo += `\nView on Google Maps:\nhttps://maps.google.com/?q=${latitude},${longitude}\n`;
-        }
+      if ('coords' in userLoc && userLoc.coords) {
+        latitude = userLoc.coords.latitude;
+        longitude = userLoc.coords.longitude;
+      } else if ('latitude' in userLoc && 'longitude' in userLoc) {
+        latitude = userLoc.latitude;
+        longitude = userLoc.longitude;
+      } else {
+        latitude = 0;
+        longitude = 0;
       }
 
-      const message =
-        `🔥 URGENT MARKET EMERGENCY\n\n` +
-        `👤 REPORTER INFORMATION:\n` +
-        `Email: ${userEmail}\n` +
-        `Phone: ${userPhone}\n\n` +
-        `Contacting Station: ${station.name}\n` +
-        `Station Location: ${station.address}, ${station.city}\n` +
-        `Region: ${station.region}\n` +
-        `${locationInfo}\n` +
-        `⚠️ Emergency alert: A market outbreak or accident has been reported. Immediate response is required. Use the provided location link or coordinates to access the scene.\n\n` +
-        `Sent via YCKF Mobile App`;
-      const result = await WhatsAppService.sendMessage(station.phoneNumber, message);
-
-      if (!result.success) {
-        Alert.alert('Error', 'Failed to open WhatsApp. Please ensure WhatsApp is installed.');
+      if (latitude && longitude) {
+        const address = await LocationService.getAddressFromLocation({ latitude, longitude });
+        
+        locationInfo = `\n\n📍 MY CURRENT LOCATION:\n`;
+        locationInfo += `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n`;
+        
+        if (address?.name) {
+          locationInfo += `Place: ${address.name}\n`;
+        }
+        if (address?.city) {
+          locationInfo += `City: ${address.city}\n`;
+        }
+        
+        locationInfo += `\nView on Google Maps:\nhttps://maps.google.com/?q=${latitude},${longitude}\n`;
       }
-    } catch (error) {
-      console.error('WhatsApp error:', error);
-      Alert.alert('Error', 'Could not open WhatsApp');
     }
-  };
+
+    const message = `🚨 URGENT POLICE ASSISTANCE NEEDED\n\n` +
+      `👤 REPORTER INFORMATION:\n` +
+      `Email: ${userEmail}\n` +
+      `Phone: ${userPhone}\n\n` +
+      `Contacting Station: ${station.name}\n` +
+      `Station Location: ${station.address}, ${station.city}\n` +
+      `Region: ${station.region}\n` +
+      `${locationInfo}\n` +
+      `⚠️ Emergency alert: Police assistance required urgently. Please respond immediately and use the provided coordinates or location link to navigate to the scene.\n\n` +
+      `Sent via YCKF Mobile App`;
+
+    const result = await WhatsAppService.sendMessage(
+      station.phoneNumber,
+      message
+    );
+
+    if (!result.success) {
+      Alert.alert('Error', 'Failed to open WhatsApp. Please ensure WhatsApp is installed.');
+    }
+  } catch (error) {
+    console.error('WhatsApp error:', error);
+    Alert.alert('Error', 'Could not open WhatsApp');
+  }
+};
 
   const renderStationCard = (item: StationWithDistance, isNearest: boolean = false) => {
     const { station, distance } = item;
@@ -295,7 +331,10 @@ const MarketStationScreen: React.FC = () => {
     return (
       <View
         key={station.id}
-        style={[styles.stationCard, isNearest && styles.nearestStationCard]}
+        style={[
+          styles.stationCard,
+          isNearest && styles.nearestStationCard,
+        ]}
       >
         {isNearest && (
           <View style={styles.nearestBadge}>
@@ -306,7 +345,7 @@ const MarketStationScreen: React.FC = () => {
 
         <View style={styles.stationHeader}>
           <View style={styles.stationIcon}>
-            <Ionicons name="flame" size={24} color="#FF5722" />
+            <Ionicons name="shield-checkmark" size={24} color={COLORS.primary} />
           </View>
           <View style={styles.stationInfo}>
             <Text style={styles.stationName}>{station.name}</Text>
@@ -321,19 +360,11 @@ const MarketStationScreen: React.FC = () => {
         <View style={styles.stationDetails}>
           <View style={styles.detailRow}>
             <Ionicons name="location-outline" size={16} color={COLORS.text.secondary} />
-            <Text style={styles.detailText}>
-              {station.address}, {station.city}
-            </Text>
+            <Text style={styles.detailText}>{station.address}, {station.city}</Text>
           </View>
           <View style={styles.detailRow}>
             <Ionicons name="call-outline" size={16} color={COLORS.text.secondary} />
             <Text style={styles.detailText}>{station.phoneNumber}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Ionicons name="alert-circle-outline" size={16} color="#FF5722" />
-            <Text style={[styles.detailText, { color: '#FF5722', fontWeight: '600' }]}>
-              Emergency: {station.emergencyLine}
-            </Text>
           </View>
         </View>
 
@@ -366,12 +397,12 @@ const MarketStationScreen: React.FC = () => {
     );
   };
 
-  const renderAllStationCard = (station: MarketStation) => {
+  const renderAllStationCard = (station: PoliceStation) => {
     return (
       <View key={station.id} style={styles.stationCard}>
         <View style={styles.stationHeader}>
           <View style={styles.stationIcon}>
-            <Ionicons name="flame" size={24} color="#FF5722" />
+            <Ionicons name="shield-checkmark" size={24} color={COLORS.primary} />
           </View>
           <View style={styles.stationInfo}>
             <Text style={styles.stationName}>{station.name}</Text>
@@ -383,19 +414,11 @@ const MarketStationScreen: React.FC = () => {
         <View style={styles.stationDetails}>
           <View style={styles.detailRow}>
             <Ionicons name="location-outline" size={16} color={COLORS.text.secondary} />
-            <Text style={styles.detailText}>
-              {station.address}, {station.city}
-            </Text>
+            <Text style={styles.detailText}>{station.address}, {station.city}</Text>
           </View>
           <View style={styles.detailRow}>
             <Ionicons name="call-outline" size={16} color={COLORS.text.secondary} />
             <Text style={styles.detailText}>{station.phoneNumber}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Ionicons name="alert-circle-outline" size={16} color="#FF5722" />
-            <Text style={[styles.detailText, { color: '#FF5722', fontWeight: '600' }]}>
-              Emergency: {station.emergencyLine}
-            </Text>
           </View>
         </View>
 
@@ -431,13 +454,17 @@ const MarketStationScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor={COLORS.primary} />
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={24} color={COLORS.surface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Find Market</Text>
-        <View style={styles.headerRight} />  
+        <Text style={styles.headerTitle}>Find Police Station</Text>
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView
@@ -447,34 +474,32 @@ const MarketStationScreen: React.FC = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#FF5722']}
-            tintColor="#FF5722"
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
           />
         }
       >
         {/* Emergency Banner */}
         <View style={styles.emergencyBanner}>
-          <Ionicons name="flame" size={24} color="#FF5722" />
+          <Ionicons name="warning" size={24} color={COLORS.error} />
           <View style={styles.emergencyContent}>
-            <Text style={styles.emergencyTitle}>Market Emergency Hotline</Text>
-            <Text style={styles.emergencyNumber}>Call 192</Text>
+            <Text style={styles.emergencyTitle}>Emergency Hotline</Text>
+            <Text style={styles.emergencyNumber}>Call {APP_CONFIG.EMERGENCY_HOTLINE}</Text>
           </View>
         </View>
 
         {/* Find Nearest Button */}
         <View style={styles.section}>
-          <TouchableOpacity
-            style={[styles.findButton, loading && styles.findButtonDisabled]}
+          <Button
+            title="Find Nearest Police Station"
             onPress={handleFindNearest}
-            disabled={loading}
-          >
-            <Ionicons name="location" size={20} color="#fff" />
-            <Text style={styles.findButtonText}>
-              {loading ? 'Searching...' : 'Find Nearest Market'}
-            </Text>
-          </TouchableOpacity>
+            icon="location"
+            loading={loading}
+            fullWidth
+            variant="primary"
+          />
           <Text style={styles.helperText}>
-            🔥 We'll use your GPS to find the closest market
+            📍 We'll use your GPS to find the closest police station
           </Text>
         </View>
 
@@ -500,7 +525,7 @@ const MarketStationScreen: React.FC = () => {
         {/* Nearest Station */}
         {nearestStation && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nearest Market</Text>
+            <Text style={styles.sectionTitle}>Nearest Station</Text>
             {renderStationCard(nearestStation, true)}
           </View>
         )}
@@ -521,19 +546,24 @@ const MarketStationScreen: React.FC = () => {
                 color={COLORS.text.primary}
               />
             </TouchableOpacity>
-            {showNearby && nearbyStations.slice(1).map((item) => renderStationCard(item))}
+
+            {showNearby &&
+              nearbyStations.slice(1).map((item) => renderStationCard(item))}
           </View>
         )}
 
         {/* All Stations List */}
         {!nearestStation && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>All Markets ({allStations.length})</Text>
+            <Text style={styles.sectionTitle}>
+              All Stations ({allStations.length})
+            </Text>
             <Text style={styles.sectionSubtitle}>
               {searchQuery
                 ? `Found ${allStations.length} stations matching "${searchQuery}"`
-                : 'Browse all markets across Ghana'}
+                : 'Browse all police stations across Ghana'}
             </Text>
+
             {allStations.map((station) => renderAllStationCard(station))}
           </View>
         )}
@@ -575,7 +605,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emergencyBanner: {
-    backgroundColor: '#FF572215',
+    backgroundColor: COLORS.error + '15',
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.lg,
     padding: SPACING.lg,
@@ -583,7 +613,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderLeftWidth: 4,
-    borderLeftColor: '#FF5722',
+    borderLeftColor: COLORS.error,
   },
   emergencyContent: {
     marginLeft: SPACING.md,
@@ -597,7 +627,7 @@ const styles = StyleSheet.create({
   emergencyNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FF5722',
+    color: COLORS.error,
   },
   section: {
     paddingHorizontal: SPACING.lg,
@@ -626,28 +656,6 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     textAlign: 'center',
     marginTop: SPACING.sm,
-  },
-  findButton: {
-    backgroundColor: '#dc2626',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#dc2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  findButtonDisabled: {
-    opacity: 0.7,
-  },
-  findButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -681,13 +689,13 @@ const styles = StyleSheet.create({
   },
   nearestStationCard: {
     borderWidth: 2,
-    borderColor: '#FF5722',
+    borderColor: COLORS.secondary,
   },
   nearestBadge: {
     position: 'absolute',
     top: SPACING.md,
     right: SPACING.md,
-    backgroundColor: '#FF5722',
+    backgroundColor: COLORS.secondary,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.sm,
@@ -710,7 +718,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FF572215',
+    backgroundColor: COLORS.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
@@ -730,12 +738,12 @@ const styles = StyleSheet.create({
   },
   stationRegion: {
     fontSize: 12,
-    color: '#FF5722',
+    color: COLORS.primary,
     fontWeight: '600',
     marginTop: 2,
   },
   distanceBadge: {
-    backgroundColor: '#FF572215',
+    backgroundColor: COLORS.primary + '15',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: 8,
@@ -743,7 +751,7 @@ const styles = StyleSheet.create({
   distanceText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF5722',
+    color: COLORS.primary,
   },
   stationDetails: {
     marginBottom: SPACING.md,
@@ -776,7 +784,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   directionsButton: {
-    backgroundColor: '#FF5722',
+    backgroundColor: COLORS.primary,
   },
   callButton: {
     backgroundColor: COLORS.secondary,
@@ -793,5 +801,4 @@ const styles = StyleSheet.create({
     height: SPACING.xl,
   },
 });
-
-export default MarketStationScreen;
+export default PoliceStationScreen;

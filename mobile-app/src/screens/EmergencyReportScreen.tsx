@@ -29,9 +29,9 @@ import LocationService from '../services/LocationService';
 import WhatsAppService from '../services/WhatsAppService';
 
 // Data
-import { PARK_STATIONS, ParkStation } from '../data/parks';
+import { POLICE_STATIONS, PoliceStation } from '../data/policeStations';
 // Utils
-import { findNearestParkStation } from '../utils/parkStationUtils';
+import { findNearestStation } from '../utils/stationUtils';
 
 // Types
 import { LocationData } from '../types';
@@ -60,9 +60,9 @@ const EmergencyReportScreen: React.FC = () => {
   // NEW ADDED - Initialize navigation hook
   const navigation = useNavigation();
 
-  // Location & Park
+  // Location & Police Station
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
-  const [nearestStation, setNearestStation] = useState<{ station: ParkStation; distance: number } | null>(null);
+  const [nearestStation, setNearestStation] = useState<{ station: PoliceStation; distance: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
   // Loading states
@@ -106,7 +106,7 @@ const EmergencyReportScreen: React.FC = () => {
       'This emergency reporting feature will:\n\n' +
       '• Capture your current GPS location\n' +
       '• Record audio (if using voice mode)\n' +
-      '• Share this information with emergency contacts and park\n\n' +
+      '• Share this information with emergency contacts and police stations\n\n' +
       'Your data will only be used for emergency response purposes.\n\n' +
       'Do you consent to proceed?',
       [
@@ -183,9 +183,9 @@ const EmergencyReportScreen: React.FC = () => {
         // Set location immediately
         setCurrentLocation(location);
 
-        // Find nearest park
-        console.log('🚔 Finding nearest park...');
-        const nearest = findNearestParkStation(latitude, longitude, PARK_STATIONS);
+        // Find nearest police station
+        console.log('🚔 Finding nearest police station...');
+        const nearest = findNearestStation(latitude, longitude, POLICE_STATIONS);
 
         console.log('🎯 Nearest station:', nearest);
 
@@ -198,7 +198,7 @@ const EmergencyReportScreen: React.FC = () => {
           if (nearest.distance > MAX_REASONABLE_DISTANCE_KM) {
             Alert.alert(
               '⚠️ Out of Service Area',
-              `You appear to be ${nearest.distance.toFixed(1)} km away from the nearest park.\n\n` +
+              `You appear to be ${nearest.distance.toFixed(1)} km away from the nearest police station.\n\n` +
               `This app currently serves Ghana only.\n\n` +
               `Nearest found: ${nearest.station.name}\n\n` +
               `You can still proceed, but consider calling:\n` +
@@ -211,12 +211,12 @@ const EmergencyReportScreen: React.FC = () => {
           } else {
             Alert.alert(
               '✅ Location Captured',
-              `Nearest Park:\n${nearest.station.name}\n(${nearest.distance.toFixed(2)} km away)`,
+              `Nearest Police Station:\n${nearest.station.name}\n(${nearest.distance.toFixed(2)} km away)`,
               [{ text: 'OK' }]
             );
           }
         } else {
-          Alert.alert('Notice', 'Could not find nearby park. You can still proceed with your report.');
+          Alert.alert('Notice', 'Could not find nearby police station. You can still proceed with your report.');
         }
       } else {
         console.error('❌ Invalid location structure:', location);
@@ -436,9 +436,9 @@ const EmergencyReportScreen: React.FC = () => {
     //   message += `⚠️ Location not available\n\n`;
     // }
 
-    // Park
+    // Police Station
     if (nearestStation) {
-      message += `🚔 NEAREST PARK STATION:\n`;
+      message += `🚔 NEAREST POLICE STATION:\n`;
       message += `Name: ${nearestStation.station.name}\n`;
       message += `Distance: ${nearestStation.distance.toFixed(2)} km\n`;
       message += `Phone: ${nearestStation.station.emergencyLine}\n`;
@@ -494,8 +494,8 @@ const EmergencyReportScreen: React.FC = () => {
 
     if (!nearestStation) {
       Alert.alert(
-        '⚠️ No Park',
-        'No park found. Continue anyway?',
+        '⚠️ No Police Station',
+        'No police station found. Continue anyway?',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Continue', onPress: () => showSendOptions() }
@@ -540,7 +540,7 @@ const EmergencyReportScreen: React.FC = () => {
         },
         {
           text: '☎️ Call',
-          onPress: () => callParkStation(),
+          onPress: () => callStation(),
         },
         {
           text: '📲 Share',
@@ -670,7 +670,7 @@ const EmergencyReportScreen: React.FC = () => {
      */
   const sendViaWhatsApp = async () => {
     if (!nearestStation) {
-      Alert.alert('Error', 'No park selected');
+      Alert.alert('Error', 'No police station selected');
       return;
     }
 
@@ -827,7 +827,7 @@ const sendViaEmailAuto = async () => {
     if (result.success) {
       Alert.alert(
         '✅ Emergency Reported',
-        'Your emergency report has been sent automatically via email to the park and YCKF admin.',
+        'Your emergency report has been sent automatically via email to the police station and YCKF admin.',
         [{ text: 'OK', onPress: () => resetForm() }]
       );
     } else {
@@ -853,16 +853,16 @@ const sendViaEmailAuto = async () => {
 };
   
   /**
-   * Call park - FIXED phone number
+   * Call police station - FIXED phone number
    */
-  const callParkStation = () => {
+  const callStation = () => {
     if (!nearestStation) return;
 
     // FIXED: Use emergencyLine and clean it
     const phoneNumber = nearestStation.station.emergencyLine.replace(/\D/g, '');
 
     Alert.alert(
-      '☎️ Call Park',
+      '☎️ Call Police Station',
       `Calling: ${nearestStation.station.name}\n${nearestStation.station.emergencyLine}`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -1050,7 +1050,7 @@ const sendViaEmailAuto = async () => {
                 <View style={styles.sendOptionText}>
                   <Text style={styles.sendOptionTitle}>WhatsApp 1</Text>
                   <Text style={styles.sendOptionSubtitle}>
-                    Send to park official number
+                    Send to police station official number
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={COLORS.text.light} />
@@ -1090,7 +1090,7 @@ const sendViaEmailAuto = async () => {
                 <View style={styles.sendOptionText}>
                   <Text style={styles.sendOptionTitle}>Email</Text>
                   <Text style={styles.sendOptionSubtitle}>
-                    Auto-send to park & YCKF admin
+                    Auto-send to police station & YCKF admin
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={COLORS.text.light} />
@@ -1102,14 +1102,14 @@ const sendViaEmailAuto = async () => {
                 style={styles.sendOption}
                 onPress={() => {
                   setSendOptionsModalVisible(false);
-                  callParkStation();
+                  callStation();
                 }}
               >
                 <View style={[styles.sendOptionIcon, { backgroundColor: '#fee2e2' }]}>
                   <Ionicons name="call" size={28} color="#dc2626" />
                 </View>
                 <View style={styles.sendOptionText}>
-                  <Text style={styles.sendOptionTitle}>Call Park</Text>
+                  <Text style={styles.sendOptionTitle}>Call Police Station</Text>
                   <Text style={styles.sendOptionSubtitle}>
                     Direct call to emergency line
                   </Text>
@@ -1172,7 +1172,7 @@ const sendViaEmailAuto = async () => {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>🚨 Emergency Report</Text>
           <Text style={styles.headerSubtitle}>
-            Voice or Text • Instant Park Alert
+            Voice or Text • Instant Police Station Alert
           </Text>
         </View>
       </View>
@@ -1237,7 +1237,7 @@ const sendViaEmailAuto = async () => {
           <View style={styles.stationCard}>
             <View style={styles.stationHeader}>
               <Ionicons name="location" size={24} color={COLORS.secondary} />
-              <Text style={styles.stationTitle}>Nearest Park</Text>
+              <Text style={styles.stationTitle}>Nearest Police Station</Text>
             </View>
             <Text style={styles.stationName}>{nearestStation.station.name}</Text>
             <View style={styles.stationDetails}>
