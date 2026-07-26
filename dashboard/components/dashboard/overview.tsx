@@ -7,6 +7,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { AlertTriangle, CheckCircle, Clock, Users, Shield, Activity, Smartphone, Globe, FileDown, Download } from 'lucide-react';
 import { generatePlatformActivityReport } from '@/lib/platform-report';
 import { logExport } from '@/lib/export-logger';
+import { getRoleFromCookie } from '@/lib/permissions';
 
 interface DashboardStats {
   totalUsers: number;
@@ -95,6 +96,7 @@ export function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const dateTime = useFormattedDateTime();
 
   const handleDownloadReport = async () => {
@@ -111,6 +113,10 @@ export function DashboardOverview() {
       setReportLoading(false);
     }
   };
+
+  useEffect(() => {
+    getRoleFromCookie().then(setRole);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -254,16 +260,18 @@ export function DashboardOverview() {
             <p className="text-xs text-teal-300/60 uppercase tracking-widest font-semibold">
               {dateTime}
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadReport}
-              disabled={reportLoading}
-              className="mt-2 bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs"
-            >
-              <FileDown className="mr-1.5 size-3.5" />
-              {reportLoading ? 'Generating...' : 'Download Platform Report'}
-            </Button>
+            {role === 'admin' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadReport}
+                disabled={reportLoading}
+                className="mt-2 bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs"
+              >
+                <FileDown className="mr-1.5 size-3.5" />
+                {reportLoading ? 'Generating...' : 'Download Platform Report'}
+              </Button>
+            )}
           </div>
         </div>
         <div

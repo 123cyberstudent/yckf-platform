@@ -50,6 +50,7 @@ model User {
   createdCoupons          Coupon[]
   couponRedemptions       CouponRedemption[]
   loginLogs               LoginLog[]
+  caseResponses           CaseResponse[]
 }
 
 model Report {
@@ -95,6 +96,7 @@ model Case {
   notes                  InvestigationNote[]
   history                CaseHistory[]
   notifications          Notification[]
+  responses              CaseResponse[]
 
   @@index([assignedInvestigatorId])
   @@index([status])
@@ -379,4 +381,17 @@ model Member {
 
   @@index([sortOrder])
   @@index([isActive])
+}
+
+model CaseResponse {
+  id          Int      @id @default(autoincrement())
+  case        Case     @relation(fields: [caseId], references: [id])
+  caseId      Int
+  author      User     @relation(fields: [authorId], references: [id])
+  authorId    Int
+  responseText String
+  createdAt   DateTime @default(now())
+
+  @@index([caseId])
+  @@index([authorId])
 }
