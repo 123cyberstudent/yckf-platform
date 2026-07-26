@@ -51,7 +51,7 @@ router.get(
       const cases = await prisma.case.findMany({
         where,
         include: {
-          report: { select: { id: true, title: true, userId: true } },
+          report: { select: { id: true, title: true, userId: true, reporterName: true, reporterEmail: true, reporterPhone: true, incidentType: true, description: true, status: true, priority: true, location: true, gpsLatitude: true, gpsLongitude: true, gpsAddress: true, submittedAt: true, createdAt: true, updatedAt: true } },
           assignedInvestigator: { select: { id: true, email: true, fullName: true } },
         },
       });

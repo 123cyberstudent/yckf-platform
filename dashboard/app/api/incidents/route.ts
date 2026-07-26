@@ -24,7 +24,7 @@ export async function GET() {
       assignedTo: incident.assignedInvestigator?.id?.toString() ?? incident.assignedTo,
       assignedToName: incident.assignedInvestigator?.fullName ?? incident.assignedToName,
       reportedBy: incident.report?.userId?.toString() ?? incident.reportedBy,
-      reportedByName: incident.report?.user?.fullName ?? incident.reportedByName ?? 'Unknown',
+      reportedByName: incident.report?.reporterName ?? incident.report?.user?.fullName ?? incident.reportedByName ?? 'Unknown',
       createdAt: incident.createdAt ?? new Date().toISOString(),
       updatedAt: incident.updatedAt ?? incident.createdAt ?? new Date().toISOString(),
       resolvedAt: incident.resolvedAt ?? null,

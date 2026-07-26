@@ -5,10 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Upload, Download, AlertCircle, Calendar, User, X, FileDown } from 'lucide-react';
-import { generatePDFReport } from '@/lib/pdf-utils';
+import { Search, Upload, Download, AlertCircle, Calendar, User, X } from 'lucide-react';
 import { getRoleFromCookie } from '@/lib/permissions';
-import { logExport } from '@/lib/export-logger';
 
 interface EvidenceItem {
   id: string;
@@ -36,7 +34,6 @@ export function EvidenceVault() {
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [usingMockData, setUsingMockData] = useState(false);
   const [search, setSearch] = useState('');
   const [currentRole, setCurrentRole] = useState<string | null>(null);
 
@@ -61,14 +58,10 @@ export function EvidenceVault() {
     try {
       setLoading(true);
       setError(null);
-      setUsingMockData(false);
 
       const response = await fetch('/api/evidence');
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 404) {
-          setUsingMockData(true);
-        }
         throw new Error(`Failed to load evidence: ${response.status}`);
       }
 
@@ -77,17 +70,6 @@ export function EvidenceVault() {
     } catch (error) {
       console.error('Failed to fetch evidence:', error);
       setError('Failed to load evidence. Please try again later.');
-
-      try {
-        const mockResponse = await fetch('/api/evidence/mock');
-        if (mockResponse.ok) {
-          const mockData = await mockResponse.json();
-          setEvidence(mockData);
-          setUsingMockData(true);
-        }
-      } catch (mockError) {
-        console.error('Failed to load mock evidence:', mockError);
-      }
     } finally {
       setLoading(false);
     }
@@ -173,37 +155,6 @@ export function EvidenceVault() {
     setChainOpen(true);
   };
 
-  const handleExportPdf = () => {
-    generatePDFReport({
-      title: 'EVIDENCE VAULT REPORT',
-      subtitle: `Filtered evidence items: ${filteredEvidence.length} of ${evidence.length}`,
-      columns: [
-        { header: 'ID', key: 'id', width: 20 },
-        { header: 'Incident', key: 'incidentTitle', width: 50 },
-        { header: 'Filename', key: 'filename', width: 50 },
-        { header: 'Type', key: 'fileType', width: 30 },
-        { header: 'Size', key: 'fileSizeFormatted', width: 25 },
-        { header: 'Uploaded By', key: 'uploadedByName', width: 40 },
-        { header: 'Date', key: 'uploadedAtFormatted', width: 40 },
-      ],
-      rows: filteredEvidence.map((item) => ({
-        id: item.id,
-        incidentTitle: item.incidentTitle,
-        filename: item.filename,
-        fileType: item.fileType,
-        fileSizeFormatted: formatFileSize(item.fileSize),
-        uploadedByName: item.uploadedByName,
-        uploadedAtFormatted: new Date(item.uploadedAt).toLocaleString(),
-      })),
-      fileName: 'evidence-vault-report',
-      summary: [
-        { label: 'Total Items', value: evidence.length },
-        { label: 'Showing', value: filteredEvidence.length },
-      ],
-    });
-    logExport('evidence', 'pdf', evidence.length);
-  };
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -260,21 +211,8 @@ export function EvidenceVault() {
             <Upload className="mr-2 size-4" />
             Upload Evidence
           </Button>
-          <Button variant="outline" onClick={handleExportPdf}>
-            <FileDown className="mr-2 size-4" />
-            Download PDF
-          </Button>
         </div>
       </div>
-
-      {usingMockData && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
-          <AlertCircle className="size-4 text-yellow-600 mt-0.5" />
-          <p className="text-sm text-yellow-700">
-            Using demo evidence data - Backend connection unavailable
-          </p>
-        </div>
-      )}
 
       <Card className="glass-card">
         <CardContent className="pt-6">

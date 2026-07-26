@@ -214,7 +214,7 @@ export default function IncidentDetailPage() {
         </div>
       )}
 
-      <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <button onClick={() => router.push('/dashboard/incidents')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="size-4" />
         Back to Incidents
       </button>

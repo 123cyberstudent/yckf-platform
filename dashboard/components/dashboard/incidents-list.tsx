@@ -14,9 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Download,
   Eye,
-  FileDown,
   Filter,
   MapPin,
   MessageSquare,
@@ -30,8 +28,6 @@ import {
 } from 'lucide-react';
 import type { Incident } from '@/lib/types';
 import { getRoleFromCookie } from '@/lib/permissions';
-import { generatePDFReport } from '@/lib/pdf-utils';
-import { logExport } from '@/lib/export-logger';
 
 const PAGE_SIZE = 6;
 
@@ -104,7 +100,6 @@ export function IncidentsList() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [currentRole, setCurrentRole] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
 
   const [detailIncident, setDetailIncident] = useState<ReportDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -248,73 +243,6 @@ export function IncidentsList() {
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleExportCsv = async () => {
-    setExporting(true);
-    try {
-      const response = await fetch('/api/incidents');
-      if (!response.ok) throw new Error('Failed to fetch incidents');
-      const payload = await response.json();
-      const items = payload.items ?? payload;
-
-      const headers = ['ID', 'Status', 'Report Title', 'Assigned Investigator', 'Created At'];
-      const rows = items.map((item: any) => [
-        item.id,
-        item.status,
-        item.title,
-        item.assignedToName || 'Unassigned',
-        item.createdAt,
-      ]);
-
-      const csvContent = [headers, ...rows]
-        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-        .join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'incidents.csv';
-      link.click();
-      URL.revokeObjectURL(url);
-      logExport('incidents', 'csv', items.length);
-    } catch (err) {
-      console.error('CSV export failed:', err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleExportPdf = () => {
-    const open = incidents.filter((i) => i.status === 'open' || i.status === 'investigating').length;
-    const critical = incidents.filter((i) => i.severity === 'critical').length;
-
-    generatePDFReport({
-      title: 'INCIDENT MANAGEMENT REPORT',
-      subtitle: `Total: ${incidents.length} | Open: ${open} | Critical: ${critical}`,
-      columns: [
-        { header: 'ID', key: 'id' },
-        { header: 'Title', key: 'title' },
-        { header: 'Type', key: 'category' },
-        { header: 'Severity', key: 'severity' },
-        { header: 'Status', key: 'status' },
-        { header: 'Reported By', key: 'reportedByName' },
-        { header: 'Assigned To', key: 'assignedToName' },
-        { header: 'Created At', key: 'createdAt' },
-      ],
-      rows: filteredIncidents.map((i) => ({
-        ...i,
-        assignedToName: i.assignedToName ?? 'Unassigned',
-      })),
-      fileName: 'incidents-report',
-      summary: [
-        { label: 'Total Incidents', value: incidents.length },
-        { label: 'Open', value: open },
-        { label: 'Critical', value: critical },
-      ],
-    });
-    logExport('incidents', 'pdf', filteredIncidents.length);
   };
 
   const maskEmail = (email?: string) => {
@@ -513,14 +441,6 @@ export function IncidentsList() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportCsv} disabled={exporting}>
-            <Download className="mr-2 size-4" />
-            {exporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
-          <Button variant="outline" onClick={handleExportPdf}>
-            <FileDown className="mr-2 size-4" />
-            Download PDF
-          </Button>
           <Button
             variant="outline"
             onClick={() => setDialogOpen(true)}
