@@ -230,7 +230,7 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email: normalizedEmail, password }),
+      body: JSON.stringify({ email: normalizedEmail, password, platform: 'MOBILE' }),
     });
 
       const data = await response.json();

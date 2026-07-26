@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 export default function AboutPage() {
   const [page, setPage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/content/about')
@@ -15,6 +16,10 @@ export default function AboutPage() {
       .then(setPage)
       .catch(() => setPage(null))
       .finally(() => setLoading(false));
+    fetch('/api/members')
+      .then((r) => r.json())
+      .then((data) => setMembers(Array.isArray(data) ? data : data?.members || []))
+      .catch(() => setMembers([]));
   }, []);
 
   if (loading) return <main className="min-h-screen bg-background px-4 py-10"><div className="mx-auto max-w-6xl text-center text-muted-foreground py-20">Loading...</div></main>;
@@ -110,6 +115,79 @@ export default function AboutPage() {
             </div>
           </div>
         </section>
+
+        {members.length > 0 && (
+          <section className="rounded-3xl border border-border/70 bg-card/80 p-8">
+            <div className="space-y-4 text-center">
+              <p className="text-base font-semibold uppercase tracking-[0.35em]" style={{ color: '#2DD4BF' }}>The People Behind the Mission</p>
+              <h2 className="text-3xl font-semibold text-white">Meet the Team</h2>
+            </div>
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {members.map((m: any) => {
+                const initials = (m.fullName || m.name || '?')
+                  .split(' ')
+                  .map((w: string) => w[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    key={m._id || m.id}
+                    className="flex flex-col items-center gap-4 rounded-3xl border border-border/60 bg-background/80 p-6 text-center transition-colors hover:border-[#2563EB]/50"
+                  >
+                    {m.profileImage || m.image ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={m.profileImage || m.image}
+                        alt={m.fullName || m.name}
+                        className="h-24 w-24 rounded-full object-cover ring-4 ring-[#2563EB]/30"
+                      />
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#2563EB]/15 text-2xl font-bold" style={{ color: '#2563EB' }}>
+                        {initials}
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-semibold text-white">{m.fullName || m.name}</h3>
+                      {(m.role || m.title) && (
+                        <p className="text-sm font-medium" style={{ color: '#2DD4BF' }}>{m.role || m.title}</p>
+                      )}
+                    </div>
+                    {m.bio && (
+                      <p className="text-sm leading-6 text-muted-foreground line-clamp-3">{m.bio}</p>
+                    )}
+                    {(m.linkedin || m.twitter || m.socialLinks?.linkedin || m.socialLinks?.twitter) && (
+                      <div className="flex gap-3 pt-1">
+                        {(m.linkedin || m.socialLinks?.linkedin) && (
+                          <a
+                            href={m.linkedin || m.socialLinks?.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:border-[#2563EB] hover:text-[#2563EB]"
+                            aria-label="LinkedIn"
+                          >
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                          </a>
+                        )}
+                        {(m.twitter || m.socialLinks?.twitter) && (
+                          <a
+                            href={m.twitter || m.socialLinks?.twitter}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:border-[#2563EB] hover:text-[#2563EB]"
+                            aria-label="Twitter"
+                          >
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );

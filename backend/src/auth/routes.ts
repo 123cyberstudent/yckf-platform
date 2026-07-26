@@ -61,10 +61,10 @@ router.post(
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const { email, password, twoFactorToken, backupCode, rememberDeviceToken, rememberDevice } = req.body;
+      const { email, password, twoFactorToken, backupCode, rememberDeviceToken, rememberDevice, platform } = req.body;
       const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
       const userAgent = req.headers['user-agent'] || undefined;
-      const result = await loginUser({ email, password, twoFactorToken, backupCode, rememberDeviceToken, rememberDevice, ipAddress, userAgent });
+      const result = await loginUser({ email, password, twoFactorToken, backupCode, rememberDeviceToken, rememberDevice, ipAddress, userAgent, platform });
       if ('requiresTwoFactor' in result && result.requiresTwoFactor) {
         return res.json({ requiresTwoFactor: true, user: { id: result.user.id, email: result.user.email, fullName: result.user.fullName, role: result.user.role } });
       }

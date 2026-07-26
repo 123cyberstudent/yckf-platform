@@ -362,3 +362,21 @@ model EmailLog {
   @@index([status])
   @@index([createdAt])
 }
+
+model Member {
+  id          Int      @id @default(autoincrement())
+  name        String
+  role        String
+  bio         String?
+  email       String?
+  linkedin    String?
+  twitter     String?
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sortOrder])
+  @@index([isActive])
+}

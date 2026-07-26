@@ -59,6 +59,7 @@ export function DashboardSidebar() {
 
   const adminOnlyItems = [
     { icon: Globe, label: 'Content Manager', href: '/dashboard/content' },
+    { icon: Users, label: 'Members', href: '/dashboard/members' },
     { icon: Hash, label: 'Site Stats', href: '/dashboard/site-stats' },
     { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
     { icon: AlertCircle, label: 'Emergency Reports', href: '/dashboard/emergencies' },

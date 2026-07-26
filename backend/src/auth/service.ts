@@ -122,6 +122,7 @@ export async function loginUser({
   ipAddress,
   userAgent,
   deviceInfo,
+  platform,
 }: {
   email: string;
   password: string;
@@ -132,6 +133,7 @@ export async function loginUser({
   ipAddress?: string;
   userAgent?: string;
   deviceInfo?: string;
+  platform?: string;
 }) {
   const ip = ipAddress || 'unknown';
   const user = await prisma.user.findUnique({ where: { email } });
@@ -190,6 +192,7 @@ export async function loginUser({
       lastLogin: new Date(),
       failedLoginAttempts: 0,
       lockoutUntil: null,
+      ...(platform && { platform: platform === 'MOBILE' ? 'MOBILE' : user.platform }),
       suspendedUntil: null,
     },
   });
