@@ -60,6 +60,7 @@ export function DashboardSidebar() {
     { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
     { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },
+    { icon: ClipboardList, label: 'Login Logs', href: '/dashboard/login-logs' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
   ];
 

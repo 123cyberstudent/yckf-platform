@@ -49,7 +49,7 @@ router.get(
         },
       });
 
-      const metrics = investigators.map((inv: { casesAssigned: never[]; id: any; fullName: any; email: any; }) => {
+      const metrics = investigators.map((inv: { casesAssigned: any[]; id: number; fullName: string; email: string }) => {
         const assignedCases = inv.casesAssigned ?? [];
         const casesAssigned = assignedCases.length;
         const casesClosed = assignedCases.filter((caseItem: { status: string }) => caseItem.status === 'closed' || caseItem.status === 'resolved').length;

@@ -66,7 +66,7 @@ router.get(
       });
 
       const csvHeader = 'timestamp,user_email,user_name,action,target_id,ip_address';
-      const csvRows = logs.map((log: { user: { email: string; fullName: string; }; timestamp: { toISOString: () => any; }; action: any; targetId: any; ipAddress: any; }) => {
+      const csvRows = logs.map((log: { user: { email: string; fullName: string } | null; timestamp: { toISOString: () => string }; action: string; targetId: string | null; ipAddress: string }) => {
         const userEmail = log.user?.email ?? 'system';
         const userName = log.user?.fullName ?? 'system';
         return [

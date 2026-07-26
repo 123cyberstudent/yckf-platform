@@ -99,7 +99,7 @@ router.get('/data', verifyToken, isInvestigator, async (req, res) => {
 
     const investigatorCounts: Record<string, number> = {};
     const caseResolutionTimes: number[] = [];
-    cases.forEach((caseItem: { assignedInvestigator: { fullName: any; }; report: { createdAt: { getTime: () => number; }; }; createdAt: { getTime: () => number; }; }) => {
+    cases.forEach((caseItem: { assignedInvestigator: { fullName: string } | null; report: { createdAt: { getTime: () => number } } | null; createdAt: { getTime: () => number } }) => {
       if (caseItem.assignedInvestigator) {
         const name = caseItem.assignedInvestigator.fullName;
         investigatorCounts[name] = (investigatorCounts[name] ?? 0) + 1;
@@ -141,15 +141,15 @@ router.get('/reports/export', verifyToken, isInvestigator, async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    const rows = reports.map((report: { id: any; title: any; incidentType: any; priority: any; status: any; location: any; user: { fullName: any; email: any; }; createdAt: { toISOString: () => any; }; }) => [
+    const rows = reports.map((report: { id: number; title: string; incidentType: string; priority: string; status: string; location: string; user: { fullName: string; email: string } | null; createdAt: { toISOString: () => string } }) => [
       report.id,
       report.title,
       report.incidentType,
       report.priority,
       report.status,
       report.location,
-      report.user.fullName,
-      report.user.email,
+      report.user?.fullName ?? '',
+      report.user?.email ?? '',
       report.createdAt.toISOString(),
     ]);
 
@@ -185,9 +185,9 @@ router.get('/cases/export', verifyToken, isInvestigator, async (req, res) => {
     doc.fontSize(18).text('Case Summary (Last 30 Days)', { align: 'center' });
     doc.moveDown();
 
-    cases.forEach((caseItem: { id: any; status: any; report: { title: any; }; assignedInvestigator: { fullName: any; }; createdAt: { toISOString: () => any; }; }, index: number) => {
+    cases.forEach((caseItem: { id: number; status: string; report: { title: string } | null; assignedInvestigator: { fullName: string } | null; createdAt: { toISOString: () => string } }, index: number) => {
       doc.fontSize(12).font('Helvetica-Bold').text(`Case #${caseItem.id}  —  Status: ${caseItem.status}`);
-      doc.font('Helvetica').text(`Report: ${caseItem.report.title}`);
+      doc.font('Helvetica').text(`Report: ${caseItem.report?.title ?? 'N/A'}`);
       doc.text(`Assigned investigator: ${caseItem.assignedInvestigator?.fullName ?? 'Unassigned'}`);
       doc.text(`Created at: ${caseItem.createdAt.toISOString()}`);
       doc.moveDown(0.5);

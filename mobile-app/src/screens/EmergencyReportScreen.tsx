@@ -1172,7 +1172,7 @@ const sendViaEmailAuto = async () => {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>🚨 Emergency Report</Text>
           <Text style={styles.headerSubtitle}>
-            Voice or Text • Instant Police Station Alert
+            Voice or Text • Instant Emergency Alert
           </Text>
         </View>
       </View>

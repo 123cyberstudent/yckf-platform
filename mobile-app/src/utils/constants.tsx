@@ -24,7 +24,7 @@ export const APP_CONFIG = {
   website: 'https://youngcyberknightsfoundation.org/',
   
   // Emergency hotline numbers
-  EMERGENCY_HOTLINE: '191', // Ghana Park Emergency Number
+  EMERGENCY_HOTLINE: '191', // Ghana Police Emergency Number
   
   // Station search parameters
   STATION_SEARCH_RADIUS_KM: 20, // Maximum radius for nearby stations
@@ -356,7 +356,7 @@ export const QUICK_ACTIONS = [
   {
     id: 'emergency_report',
     title: '🚨 Emergency SOS',
-    subtitle: 'Voice/Text Park Alert',
+    subtitle: 'Voice/Text Emergency Alert',
     icon: 'alert-circle',
     screen: SCREEN_NAMES.EMERGENCY_REPORT,
     color: '#dc2626',

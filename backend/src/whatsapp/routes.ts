@@ -110,7 +110,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     const reply = findReply(text);
 
-    await prisma.whatsappConversation.upsert({
+    await prisma.whatsAppConversation.upsert({
       where: { phoneNumber: from },
       update: {
         lastMessageAt: new Date(),
@@ -131,7 +131,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.get('/conversations', async (_req: Request, res: Response) => {
   try {
-    const conversations = await prisma.whatsappConversation.findMany({
+    const conversations = await prisma.whatsAppConversation.findMany({
       orderBy: { lastMessageAt: 'desc' },
     });
     res.json(conversations);
