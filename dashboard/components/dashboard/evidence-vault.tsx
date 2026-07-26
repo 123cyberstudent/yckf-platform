@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Upload, Download, AlertCircle, Calendar, User, X } from 'lucide-react';
+import { Search, Upload, Download, AlertCircle, Calendar, User, X, FileDown } from 'lucide-react';
+import { generatePDFReport } from '@/lib/pdf-utils';
 import { getRoleFromCookie } from '@/lib/permissions';
 
 interface EvidenceItem {
@@ -171,6 +172,36 @@ export function EvidenceVault() {
     setChainOpen(true);
   };
 
+  const handleExportPdf = () => {
+    generatePDFReport({
+      title: 'EVIDENCE VAULT REPORT',
+      subtitle: `Filtered evidence items: ${filteredEvidence.length} of ${evidence.length}`,
+      columns: [
+        { header: 'ID', key: 'id', width: 20 },
+        { header: 'Incident', key: 'incidentTitle', width: 50 },
+        { header: 'Filename', key: 'filename', width: 50 },
+        { header: 'Type', key: 'fileType', width: 30 },
+        { header: 'Size', key: 'fileSizeFormatted', width: 25 },
+        { header: 'Uploaded By', key: 'uploadedByName', width: 40 },
+        { header: 'Date', key: 'uploadedAtFormatted', width: 40 },
+      ],
+      rows: filteredEvidence.map((item) => ({
+        id: item.id,
+        incidentTitle: item.incidentTitle,
+        filename: item.filename,
+        fileType: item.fileType,
+        fileSizeFormatted: formatFileSize(item.fileSize),
+        uploadedByName: item.uploadedByName,
+        uploadedAtFormatted: new Date(item.uploadedAt).toLocaleString(),
+      })),
+      fileName: 'evidence-vault-report',
+      summary: [
+        { label: 'Total Items', value: evidence.length },
+        { label: 'Showing', value: filteredEvidence.length },
+      ],
+    });
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -222,10 +253,16 @@ export function EvidenceVault() {
           <h2 className="text-2xl font-bold">Evidence Vault</h2>
           <p className="text-muted-foreground">Manage digital evidence and chain of custody</p>
         </div>
-        <Button onClick={() => { setUploadError(''); setUploadOpen(true); }} className={currentRole && currentRole !== 'admin' ? 'hidden' : ''}>
-          <Upload className="mr-2 size-4" />
-          Upload Evidence
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => { setUploadError(''); setUploadOpen(true); }} className={currentRole && currentRole !== 'admin' ? 'hidden' : ''}>
+            <Upload className="mr-2 size-4" />
+            Upload Evidence
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown className="mr-2 size-4" />
+            Download PDF
+          </Button>
+        </div>
       </div>
 
       {usingMockData && (

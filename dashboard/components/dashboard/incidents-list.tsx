@@ -6,9 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Download, Filter, Plus, Search, ShieldCheck, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Download, FileDown, Filter, Plus, Search, ShieldCheck, X } from 'lucide-react';
 import type { Incident } from '@/lib/types';
 import { getRoleFromCookie } from '@/lib/permissions';
+import { generatePDFReport } from '@/lib/pdf-utils';
 
 const PAGE_SIZE = 6;
 
@@ -96,6 +97,36 @@ export function IncidentsList() {
     } finally {
       setExporting(false);
     }
+  };
+
+  const handleExportPdf = () => {
+    const open = incidents.filter((i) => i.status === 'open' || i.status === 'investigating').length;
+    const critical = incidents.filter((i) => i.severity === 'critical').length;
+
+    generatePDFReport({
+      title: 'INCIDENT MANAGEMENT REPORT',
+      subtitle: `Total: ${incidents.length} | Open: ${open} | Critical: ${critical}`,
+      columns: [
+        { header: 'ID', key: 'id' },
+        { header: 'Title', key: 'title' },
+        { header: 'Type', key: 'category' },
+        { header: 'Severity', key: 'severity' },
+        { header: 'Status', key: 'status' },
+        { header: 'Reported By', key: 'reportedByName' },
+        { header: 'Assigned To', key: 'assignedToName' },
+        { header: 'Created At', key: 'createdAt' },
+      ],
+      rows: filteredIncidents.map((i) => ({
+        ...i,
+        assignedToName: i.assignedToName ?? 'Unassigned',
+      })),
+      fileName: 'incidents-report',
+      summary: [
+        { label: 'Total Incidents', value: incidents.length },
+        { label: 'Open', value: open },
+        { label: 'Critical', value: critical },
+      ],
+    });
   };
 
   const fetchIncidents = async () => {
@@ -227,6 +258,10 @@ export function IncidentsList() {
           <Button variant="outline" onClick={handleExportCsv} disabled={exporting}>
             <Download className="mr-2 size-4" />
             {exporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown className="mr-2 size-4" />
+            Download PDF
           </Button>
           <Button variant="outline" onClick={() => setDialogOpen(true)} className={currentRole && currentRole !== 'admin' ? 'hidden' : ''}>
             <Plus className="mr-2 size-4" />

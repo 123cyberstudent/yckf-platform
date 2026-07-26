@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertCircle, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, CheckCircle, FileDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { generatePlatformReport } from '@/lib/pdf-utils';
 
 interface AnalyticsData {
   summary: Array<{
@@ -127,6 +129,38 @@ export function AnalyticsDashboard() {
     return colors[severity] || 'bg-gray-500/10 text-gray-500';
   };
 
+  const handleExportPdf = async () => {
+    let pdfData = data;
+    if (!pdfData) {
+      try {
+        const response = await fetch('/api/analytics');
+        if (response.ok) {
+          pdfData = await response.json();
+        }
+      } catch {
+        console.error('Failed to fetch analytics for PDF export');
+        return;
+      }
+    }
+    if (!pdfData) return;
+
+    const totalCasesFromSummary = pdfData.summary?.find(
+      (s) => s.label.toLowerCase().includes('total')
+    );
+
+    generatePlatformReport({
+      totalCases: totalCasesFromSummary ? parseInt(totalCasesFromSummary.value, 10) || 0 : undefined,
+      openCases: pdfData.openCases,
+      pendingCases: pdfData.pendingCases,
+      resolvedCases: pdfData.resolvedCases,
+      caseClosureRate: pdfData.caseClosureRate,
+      averageResolutionTime: pdfData.averageResolutionTime,
+      monthlyData: pdfData.monthlyData,
+      categoryData: pdfData.categoryData,
+      recentActivity: pdfData.recentActivity,
+    });
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -164,11 +198,17 @@ export function AnalyticsDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
-        {usingMockData && (
-          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500">
-            Demo Data
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {usingMockData && (
+            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500">
+              Demo Data
+            </Badge>
+          )}
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown className="mr-2 size-4" />
+            Download PDF Report
+          </Button>
+        </div>
       </div>
 
       {usingMockData && (

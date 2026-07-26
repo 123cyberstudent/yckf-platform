@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Clock,
   Download,
+  FileDown,
   Filter,
   MapPin,
   Phone,
@@ -21,6 +22,7 @@ import {
   Siren,
   Volume2,
 } from 'lucide-react';
+import { generatePDFReport } from '@/lib/pdf-utils';
 
 const PAGE_SIZE = 8;
 
@@ -144,6 +146,29 @@ export default function EmergenciesPage() {
     }
   };
 
+  const handleExportPdf = () => {
+    generatePDFReport({
+      title: 'EMERGENCY REPORTS',
+      subtitle: `Showing ${filtered.length} of ${reports.length} reports`,
+      fileName: 'emergency-reports',
+      columns: [
+        { header: 'Ticket', key: 'ticketNumber' },
+        { header: 'Reporter', key: 'reporterName' },
+        { header: 'Phone', key: 'reporterPhone' },
+        { header: 'Station', key: 'nearestStation' },
+        { header: 'Status', key: 'status' },
+        { header: 'Priority', key: 'priority' },
+        { header: 'Submitted At', key: 'submittedAt' },
+      ],
+      rows: filtered,
+      summary: [
+        { label: 'Total Reports', value: reports.length },
+        { label: 'Pending', value: summary.newCount },
+        { label: 'Resolved', value: summary.resolved },
+      ],
+    });
+  };
+
   const handleExportCsv = () => {
     const headers = ['Ticket', 'Reporter', 'Phone', 'Station', 'Status', 'Priority', 'Submitted At'];
     const rows = filtered.map((r) => [r.ticketNumber, r.reporterName, r.reporterPhone, r.nearestStation, r.status, r.priority, r.submittedAt]);
@@ -170,6 +195,10 @@ export default function EmergenciesPage() {
           <Button variant="outline" onClick={handleExportCsv}>
             <Download className="mr-2 size-4" />
             Export CSV
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown className="mr-2 size-4" />
+            Download PDF
           </Button>
         </div>
       </div>

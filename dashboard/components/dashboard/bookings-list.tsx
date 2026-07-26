@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Download, Filter, Search, Ticket, Users, XCircle, Clock } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Download, FileDown, Filter, Search, Ticket, Users, XCircle, Clock } from 'lucide-react';
+import { generatePDFReport } from '@/lib/pdf-utils';
 
 const PAGE_SIZE = 10;
 
@@ -132,6 +133,31 @@ export function BookingsList() {
     }
   };
 
+  const handleExportPdf = () => {
+    generatePDFReport({
+      title: 'BOOKING REPORT',
+      subtitle: `Showing ${filteredBookings.length} of ${bookings.length} bookings`,
+      fileName: 'bookings-report',
+      columns: [
+        { header: 'Ticket', key: 'ticketNumber' },
+        { header: 'Name', key: 'fullName' },
+        { header: 'Email', key: 'email' },
+        { header: 'Phone', key: 'phone' },
+        { header: 'Specialist', key: 'specialist' },
+        { header: 'Preferred Date', key: 'preferredDate' },
+        { header: 'Preferred Time', key: 'preferredTime' },
+        { header: 'Status', key: 'status' },
+        { header: 'Submitted At', key: 'createdAt' },
+      ],
+      rows: filteredBookings,
+      summary: [
+        { label: 'Total Bookings', value: bookings.length },
+        { label: 'Pending', value: summary.newCount },
+        { label: 'Confirmed', value: summary.confirmed },
+      ],
+    });
+  };
+
   const handleExportCsv = () => {
     const headers = ['Ticket Number', 'Full Name', 'Email', 'Phone', 'Specialist', 'Preferred Date', 'Preferred Time', 'Status', 'Submitted At'];
     const rows = filteredBookings.map((b) => [
@@ -170,6 +196,10 @@ export function BookingsList() {
           <Button variant="outline" onClick={handleExportCsv}>
             <Download className="mr-2 size-4" />
             Export CSV
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown className="mr-2 size-4" />
+            Download PDF
           </Button>
         </div>
       </div>

@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Download, Filter, Mail, MessageSquare, Phone, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FileDown, Filter, Mail, MessageSquare, Phone, Search, X } from 'lucide-react';
+import { generatePDFReport } from '@/lib/pdf-utils';
 
 const PAGE_SIZE = 10;
 
@@ -100,6 +101,30 @@ export function EnquiriesList() {
     return { all, newCount, inProgress, replied };
   }, [enquiries]);
 
+  const handleExportPdf = () => {
+    generatePDFReport({
+      title: 'ENQUIRY REPORT',
+      subtitle: `Showing ${filteredEnquiries.length} of ${enquiries.length} enquiries`,
+      fileName: 'enquiries-report',
+      columns: [
+        { header: 'Ticket', key: 'ticketNumber' },
+        { header: 'Name', key: 'name' },
+        { header: 'Email', key: 'email' },
+        { header: 'Phone', key: 'phone' },
+        { header: 'Subject', key: 'subject' },
+        { header: 'Channel', key: 'channel' },
+        { header: 'Status', key: 'status' },
+        { header: 'Submitted At', key: 'createdAt' },
+      ],
+      rows: filteredEnquiries,
+      summary: [
+        { label: 'Total Enquiries', value: enquiries.length },
+        { label: 'New', value: summary.newCount },
+        { label: 'Open', value: summary.inProgress },
+      ],
+    });
+  };
+
   const handleExportCsv = () => {
     const headers = ['Ticket', 'Name', 'Email', 'Phone', 'Subject', 'Channel', 'Status', 'Submitted At'];
     const rows = filteredEnquiries.map((e) => [
@@ -174,10 +199,16 @@ export function EnquiriesList() {
           <h1 className="text-3xl font-bold">Enquiry Management</h1>
           <p className="text-muted-foreground mt-1">Manage and respond to user enquiries and support tickets.</p>
         </div>
-        <Button variant="outline" onClick={handleExportCsv}>
-          <Download className="mr-2 size-4" />
-          Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportCsv}>
+            <Download className="mr-2 size-4" />
+            Export CSV
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown className="mr-2 size-4" />
+            Download PDF
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

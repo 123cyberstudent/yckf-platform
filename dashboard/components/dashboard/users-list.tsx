@@ -5,9 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Mail, UserPlus, AlertCircle, Download, X } from 'lucide-react';
+import { Search, Mail, UserPlus, AlertCircle, Download, FileDown, X } from 'lucide-react';
 import type { User } from '@/lib/types';
 import { getRoleFromCookie } from '@/lib/permissions';
+import { generatePDFReport } from '@/lib/pdf-utils';
 
 export function UsersList() {
   const [users, setUsers] = useState<User[]>([]);
@@ -129,6 +130,35 @@ export function UsersList() {
     } finally {
       setExporting(false);
     }
+  };
+
+  const handleExportPdf = () => {
+    const active = users.filter((u) => u.status === 'active').length;
+    const inactive = users.filter((u) => u.status === 'inactive' || u.status === 'suspended').length;
+
+    generatePDFReport({
+      title: 'USER MANAGEMENT REPORT',
+      subtitle: `Total: ${users.length} | Active: ${active} | Inactive: ${inactive}`,
+      columns: [
+        { header: 'ID', key: 'id' },
+        { header: 'Email', key: 'email' },
+        { header: 'Full Name', key: 'name' },
+        { header: 'Role', key: 'role' },
+        { header: 'Status', key: 'status' },
+        { header: 'Last Login', key: 'lastLogin' },
+        { header: 'Created At', key: 'createdAt' },
+      ],
+      rows: filtered.map((u) => ({
+        ...u,
+        lastLogin: u.lastLogin ?? 'Never',
+      })),
+      fileName: 'users-report',
+      summary: [
+        { label: 'Total Users', value: users.length },
+        { label: 'Active', value: active },
+        { label: 'Inactive', value: inactive },
+      ],
+    });
   };
 
   useEffect(() => {
@@ -339,6 +369,10 @@ export function UsersList() {
           <Button variant="outline" onClick={handleExportCsv} disabled={exporting}>
             <Download className="mr-2 size-4" />
             {exporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown className="mr-2 size-4" />
+            Download PDF
           </Button>
           <Button onClick={() => { setAddForm({ fullName: '', email: '', password: '', role: 'USER' }); setAddErrors({}); setAddOpen(true); }} className={currentRole && currentRole !== 'admin' ? 'hidden' : ''}>
             <UserPlus className="mr-2 size-4" />

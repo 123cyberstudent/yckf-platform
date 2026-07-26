@@ -16,7 +16,9 @@ import {
   Globe,
   KeyRound,
   ArrowLeft,
+  FileDown,
 } from 'lucide-react';
+import { generatePDFReport } from '@/lib/pdf-utils';
 import Link from 'next/link';
 
 interface SIEMStatus {
@@ -159,6 +161,35 @@ export function SIEMDashboard() {
       .slice(0, 10);
   }, [events]);
 
+  const handleExportPdf = () => {
+    generatePDFReport({
+      title: 'SIEM DASHBOARD REPORT',
+      subtitle: `Security events overview — ${events.length} events exported`,
+      columns: [
+        { header: 'Timestamp', key: 'timestamp', width: 40 },
+        { header: 'Type', key: 'type', width: 30 },
+        { header: 'Severity', key: 'severity', width: 25 },
+        { header: 'Action', key: 'action', width: 45 },
+        { header: 'User', key: 'user', width: 35 },
+        { header: 'IP Address', key: 'ipAddress', width: 35 },
+      ],
+      rows: events.map((event) => ({
+        timestamp: new Date(event.timestamp).toLocaleString(),
+        type: event.type,
+        severity: event.severity,
+        action: event.action.replace(/_/g, ' '),
+        user: event.user,
+        ipAddress: event.ipAddress,
+      })),
+      fileName: 'siem-dashboard-report',
+      summary: [
+        { label: 'Total Events', value: events.length },
+        { label: 'Active Alerts', value: alerts.length },
+        { label: 'Connection', value: status?.connected ? 'Connected' : 'Disconnected' },
+      ],
+    });
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -187,10 +218,16 @@ export function SIEMDashboard() {
             <p className="text-muted-foreground mt-1">Security Information and Event Management</p>
           </div>
         </div>
-        <Button variant="outline" onClick={() => fetchAll()} disabled={refreshing}>
-          <RefreshCw className={`mr-2 size-4 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => fetchAll()} disabled={refreshing}>
+            <RefreshCw className={`mr-2 size-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown className="mr-2 size-4" />
+            Download PDF
+          </Button>
+        </div>
       </div>
 
       {/* Connection Status Header */}
