@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,10 @@ export function Settings() {
   // 2FA
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [twoFaLoading, setTwoFaLoading] = useState(false);
+
+  // SIEM integration
+  const [siemConnected, setSiemConnected] = useState(false);
+  const [siemLoading, setSiemLoading] = useState(true);
 
   // System settings
   const [timezone, setTimezone] = useState(() => {
@@ -67,6 +72,18 @@ export function Settings() {
         }
       } catch {
         setTwoFaEnabled(false);
+      }
+
+      try {
+        const siemRes = await fetch('/api/siem/status');
+        if (siemRes.ok) {
+          const siem = await siemRes.json();
+          setSiemConnected(!!siem.connected);
+        }
+      } catch {
+        setSiemConnected(false);
+      } finally {
+        setSiemLoading(false);
       }
 
       setLoading(false);
@@ -325,7 +342,6 @@ export function Settings() {
           {[
             { name: 'Slack', status: 'Connected', color: 'text-green-500' },
             { name: 'Email Service', status: 'Connected', color: 'text-green-500' },
-            { name: 'SIEM Platform', status: 'Not Connected', color: 'text-red-500' },
           ].map((integration) => (
             <div key={integration.name} className="flex items-center justify-between p-4 border border-border rounded-lg">
               <div>
@@ -343,6 +359,19 @@ export function Settings() {
               </Button>
             </div>
           ))}
+          <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+            <div>
+              <p className="font-medium">SIEM Platform</p>
+              <p className={`text-sm ${siemConnected ? 'text-green-500' : 'text-red-500'}`}>
+                {siemLoading ? 'Checking...' : siemConnected ? 'Connected' : 'Not Connected'}
+              </p>
+            </div>
+            <Link href="/dashboard/siem">
+              <Button variant="outline" size="sm">
+                View Dashboard
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
 
