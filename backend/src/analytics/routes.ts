@@ -15,6 +15,8 @@ router.get('/stats', verifyToken, isInvestigator, async (req, res) => {
     }
 
     const totalUsers = await prisma.user.count();
+    const mobileUsers = await prisma.user.count({ where: { platform: 'MOBILE' } });
+    const webUsers = await prisma.user.count({ where: { platform: 'WEB' } });
 
     const activeCases = await prisma.case.count({
       where: { status: { in: ['open', 'investigating', 'pending_evidence'] } },
@@ -38,6 +40,8 @@ router.get('/stats', verifyToken, isInvestigator, async (req, res) => {
       pending_cases: pendingCases,
       resolved_cases: resolvedCases,
       total_users: totalUsers,
+      mobile_users: mobileUsers,
+      web_users: webUsers,
       avg_response_time_seconds: Math.round(avgResponseTimeSeconds),
     };
 

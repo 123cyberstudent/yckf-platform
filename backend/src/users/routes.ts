@@ -45,6 +45,7 @@ router.get(
           fullName: true,
           role: true,
           isActive: true,
+          platform: true,
           createdAt: true,
           lastLogin: true,
         },

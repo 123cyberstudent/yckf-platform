@@ -167,7 +167,7 @@ class AuthService {
       headers: {
         'Content-Type': 'application/json',
       },
-body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNumber }),   
+body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNumber, platform: 'MOBILE' }),   
  });
 
       const data = await response.json();

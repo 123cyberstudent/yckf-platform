@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, CheckCircle, Clock, Users, Shield, Activity } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Users, Shield, Activity, Smartphone, Globe } from 'lucide-react';
 
 interface DashboardStats {
   totalUsers: number;
+  mobileUsers: number;
+  webUsers: number;
   activeCases: number;
   pendingCases: number;
   resolvedCases: number;
@@ -269,6 +271,71 @@ export function DashboardOverview() {
             </div>
           );
         })}
+      </div>
+
+      {/* ── Platform Breakdown ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <Card className="border border-gray-200 rounded-xl shadow-sm bg-white overflow-hidden">
+          <CardContent className="pt-5 pb-5 px-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-[#6B7280]">Mobile App Users</p>
+                <p className="text-3xl font-bold text-[#2563EB] mt-1">{stats.mobileUsers ?? 0}</p>
+              </div>
+              <div className="bg-[#2563EB]/10 p-3 rounded-2xl">
+                <Smartphone className="size-5 text-[#2563EB]" strokeWidth={2.2} />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#2563EB] rounded-full transition-all"
+                  style={{ width: `${stats.totalUsers > 0 ? ((stats.mobileUsers ?? 0) / stats.totalUsers) * 100 : 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-[#6B7280] mt-1">
+                {stats.totalUsers > 0 ? Math.round(((stats.mobileUsers ?? 0) / stats.totalUsers) * 100) : 0}% of total users
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border border-gray-200 rounded-xl shadow-sm bg-white overflow-hidden">
+          <CardContent className="pt-5 pb-5 px-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-[#6B7280]">Website Users</p>
+                <p className="text-3xl font-bold text-[#06292D] mt-1">{stats.webUsers ?? 0}</p>
+              </div>
+              <div className="bg-[#06292D]/10 p-3 rounded-2xl">
+                <Globe className="size-5 text-[#06292D]" strokeWidth={2.2} />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#06292D] rounded-full transition-all"
+                  style={{ width: `${stats.totalUsers > 0 ? ((stats.webUsers ?? 0) / stats.totalUsers) * 100 : 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-[#6B7280] mt-1">
+                {stats.totalUsers > 0 ? Math.round(((stats.webUsers ?? 0) / stats.totalUsers) * 100) : 0}% of total users
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border border-gray-200 rounded-xl shadow-sm bg-white overflow-hidden">
+          <CardContent className="pt-5 pb-5 px-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-[#6B7280]">Active Investigators</p>
+                <p className="text-3xl font-bold text-[#2DD4BF] mt-1">{stats.activeInvestigators ?? 0}</p>
+              </div>
+              <div className="bg-[#2DD4BF]/10 p-3 rounded-2xl">
+                <Shield className="size-5 text-[#2DD4BF]" strokeWidth={2.2} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ── Key Metrics ──────────────────────────────────────────── */}

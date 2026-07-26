@@ -2,6 +2,7 @@
 
 export type UserRole = 'admin' | 'investigator' | 'volunteer' | 'user'
 export type UserStatus = 'active' | 'inactive' | 'suspended'
+export type UserPlatform = 'mobile' | 'web'
 
 export interface User {
   id: number | string
@@ -10,6 +11,7 @@ export interface User {
   role: UserRole
   avatar?: string
   status: UserStatus
+  platform?: UserPlatform
   createdAt: Date | string
   lastLogin?: Date | string | null
 }

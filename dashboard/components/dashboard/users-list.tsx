@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Mail, UserPlus, AlertCircle, Download, FileDown, X } from 'lucide-react';
+import { Search, Mail, UserPlus, AlertCircle, Download, FileDown, X, Smartphone, Globe } from 'lucide-react';
 import type { User } from '@/lib/types';
 import { getRoleFromCookie } from '@/lib/permissions';
 import { generatePDFReport } from '@/lib/pdf-utils';
@@ -18,6 +18,7 @@ export function UsersList() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [platformFilter, setPlatformFilter] = useState('all');
   const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -103,12 +104,13 @@ export function UsersList() {
       if (!response.ok) throw new Error('Failed to fetch users');
       const items = await response.json();
 
-      const headers = ['ID', 'Email', 'Full Name', 'Role', 'Active', 'Last Login', 'Created At'];
+      const headers = ['ID', 'Email', 'Full Name', 'Role', 'Platform', 'Active', 'Last Login', 'Created At'];
       const rows = items.map((item: any) => [
         item.id,
         item.email,
         item.name,
         item.role,
+        item.platform || 'web',
         item.status === 'suspended' ? 'No' : 'Yes',
         item.lastLogin || 'Never',
         item.createdAt,
@@ -135,26 +137,32 @@ export function UsersList() {
   const handleExportPdf = () => {
     const active = users.filter((u) => u.status === 'active').length;
     const inactive = users.filter((u) => u.status === 'inactive' || u.status === 'suspended').length;
+    const mobileUsers = users.filter((u) => (u.platform || 'web') === 'mobile').length;
+    const webUsers = users.filter((u) => (u.platform || 'web') === 'web').length;
 
     generatePDFReport({
       title: 'USER MANAGEMENT REPORT',
-      subtitle: `Total: ${users.length} | Active: ${active} | Inactive: ${inactive}`,
+      subtitle: `Total: ${users.length} | Mobile: ${mobileUsers} | Web: ${webUsers} | Active: ${active} | Inactive: ${inactive}`,
       columns: [
         { header: 'ID', key: 'id' },
         { header: 'Email', key: 'email' },
         { header: 'Full Name', key: 'name' },
         { header: 'Role', key: 'role' },
+        { header: 'Platform', key: 'platformDisplay' },
         { header: 'Status', key: 'status' },
         { header: 'Last Login', key: 'lastLogin' },
         { header: 'Created At', key: 'createdAt' },
       ],
       rows: filtered.map((u) => ({
         ...u,
+        platformDisplay: (u.platform || 'web') === 'mobile' ? 'Mobile App' : 'Website',
         lastLogin: u.lastLogin ?? 'Never',
       })),
       fileName: 'users-report',
       summary: [
         { label: 'Total Users', value: users.length },
+        { label: 'Mobile App', value: mobileUsers },
+        { label: 'Website', value: webUsers },
         { label: 'Active', value: active },
         { label: 'Inactive', value: inactive },
       ],
@@ -171,9 +179,10 @@ export function UsersList() {
       const matchesQuery = !query || `${user.name} ${user.email}`.toLowerCase().includes(query);
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-      return matchesQuery && matchesRole && matchesStatus;
+      const matchesPlatform = platformFilter === 'all' || (user.platform || 'web') === platformFilter;
+      return matchesQuery && matchesRole && matchesStatus && matchesPlatform;
     });
-  }, [users, search, roleFilter, statusFilter]);
+  }, [users, search, roleFilter, statusFilter, platformFilter]);
 
   const roleColors: Record<string, string> = {
     admin: 'bg-red-500/10 text-red-500',
@@ -421,6 +430,11 @@ export function UsersList() {
                 <option value="inactive">Inactive</option>
                 <option value="suspended">Suspended</option>
               </select>
+              <select value={platformFilter} onChange={(e) => setPlatformFilter(e.target.value)} className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm">
+                <option value="all">All Platforms</option>
+                <option value="mobile">Mobile App</option>
+                <option value="web">Website</option>
+              </select>
             </div>
           </div>
         </CardContent>
@@ -439,6 +453,7 @@ export function UsersList() {
                   <th className="px-6 py-3 text-left font-semibold">Name</th>
                   <th className="px-6 py-3 text-left font-semibold">Email</th>
                   <th className="px-6 py-3 text-left font-semibold">Role</th>
+                  <th className="px-6 py-3 text-left font-semibold">Platform</th>
                   <th className="px-6 py-3 text-left font-semibold">Status</th>
                   <th className="px-6 py-3 text-left font-semibold">Last Login</th>
                   {canPerformActions && <th className="px-6 py-3 text-left font-semibold">Actions</th>}
@@ -458,6 +473,21 @@ export function UsersList() {
                       <Badge variant="outline" className={roleColors[user.role] || roleColors.user}>
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                       </Badge>
+                    </td>
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {(user.platform || 'web') === 'mobile' ? (
+                          <>
+                            <Smartphone className="size-3.5 text-[#2563EB]" />
+                            <Badge variant="outline" className="bg-[#2563EB]/10 text-[#2563EB]">Mobile</Badge>
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="size-3.5 text-[#06292D]" />
+                            <Badge variant="outline" className="bg-[#06292D]/10 text-[#06292D]">Web</Badge>
+                          </>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-3">
                       <Badge variant="outline" className={statusColors[user.status] || statusColors.inactive}>

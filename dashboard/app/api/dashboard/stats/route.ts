@@ -44,6 +44,8 @@ export async function GET() {
       // Transform backend data to match expected format
       const data = {
         totalUsers: payload?.total_users ?? payload?.totalUsers ?? 0,
+        mobileUsers: payload?.mobile_users ?? payload?.mobileUsers ?? 0,
+        webUsers: payload?.web_users ?? payload?.webUsers ?? 0,
         activeCases: payload?.active_cases ?? payload?.activeCases ?? 0,
         pendingCases: payload?.pending_cases ?? payload?.pendingCases ?? 0,
         resolvedCases: payload?.resolved_cases ?? payload?.resolvedCases ?? 0,
@@ -77,6 +79,8 @@ function transformMockStats(mockStats: any) {
   
   return {
     totalUsers: mockStats.totalUsers || 0,
+    mobileUsers: 0,
+    webUsers: mockStats.totalUsers || 0,
     activeCases: mockStats.openIncidents + mockStats.investigatingIncidents || 0,
     pendingCases: mockStats.pendingIncidents || 0,
     resolvedCases: mockStats.resolvedIncidents || 0,

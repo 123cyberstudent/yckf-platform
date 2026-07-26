@@ -91,7 +91,7 @@ function isPasswordStrong(password: string) {
   return PASSWORD_COMPLEXITY_REGEX.test(password);
 }
 
-export async function registerUser({ email, password, fullName }: { email: string; password: string; fullName: string }) {
+export async function registerUser({ email, password, fullName, platform = 'WEB' }: { email: string; password: string; fullName: string; platform?: string }) {
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     throw new Error('Email already in use');
@@ -104,6 +104,7 @@ export async function registerUser({ email, password, fullName }: { email: strin
       passwordHash,
       fullName,
       role: 'USER',
+      platform: platform === 'MOBILE' ? 'MOBILE' : 'WEB',
       twoFactorEnabled: false,
       twoFactorBackupCodes: [],
       fcmTokens: [],

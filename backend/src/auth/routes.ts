@@ -38,8 +38,8 @@ router.post(
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const { email, password, fullName } = req.body;
-      const user = await registerUser({ email, password, fullName });
+      const { email, password, fullName, platform } = req.body;
+      const user = await registerUser({ email, password, fullName, platform });
       res.status(201).json({ id: user.id, email: user.email, fullName: user.fullName, role: user.role, createdAt: user.createdAt });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Registration failed' });
