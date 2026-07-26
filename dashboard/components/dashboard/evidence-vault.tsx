@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Upload, Download, AlertCircle, Calendar, User, X, FileDown } from 'lucide-react';
 import { generatePDFReport } from '@/lib/pdf-utils';
 import { getRoleFromCookie } from '@/lib/permissions';
+import { logExport } from '@/lib/export-logger';
 
 interface EvidenceItem {
   id: string;
@@ -200,6 +201,7 @@ export function EvidenceVault() {
         { label: 'Showing', value: filteredEvidence.length },
       ],
     });
+    logExport('evidence', 'pdf', evidence.length);
   };
 
   if (loading) {

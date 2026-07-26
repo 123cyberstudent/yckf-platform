@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Download, FileDown, Filter, Mail, MessageSquare, Phone, Search, X } from 'lucide-react';
 import { generatePDFReport } from '@/lib/pdf-utils';
+import { getRoleFromCookie } from '@/lib/permissions';
+import { logExport } from '@/lib/export-logger';
 
 const PAGE_SIZE = 10;
 
@@ -33,6 +35,7 @@ export function EnquiriesList() {
   const [sortOrder, setSortOrder] = useState('newest');
   const [page, setPage] = useState(1);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
 
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusDialogEnquiry, setStatusDialogEnquiry] = useState<any>(null);
@@ -66,6 +69,8 @@ export function EnquiriesList() {
   useEffect(() => {
     fetchEnquiries();
   }, []);
+
+  useEffect(() => { getRoleFromCookie().then(setCurrentRole); }, []);
 
   useEffect(() => {
     setPage(1);
@@ -102,6 +107,12 @@ export function EnquiriesList() {
   }, [enquiries]);
 
   const handleExportPdf = () => {
+    const isAdmin = currentRole === 'admin';
+    const maskedRows = filteredEnquiries.map((e) => ({
+      ...e,
+      email: isAdmin ? e.email : 'REDACTED',
+      phone: isAdmin ? e.phone : 'REDACTED',
+    }));
     generatePDFReport({
       title: 'ENQUIRY REPORT',
       subtitle: `Showing ${filteredEnquiries.length} of ${enquiries.length} enquiries`,
@@ -116,22 +127,24 @@ export function EnquiriesList() {
         { header: 'Status', key: 'status' },
         { header: 'Submitted At', key: 'createdAt' },
       ],
-      rows: filteredEnquiries,
+      rows: maskedRows,
       summary: [
         { label: 'Total Enquiries', value: enquiries.length },
         { label: 'New', value: summary.newCount },
         { label: 'Open', value: summary.inProgress },
       ],
     });
+    logExport('enquiries', 'pdf', filteredEnquiries.length);
   };
 
   const handleExportCsv = () => {
+    const isAdmin = currentRole === 'admin';
     const headers = ['Ticket', 'Name', 'Email', 'Phone', 'Subject', 'Channel', 'Status', 'Submitted At'];
     const rows = filteredEnquiries.map((e) => [
       e.ticketNumber,
       e.name,
-      e.email,
-      e.phone,
+      isAdmin ? e.email : 'REDACTED',
+      isAdmin ? e.phone : 'REDACTED',
       e.subject,
       e.channel,
       e.status,
@@ -149,6 +162,7 @@ export function EnquiriesList() {
     link.download = 'enquiries.csv';
     link.click();
     URL.revokeObjectURL(url);
+    logExport('enquiries', 'csv', filteredEnquiries.length);
   };
 
   const openStatusDialog = (enquiry: any) => {
@@ -272,8 +286,8 @@ export function EnquiriesList() {
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Ticket</th>
                     <th className="px-4 py-3 text-left font-semibold">Name</th>
-                    <th className="px-4 py-3 text-left font-semibold">Email</th>
-                    <th className="px-4 py-3 text-left font-semibold">Phone</th>
+                    {currentRole === 'admin' && <th className="px-4 py-3 text-left font-semibold">Email</th>}
+                    {currentRole === 'admin' && <th className="px-4 py-3 text-left font-semibold">Phone</th>}
                     <th className="px-4 py-3 text-left font-semibold">Subject</th>
                     <th className="px-4 py-3 text-left font-semibold">Channel</th>
                     <th className="px-4 py-3 text-left font-semibold">Status</th>
@@ -290,8 +304,8 @@ export function EnquiriesList() {
                           <span className="font-mono text-xs font-medium text-primary">{enquiry.ticketNumber}</span>
                         </td>
                         <td className="px-4 py-3 font-medium">{enquiry.name}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{enquiry.email}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{enquiry.phone || '—'}</td>
+                        {currentRole === 'admin' && <td className="px-4 py-3 text-sm text-muted-foreground">{enquiry.email}</td>}
+                        {currentRole === 'admin' && <td className="px-4 py-3 text-sm text-muted-foreground">{enquiry.phone || '—'}</td>}
                         <td className="px-4 py-3">
                           <div className="max-w-[200px] truncate text-sm" title={enquiry.subject}>{enquiry.subject}</div>
                         </td>

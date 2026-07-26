@@ -9,6 +9,7 @@ import { Search, Mail, UserPlus, AlertCircle, Download, FileDown, X, Smartphone,
 import type { User } from '@/lib/types';
 import { getRoleFromCookie } from '@/lib/permissions';
 import { generatePDFReport } from '@/lib/pdf-utils';
+import { logExport } from '@/lib/export-logger';
 
 export function UsersList() {
   const [users, setUsers] = useState<User[]>([]);
@@ -127,6 +128,7 @@ export function UsersList() {
       link.download = 'users.csv';
       link.click();
       URL.revokeObjectURL(url);
+      logExport('users', 'csv', items.length);
     } catch (err) {
       console.error('CSV export failed:', err);
     } finally {
@@ -167,6 +169,7 @@ export function UsersList() {
         { label: 'Inactive', value: inactive },
       ],
     });
+    logExport('users', 'pdf', filtered.length);
   };
 
   useEffect(() => {

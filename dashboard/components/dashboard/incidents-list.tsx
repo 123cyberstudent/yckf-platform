@@ -10,6 +10,7 @@ import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, D
 import type { Incident } from '@/lib/types';
 import { getRoleFromCookie } from '@/lib/permissions';
 import { generatePDFReport } from '@/lib/pdf-utils';
+import { logExport } from '@/lib/export-logger';
 
 const PAGE_SIZE = 6;
 
@@ -92,6 +93,7 @@ export function IncidentsList() {
       link.download = 'incidents.csv';
       link.click();
       URL.revokeObjectURL(url);
+      logExport('incidents', 'csv', items.length);
     } catch (err) {
       console.error('CSV export failed:', err);
     } finally {
@@ -127,6 +129,7 @@ export function IncidentsList() {
         { label: 'Critical', value: critical },
       ],
     });
+    logExport('incidents', 'pdf', filteredIncidents.length);
   };
 
   const fetchIncidents = async () => {

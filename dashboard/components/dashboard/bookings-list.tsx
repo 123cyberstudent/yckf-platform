@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Download, FileDown, Filter, Search, Ticket, Users, XCircle, Clock } from 'lucide-react';
 import { generatePDFReport } from '@/lib/pdf-utils';
+import { getRoleFromCookie } from '@/lib/permissions';
+import { logExport } from '@/lib/export-logger';
 
 const PAGE_SIZE = 10;
 
@@ -51,6 +53,9 @@ export function BookingsList() {
   const [sortOrder, setSortOrder] = useState('newest');
   const [page, setPage] = useState(1);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
+
+  useEffect(() => { getRoleFromCookie().then(setCurrentRole); }, []);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -134,6 +139,12 @@ export function BookingsList() {
   };
 
   const handleExportPdf = () => {
+    const isAdmin = currentRole === 'admin';
+    const maskedRows = filteredBookings.map((b) => ({
+      ...b,
+      email: isAdmin ? b.email : 'REDACTED',
+      phone: isAdmin ? b.phone : 'REDACTED',
+    }));
     generatePDFReport({
       title: 'BOOKING REPORT',
       subtitle: `Showing ${filteredBookings.length} of ${bookings.length} bookings`,
@@ -149,22 +160,24 @@ export function BookingsList() {
         { header: 'Status', key: 'status' },
         { header: 'Submitted At', key: 'createdAt' },
       ],
-      rows: filteredBookings,
+      rows: maskedRows,
       summary: [
         { label: 'Total Bookings', value: bookings.length },
         { label: 'Pending', value: summary.newCount },
         { label: 'Confirmed', value: summary.confirmed },
       ],
     });
+    logExport('bookings', 'pdf', filteredBookings.length);
   };
 
   const handleExportCsv = () => {
+    const isAdmin = currentRole === 'admin';
     const headers = ['Ticket Number', 'Full Name', 'Email', 'Phone', 'Specialist', 'Preferred Date', 'Preferred Time', 'Status', 'Submitted At'];
     const rows = filteredBookings.map((b) => [
       b.ticketNumber,
       b.fullName,
-      b.email,
-      b.phone,
+      isAdmin ? b.email : 'REDACTED',
+      isAdmin ? b.phone : 'REDACTED',
       b.specialist,
       b.preferredDate,
       b.preferredTime,
@@ -183,6 +196,7 @@ export function BookingsList() {
     link.download = 'bookings.csv';
     link.click();
     URL.revokeObjectURL(url);
+    logExport('bookings', 'csv', filteredBookings.length);
   };
 
   return (
@@ -273,8 +287,8 @@ export function BookingsList() {
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Ticket</th>
                     <th className="px-4 py-3 text-left font-semibold">Full Name</th>
-                    <th className="px-4 py-3 text-left font-semibold">Email</th>
-                    <th className="px-4 py-3 text-left font-semibold">Phone</th>
+                    {currentRole === 'admin' && <th className="px-4 py-3 text-left font-semibold">Email</th>}
+                    {currentRole === 'admin' && <th className="px-4 py-3 text-left font-semibold">Phone</th>}
                     <th className="px-4 py-3 text-left font-semibold">Specialist</th>
                     <th className="px-4 py-3 text-left font-semibold">Preferred Date/Time</th>
                     <th className="px-4 py-3 text-left font-semibold">Status</th>
@@ -289,8 +303,8 @@ export function BookingsList() {
                         <span className="font-mono text-xs font-medium">{booking.ticketNumber}</span>
                       </td>
                       <td className="px-4 py-3 font-medium">{booking.fullName}</td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{booking.email}</td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{booking.phone}</td>
+                      {currentRole === 'admin' && <td className="px-4 py-3 text-sm text-muted-foreground">{booking.email}</td>}
+                      {currentRole === 'admin' && <td className="px-4 py-3 text-sm text-muted-foreground">{booking.phone}</td>}
                       <td className="px-4 py-3 text-sm">{booking.specialist}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {booking.preferredDate}

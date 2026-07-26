@@ -23,6 +23,8 @@ import {
   Volume2,
 } from 'lucide-react';
 import { generatePDFReport } from '@/lib/pdf-utils';
+import { getRoleFromCookie } from '@/lib/permissions';
+import { logExport } from '@/lib/export-logger';
 
 const PAGE_SIZE = 8;
 
@@ -67,6 +69,7 @@ export default function EmergenciesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -99,6 +102,10 @@ export default function EmergenciesPage() {
 
   useEffect(() => {
     fetchReports();
+  }, []);
+
+  useEffect(() => {
+    getRoleFromCookie().then(setCurrentRole);
   }, []);
 
   useEffect(() => {
@@ -147,31 +154,48 @@ export default function EmergenciesPage() {
   };
 
   const handleExportPdf = () => {
+    const isAdmin = currentRole === 'admin';
+    const maskedRows = filtered.map((r) => ({
+      ...r,
+      reporterPhone: isAdmin ? r.reporterPhone : 'REDACTED',
+      gpsLatitude: isAdmin ? r.gpsLatitude : null,
+      gpsLongitude: isAdmin ? r.gpsLongitude : null,
+    }));
+    const pdfColumns = [
+      { header: 'Ticket', key: 'ticketNumber' },
+      { header: 'Reporter', key: 'reporterName' },
+      ...(isAdmin ? [{ header: 'Phone', key: 'reporterPhone' }] : []),
+      { header: 'Station', key: 'nearestStation' },
+      ...(isAdmin ? [{ header: 'GPS Lat', key: 'gpsLatitude' }, { header: 'GPS Lon', key: 'gpsLongitude' }] : []),
+      { header: 'Status', key: 'status' },
+      { header: 'Priority', key: 'priority' },
+      { header: 'Submitted At', key: 'submittedAt' },
+    ];
     generatePDFReport({
       title: 'EMERGENCY REPORTS',
       subtitle: `Showing ${filtered.length} of ${reports.length} reports`,
       fileName: 'emergency-reports',
-      columns: [
-        { header: 'Ticket', key: 'ticketNumber' },
-        { header: 'Reporter', key: 'reporterName' },
-        { header: 'Phone', key: 'reporterPhone' },
-        { header: 'Station', key: 'nearestStation' },
-        { header: 'Status', key: 'status' },
-        { header: 'Priority', key: 'priority' },
-        { header: 'Submitted At', key: 'submittedAt' },
-      ],
-      rows: filtered,
+      columns: pdfColumns,
+      rows: maskedRows,
       summary: [
         { label: 'Total Reports', value: reports.length },
         { label: 'Pending', value: summary.newCount },
         { label: 'Resolved', value: summary.resolved },
       ],
     });
+    logExport('emergencies', 'pdf', filtered.length);
   };
 
   const handleExportCsv = () => {
-    const headers = ['Ticket', 'Reporter', 'Phone', 'Station', 'Status', 'Priority', 'Submitted At'];
-    const rows = filtered.map((r) => [r.ticketNumber, r.reporterName, r.reporterPhone, r.nearestStation, r.status, r.priority, r.submittedAt]);
+    const isAdmin = currentRole === 'admin';
+    const headers = isAdmin
+      ? ['Ticket', 'Reporter', 'Phone', 'Station', 'GPS Lat', 'GPS Lon', 'Status', 'Priority', 'Submitted At']
+      : ['Ticket', 'Reporter', 'Station', 'Status', 'Priority', 'Submitted At'];
+    const rows = filtered.map((r) =>
+      isAdmin
+        ? [r.ticketNumber, r.reporterName, r.reporterPhone, r.nearestStation, r.gpsLatitude ?? '', r.gpsLongitude ?? '', r.status, r.priority, r.submittedAt]
+        : [r.ticketNumber, r.reporterName, r.nearestStation, r.status, r.priority, r.submittedAt]
+    );
     const csv = [headers, ...rows].map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -180,6 +204,7 @@ export default function EmergenciesPage() {
     link.download = 'emergency-reports.csv';
     link.click();
     URL.revokeObjectURL(url);
+    logExport('emergencies', 'csv', filtered.length);
   };
 
   return (
@@ -282,9 +307,9 @@ export default function EmergenciesPage() {
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Ticket</th>
                     <th className="px-4 py-3 text-left font-semibold">Reporter</th>
-                    <th className="px-4 py-3 text-left font-semibold">Phone</th>
+                    {currentRole === 'admin' && <th className="px-4 py-3 text-left font-semibold">Phone</th>}
                     <th className="px-4 py-3 text-left font-semibold">Nearest Station</th>
-                    <th className="px-4 py-3 text-left font-semibold">GPS</th>
+                    {currentRole === 'admin' && <th className="px-4 py-3 text-left font-semibold">GPS</th>}
                     <th className="px-4 py-3 text-left font-semibold">Voice</th>
                     <th className="px-4 py-3 text-left font-semibold">Status</th>
                     <th className="px-4 py-3 text-left font-semibold">Priority</th>
@@ -299,28 +324,32 @@ export default function EmergenciesPage() {
                         <span className="font-mono text-sm font-medium text-[#2563EB]">{report.ticketNumber}</span>
                       </td>
                       <td className="px-4 py-3 text-sm">{report.reporterName}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Phone className="size-3.5" />
-                          {report.reporterPhone || '—'}
-                        </div>
-                      </td>
+                      {currentRole === 'admin' && (
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Phone className="size-3.5" />
+                            {report.reporterPhone || '—'}
+                          </div>
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-sm text-muted-foreground">{report.nearestStation || '—'}</td>
-                      <td className="px-4 py-3">
-                        {report.gpsLatitude != null && report.gpsLongitude != null ? (
-                          <a
-                            href={`https://www.google.com/maps?q=${report.gpsLatitude},${report.gpsLongitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-[#2563EB] hover:underline"
-                          >
-                            <MapPin className="size-3.5" />
-                            {report.gpsLatitude.toFixed(4)}, {report.gpsLongitude.toFixed(4)}
-                          </a>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
+                      {currentRole === 'admin' && (
+                        <td className="px-4 py-3">
+                          {report.gpsLatitude != null && report.gpsLongitude != null ? (
+                            <a
+                              href={`https://www.google.com/maps?q=${report.gpsLatitude},${report.gpsLongitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-[#2563EB] hover:underline"
+                            >
+                              <MapPin className="size-3.5" />
+                              {report.gpsLatitude.toFixed(4)}, {report.gpsLongitude.toFixed(4)}
+                            </a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         {report.audioFileUrl ? <VoicePlayer url={report.audioFileUrl} /> : <span className="text-xs text-muted-foreground">—</span>}
                       </td>

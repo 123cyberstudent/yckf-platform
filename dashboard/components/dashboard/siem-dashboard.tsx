@@ -19,6 +19,8 @@ import {
   FileDown,
 } from 'lucide-react';
 import { generatePDFReport } from '@/lib/pdf-utils';
+import { getRoleFromCookie } from '@/lib/permissions';
+import { logExport } from '@/lib/export-logger';
 import Link from 'next/link';
 
 interface SIEMStatus {
@@ -100,6 +102,7 @@ export function SIEMDashboard() {
   const [eventFilter, setEventFilter] = useState('all');
   const [timeRange, setTimeRange] = useState('24');
   const [refreshing, setRefreshing] = useState(false);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
 
   const fetchAll = async (hours = timeRange, type = eventFilter) => {
     setRefreshing(true);
@@ -128,6 +131,10 @@ export function SIEMDashboard() {
 
   useEffect(() => {
     fetchAll();
+  }, []);
+
+  useEffect(() => {
+    getRoleFromCookie().then(setCurrentRole);
   }, []);
 
   useEffect(() => {
@@ -162,24 +169,24 @@ export function SIEMDashboard() {
   }, [events]);
 
   const handleExportPdf = () => {
+    const isAdmin = currentRole === 'admin';
+    const pdfColumns = [
+      { header: 'Timestamp', key: 'timestamp', width: 40 },
+      { header: 'Type', key: 'type', width: 30 },
+      { header: 'Severity', key: 'severity', width: 25 },
+      { header: 'Action', key: 'action', width: 45 },
+      ...(isAdmin ? [{ header: 'User', key: 'user', width: 35 }, { header: 'IP Address', key: 'ipAddress', width: 35 }] : []),
+    ];
     generatePDFReport({
       title: 'SIEM DASHBOARD REPORT',
       subtitle: `Security events overview — ${events.length} events exported`,
-      columns: [
-        { header: 'Timestamp', key: 'timestamp', width: 40 },
-        { header: 'Type', key: 'type', width: 30 },
-        { header: 'Severity', key: 'severity', width: 25 },
-        { header: 'Action', key: 'action', width: 45 },
-        { header: 'User', key: 'user', width: 35 },
-        { header: 'IP Address', key: 'ipAddress', width: 35 },
-      ],
+      columns: pdfColumns,
       rows: events.map((event) => ({
         timestamp: new Date(event.timestamp).toLocaleString(),
         type: event.type,
         severity: event.severity,
         action: event.action.replace(/_/g, ' '),
-        user: event.user,
-        ipAddress: event.ipAddress,
+        ...(isAdmin ? { user: event.user, ipAddress: event.ipAddress } : {}),
       })),
       fileName: 'siem-dashboard-report',
       summary: [
@@ -188,6 +195,7 @@ export function SIEMDashboard() {
         { label: 'Connection', value: status?.connected ? 'Connected' : 'Disconnected' },
       ],
     });
+    logExport('siem', 'pdf', events.length);
   };
 
   if (loading) {
@@ -406,8 +414,8 @@ export function SIEMDashboard() {
                       <th className="px-3 py-2.5 text-left font-semibold">Category</th>
                       <th className="px-3 py-2.5 text-left font-semibold">Severity</th>
                       <th className="px-3 py-2.5 text-left font-semibold">Action</th>
-                      <th className="px-3 py-2.5 text-left font-semibold">User</th>
-                      <th className="px-3 py-2.5 text-left font-semibold">IP Address</th>
+                      {currentRole === 'admin' && <th className="px-3 py-2.5 text-left font-semibold">User</th>}
+                      {currentRole === 'admin' && <th className="px-3 py-2.5 text-left font-semibold">IP Address</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -448,10 +456,12 @@ export function SIEMDashboard() {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-xs">{event.action.replace(/_/g, ' ')}</td>
-                          <td className="px-3 py-2.5 text-xs text-muted-foreground">{event.user}</td>
-                          <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground">
-                            {event.ipAddress}
-                          </td>
+                          {currentRole === 'admin' && <td className="px-3 py-2.5 text-xs text-muted-foreground">{event.user}</td>}
+                          {currentRole === 'admin' && (
+                            <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground">
+                              {event.ipAddress}
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

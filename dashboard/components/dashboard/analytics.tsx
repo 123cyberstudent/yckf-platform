@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, TrendingUp, TrendingDown, Users, Clock, AlertTriangle, CheckCircle, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { generatePlatformReport } from '@/lib/pdf-utils';
+import { logExport } from '@/lib/export-logger';
 
 interface AnalyticsData {
   summary: Array<{
@@ -159,6 +160,7 @@ export function AnalyticsDashboard() {
       categoryData: pdfData.categoryData,
       recentActivity: pdfData.recentActivity,
     });
+    logExport('analytics', 'pdf', 1);
   };
 
   if (loading) {
