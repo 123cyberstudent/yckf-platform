@@ -54,8 +54,7 @@
         }
       ],
       "expo-font",
-      "expo-mail-composer",
-      "expo-sharing"
+      "expo-mail-composer"
     ],
     "owner": "yckflab",
     "extra": {
