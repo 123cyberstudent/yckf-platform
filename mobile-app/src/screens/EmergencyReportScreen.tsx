@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import * as MailComposer from 'expo-mail-composer';
-import authService from '../services/AuthService';
+import authService, { API_BASE_URL } from '../services/AuthService';
 // NEW ADDED - Import for navigation functionality
 import { useNavigation } from '@react-navigation/native';
 
@@ -810,9 +810,7 @@ const sendViaEmailAuto = async () => {
       textMessages: mode === 'text' && messages.length > 0 ? messages.filter(m => m.isUser).map(m => m.text) : null
     };
 
-    const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
-    
-    const response = await fetch(`${API_URL}/api/email/emergency-report`, {
+    const response = await fetch(`${API_BASE_URL}/api/email/emergency-report`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -865,8 +863,6 @@ const sendViaEmailAuto = async () => {
       const userPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || '';
       const userName = (userData as any)?.displayName || (userData as any)?.full_name || '';
 
-      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
-
       const formData = new FormData();
 
       formData.append('reporterName', userName);
@@ -912,7 +908,7 @@ const sendViaEmailAuto = async () => {
         formData.append('gpsAccuracy', String(currentLocation.coords.accuracy || 0));
       }
 
-      const response = await fetch(`${API_URL}/api/emergency-reports`, {
+      const response = await fetch(`${API_BASE_URL}/api/emergency-reports`, {
         method: 'POST',
         body: formData,
       });

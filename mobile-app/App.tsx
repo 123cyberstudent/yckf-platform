@@ -70,7 +70,7 @@ export default function App() {
 
       // ⭐ IMPORTANT: Initialize Auth Service FIRST
       await AuthService.initialize();
-      console.log('✅ Auth service initialized with auto-logout (2 min timeout)');
+      console.log('✅ Auth service initialized with auto-logout (30 min timeout)');
 
       // Load fonts (if you have custom fonts)
       await loadFonts();
@@ -177,12 +177,12 @@ export default function App() {
                   return (
                     <NavigationContainer>
                       <StatusBar style="auto" />
-                      {/* ⭐⭐⭐ WRAPPED WITH AUTH MONITOR FOR AUTO-LOGOUT ⭐⭐⭐ */}
-                      {/* This wrapper tracks user activity and triggers auto-logout after 2 min of inactivity */}
+                      {/* WRAPPED WITH AUTH MONITOR FOR AUTO-LOGOUT */}
+                      {/* This wrapper tracks user activity and triggers auto-logout after 30 min of inactivity */}
                       <AuthMonitorWrapper>
                         <AppNavigator />
                       </AuthMonitorWrapper>
-                      {/* ⭐⭐⭐ END OF AUTH MONITOR WRAPPER ⭐⭐⭐ */}
+                      {/* END OF AUTH MONITOR WRAPPER */}
                       </NavigationContainer>
                   );
                 } catch (err) {
@@ -199,13 +199,11 @@ export default function App() {
                         title="Reload App"
                         onPress={() => {
                           try {
-                            // Dev reload
-                            // @ts-ignore
-                            if (typeof DevSettings !== 'undefined' && DevSettings.reload) {
-                              // eslint-disable-next-line no-undef
-                              DevSettings.reload();
+                            // eslint-disable-next-line no-undef
+                            const DS = typeof DevSettings !== 'undefined' ? (DevSettings as any) : null;
+                            if (DS && typeof DS.reload === 'function') {
+                              DS.reload();
                             } else {
-                              // fallback: instruct developer to restart Metro
                               console.log('Please restart Metro: expo start -c');
                             }
                           } catch (e) {

@@ -24,6 +24,7 @@ import Input from '../components/common/Input';
 // Services
 import EmailService from '../services/EmailService';
 import WhatsAppService from '../services/WhatsAppService';
+import authService, { API_BASE_URL } from '../services/AuthService';
 
 // Contexts
 import { useApp } from '../contexts/AppContext';
@@ -36,7 +37,7 @@ import {
   SUCCESS_MESSAGES,
 } from '../utils/constants';
 // Backend API URL
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
+const API_URL = API_BASE_URL;
 
 // Types
 import { ContactForm } from '../types';

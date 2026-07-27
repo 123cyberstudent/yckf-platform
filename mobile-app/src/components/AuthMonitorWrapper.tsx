@@ -15,7 +15,7 @@ interface AuthMonitorWrapperProps {
 /**
  * This component wraps the entire app and monitors user activity
  * It tracks touches, scrolls, and other interactions
- * When user is inactive for 2 minutes, it triggers auto-logout
+ * When user is inactive for 30 minutes, it triggers auto-logout
  */
 const AuthMonitorWrapper: React.FC<AuthMonitorWrapperProps> = ({ children }) => {
   const navigation = useNavigation();
