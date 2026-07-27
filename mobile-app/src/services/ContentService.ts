@@ -3,9 +3,7 @@
 // CMS Content Service - Fetches from backend /api/content
 // ============================================
 
-import AuthService from './AuthService';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
+import AuthService, { API_BASE_URL } from './AuthService';
 
 export interface ContentPage {
   id: number;

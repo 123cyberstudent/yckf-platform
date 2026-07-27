@@ -9,6 +9,10 @@ import { AppState, AppStateStatus } from 'react-native';
 // ✅ UPDATED: Your Render backend URL
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001'
 
+if (__DEV__) {
+  console.log('[YCKF] API base URL:', API_BASE_URL);
+}
+
 // ============================================
 // AUTO-LOGOUT CONFIGURATION
 // ============================================

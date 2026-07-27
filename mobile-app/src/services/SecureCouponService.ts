@@ -3,10 +3,8 @@
 // Secure Coupon Service with Backend Verification
 // ============================================
 
-import AuthService from './AuthService';
+import AuthService, { API_BASE_URL } from './AuthService';
 import { PremiumAccessService } from './PremiumAccessService';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
 
 export interface CouponValidation {
   valid: boolean;

@@ -1,10 +1,9 @@
 // src/services/EmergencySOSService.ts
 import LocationService from './LocationService';
-import AuthService from './AuthService';
+import AuthService, { API_BASE_URL } from './AuthService';
 import { POLICE_STATIONS } from '../data/policeStations';
 import { findNearestStation } from '../utils/stationUtils';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
 const CENTRAL_EMAIL = 'yckfadmin@youngcyberknightsfoundation.org';
 const BACKUP_EMAIL = 'mypracticalworks@gmail.com';
 

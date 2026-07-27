@@ -3,9 +3,7 @@
 // Secure Admin Service - NO HARDCODED CREDENTIALS
 // ============================================
 
-import AuthService from './AuthService';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
+import AuthService, { API_BASE_URL } from './AuthService';
 
 export interface Coupon {
   id: string;

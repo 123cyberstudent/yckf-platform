@@ -39,31 +39,35 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) ?? ['http://localhost:3000'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) ?? [
+  'http://localhost:3000',
+  'http://localhost:4001',
+];
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.set('trust proxy', 1);
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        objectSrc: ["'none'"],
-        frameAncestors: ["'none'"],
-        baseUri: ["'self'"],
-      },
-    },
-    hsts: { maxAge: 31536000, includeSubDomains: true },
-    crossOriginEmbedderPolicy: true,
-    crossOriginResourcePolicy: { policy: 'same-origin' },
-    originAgentCluster: true,
+    contentSecurityPolicy: false,
+    hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true } : false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+    originAgentCluster: false,
   })
 );
 app.use(compression());
-app.use(cors({ origin: allowedOrigins, credentials: true, optionsSuccessStatus: 200 }));
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+}));
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 
@@ -71,7 +75,9 @@ const csrfProtection = (req: express.Request, res: express.Response, next: expre
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
     const origin = req.headers.origin || req.headers.referer;
     const authHeader = req.headers.authorization;
-    if (!authHeader && origin) {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobileApp = userAgent.includes('okhttp') || userAgent.includes('Expo') || userAgent.includes('ReactNative');
+    if (!authHeader && origin && !isMobileApp) {
       const allowed = allowedOrigins.some((o) => origin.startsWith(o));
       if (!allowed) {
         return res.status(403).json({ error: 'CSRF: Invalid origin' });
@@ -99,7 +105,12 @@ const uploadsAuth = (req: express.Request, res: express.Response, next: express.
 };
 app.use('/uploads', uploadsAuth, express.static(path.join(process.cwd(), 'uploads')));
 
-app.use('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/api/health', (_req, res) => res.json({
+  status: 'ok',
+  service: 'YCKF Backend API',
+  version: '0.1.0',
+  timestamp: new Date().toISOString(),
+}));
 app.use('/api/site-stats', siteStatsPublicRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);

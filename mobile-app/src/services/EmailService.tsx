@@ -6,9 +6,7 @@
 import * as MailComposer from 'expo-mail-composer';
 import { Alert, Linking } from 'react-native';
 import { ServiceResponse, LocationData } from '../types';
-import authService from './AuthService';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
+import authService, { API_BASE_URL } from './AuthService';
 
 class EmailService {
   private static instance: EmailService;

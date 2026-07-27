@@ -263,7 +263,7 @@ export const STORAGE_KEYS = {
  * ============================================================================
  */
 export const API_ENDPOINTS = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001',
+  BASE_URL: typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL || 'http://localhost:4001',
   SUBMIT_REPORT: '/api/reports/submit',
   TRACK_CASE: '/api/cases/track',
   CONTACT: '/api/contact',

@@ -5,9 +5,7 @@
 // ============================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import AuthService from './AuthService';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
+import AuthService, { API_BASE_URL } from './AuthService';
 
 export interface PremiumAccess {
   premium: boolean;

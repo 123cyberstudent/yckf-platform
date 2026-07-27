@@ -3,11 +3,9 @@
 // Demo/Test Access Service - Time-Limited Access
 // ============================================
 
-import AuthService from './AuthService';
+import AuthService, { API_BASE_URL } from './AuthService';
 import {PremiumAccessService} from './PremiumAccessService';
 import * as Device from 'expo-device';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
 
 export interface DemoActivationResult {
   success: boolean;
