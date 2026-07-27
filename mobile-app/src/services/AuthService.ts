@@ -12,7 +12,7 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost
 // ============================================
 // AUTO-LOGOUT CONFIGURATION
 // ============================================
-const INACTIVITY_TIMEOUT = 2 * 60 * 1000; 
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
 
 export interface User {
   id: string;

@@ -25,6 +25,7 @@ export async function GET() {
       message: booking.message ?? '',
       createdAt: booking.createdAt ?? new Date().toISOString(),
       updatedAt: booking.updatedAt ?? booking.createdAt ?? new Date().toISOString(),
+      assignedSpecialist: booking.assignedSpecialist ?? null,
     }))
 
     return NextResponse.json({ items: mapped })

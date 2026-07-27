@@ -65,6 +65,7 @@ export function DashboardSidebar() {
     { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
     { icon: AlertCircle, label: 'Emergency Reports', href: '/dashboard/emergencies' },
     { icon: Phone, label: 'Bookings', href: '/dashboard/bookings' },
+    { icon: Users, label: 'Specialists', href: '/dashboard/specialists' },
     { icon: MessageSquare, label: 'Enquiries', href: '/dashboard/enquiries' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
     { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },

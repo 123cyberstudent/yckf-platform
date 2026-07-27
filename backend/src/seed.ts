@@ -6,14 +6,19 @@ const prisma = new PrismaClient();
 async function main() {
   const users = [
     { email: 'yckfadmin@youngcyberknightsfoundation.org', fullName: 'YCKF Admin', password: 'admin@123', role: 'ADMIN' as const },
-    { email: 'mypracticalworks@gmail.com', fullName: 'First Volunteer', password: 'volunteer@123', role: 'VOLUNTEER' as const },
+    { email: 'mypracticalworks@gmail.com', fullName: 'Bright Peter Kwaku Boateng', password: 'volunteer@123', role: 'VOLUNTEER' as const },
     { email: 'user@youngcyberknightsfoundation.org', fullName: 'Demo User', password: 'user@123', role: 'USER' as const },
   ];
 
   for (const u of users) {
     const existing = await prisma.user.findUnique({ where: { email: u.email } });
     if (existing) {
-      console.log(`User ${u.email} already exists, skipping`);
+      if (existing.fullName !== u.fullName) {
+        await prisma.user.update({ where: { email: u.email }, data: { fullName: u.fullName } });
+        console.log(`Updated ${u.email} fullName to "${u.fullName}"`);
+      } else {
+        console.log(`User ${u.email} already exists, skipping`);
+      }
       continue;
     }
     const passwordHash = await bcrypt.hash(u.password, 10);

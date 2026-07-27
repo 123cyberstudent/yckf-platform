@@ -10,7 +10,59 @@ export type RootStackParamList = {
   CaseTracker: undefined;
   About: undefined;
   Settings: undefined;
+  MyReports: undefined;
 };
+
+// Report from backend
+export interface Report {
+  id: number;
+  ticketNumber: string;
+  incidentType: string;
+  status: string;
+  description: string;
+  reporterName: string;
+  reporterEmail: string;
+  createdAt: string;
+  updatedAt: string;
+  cases?: {
+    id: number;
+    status: string;
+    assignedInvestigator?: { id: number; fullName: string } | null;
+    responses?: {
+      id: number;
+      message: string;
+      author: { id: number; fullName: string; role: string };
+      createdAt: string;
+    }[];
+  }[];
+}
+
+// Specialist from backend
+export interface BackendSpecialist {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  specialty: string;
+  bio: string;
+  avatarUrl: string;
+  isActive: boolean;
+}
+
+// Booking from backend
+export interface BackendBooking {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  date: string;
+  time: string;
+  caseDescription: string;
+  specialist: string;
+  status: string;
+  assignedSpecialist?: BackendSpecialist | null;
+  createdAt: string;
+}
 
 // Location Types
 export interface LocationData {

@@ -6,19 +6,27 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Bell, Eye, Shield } from 'lucide-react';
+import { Lock, Bell, Eye, Shield, Mail, Clock } from 'lucide-react';
 
 interface User {
   id: string;
   fullName: string;
   email: string;
+  role?: string;
+}
+
+interface ActivityLog {
+  id: number;
+  action: string;
+  ipAddress: string;
+  userAgent?: string;
+  timestamp: string;
 }
 
 export function Settings() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Account fields
   const [fullName, setFullName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -26,15 +34,14 @@ export function Settings() {
   const [accountSuccess, setAccountSuccess] = useState('');
   const [accountError, setAccountError] = useState('');
 
-  // 2FA
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [twoFaLoading, setTwoFaLoading] = useState(false);
 
-  // SIEM integration
   const [siemConnected, setSiemConnected] = useState(false);
   const [siemLoading, setSiemLoading] = useState(true);
 
-  // System settings
+  const [emailConnected, setEmailConnected] = useState(false);
+
   const [timezone, setTimezone] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('settings_timezone') || 'UTC';
     return 'UTC';
@@ -46,22 +53,27 @@ export function Settings() {
   const [systemSuccess, setSystemSuccess] = useState('');
   const [systemSaving, setSystemSaving] = useState(false);
 
+  const [recentActivity, setRecentActivity] = useState<ActivityLog[]>([]);
+
   useEffect(() => {
     const init = async () => {
       try {
         const meRes = await fetch('/api/auth/me');
         if (meRes.ok) {
           const me = await meRes.json();
-          const user: User = { id: me.id, fullName: me.fullName || me.name || '', email: me.email || '' };
+          const user: User = {
+            id: me.id?.toString() ?? '1',
+            fullName: me.fullName || me.name || 'User',
+            email: me.email || '',
+            role: me.role,
+          };
           setCurrentUser(user);
           setFullName(user.fullName);
         } else {
-          setCurrentUser({ id: '1', fullName: 'Admin User', email: 'yckfadmin@youngcyberknightsfoundation.org' });
-          setFullName('Admin User');
+          setCurrentUser(null);
         }
       } catch {
-        setCurrentUser({ id: '1', fullName: 'Admin User', email: 'yckfadmin@youngcyberknightsfoundation.org' });
-        setFullName('Admin User');
+        setCurrentUser(null);
       }
 
       try {
@@ -70,9 +82,7 @@ export function Settings() {
           const fa = await faRes.json();
           setTwoFaEnabled(!!fa.enabled);
         }
-      } catch {
-        setTwoFaEnabled(false);
-      }
+      } catch { /* ignore */ }
 
       try {
         const siemRes = await fetch('/api/siem/status');
@@ -80,11 +90,26 @@ export function Settings() {
           const siem = await siemRes.json();
           setSiemConnected(!!siem.connected);
         }
+      } catch { /* ignore */ }
+      finally { setSiemLoading(false); }
+
+      try {
+        const emailRes = await fetch('/api/email/status');
+        if (emailRes.ok) {
+          const email = await emailRes.json();
+          setEmailConnected(!!email.configured);
+        }
       } catch {
-        setSiemConnected(false);
-      } finally {
-        setSiemLoading(false);
+        setEmailConnected(false);
       }
+
+      try {
+        const logsRes = await fetch('/api/audit/logs?limit=10');
+        if (logsRes.ok) {
+          const logs = await logsRes.json();
+          setRecentActivity(Array.isArray(logs) ? logs.slice(0, 5) : []);
+        }
+      } catch { /* ignore */ }
 
       setLoading(false);
     };
@@ -115,7 +140,7 @@ export function Settings() {
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          throw new Error(body.message || 'Failed to change password');
+          throw new Error(body.error || body.message || 'Failed to change password');
         }
         setCurrentPassword('');
         setNewPassword('');
@@ -137,11 +162,8 @@ export function Settings() {
       const res = await fetch(endpoint, { method: 'POST' });
       if (!res.ok) throw new Error('Failed to toggle 2FA');
       setTwoFaEnabled(!twoFaEnabled);
-    } catch {
-      // silently fail
-    } finally {
-      setTwoFaLoading(false);
-    }
+    } catch { /* ignore */ }
+    finally { setTwoFaLoading(false); }
   };
 
   const handleSaveSystem = async () => {
@@ -152,9 +174,36 @@ export function Settings() {
       localStorage.setItem('settings_dateFormat', dateFormat);
       setSystemSuccess('System settings saved.');
       setTimeout(() => setSystemSuccess(''), 3000);
-    } finally {
-      setSystemSaving(false);
-    }
+    } finally { setSystemSaving(false); }
+  };
+
+  const formatActivity = (log: ActivityLog) => {
+    const actionMap: Record<string, string> = {
+      login: 'Login',
+      logout: 'Logout',
+      register: 'Registration',
+      password_change: 'Password Changed',
+      password_reset: 'Password Reset',
+      create: 'Record Created',
+      update: 'Record Updated',
+      delete: 'Record Deleted',
+    };
+    const action = actionMap[log.action] || log.action;
+    const timeAgo = getTimeAgo(log.timestamp);
+    return { action, timeAgo, ip: log.ipAddress || 'Unknown' };
+  };
+
+  const getTimeAgo = (timestamp: string) => {
+    const now = Date.now();
+    const then = new Date(timestamp).getTime();
+    const diffMs = now - then;
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    return `${diffDay}d ago`;
   };
 
   if (loading) {
@@ -202,7 +251,11 @@ export function Settings() {
           </div>
           <div>
             <label className="text-sm font-medium">Email</label>
-            <Input defaultValue={currentUser?.email || ''} className="mt-2" disabled />
+            <Input value={currentUser?.email || ''} className="mt-2" disabled />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Role</label>
+            <Input value={currentUser?.role || 'User'} className="mt-2" disabled />
           </div>
           <div>
             <label className="text-sm font-medium">Current Password</label>
@@ -211,6 +264,7 @@ export function Settings() {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               className="mt-2"
+              placeholder="Leave blank if not changing"
             />
           </div>
           <div>
@@ -220,6 +274,7 @@ export function Settings() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="mt-2"
+              placeholder="Enter new password"
             />
           </div>
           <Button onClick={handleUpdateAccount} disabled={accountLoading}>
@@ -301,9 +356,10 @@ export function Settings() {
               className="w-full mt-2 px-3 py-2 bg-input border border-border rounded-md"
             >
               <option value="UTC">UTC</option>
+              <option value="Africa/Accra">Africa/Accra (GMT)</option>
+              <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
               <option value="EST">EST</option>
               <option value="CST">CST</option>
-              <option value="MST">MST</option>
               <option value="PST">PST</option>
             </select>
           </div>
@@ -314,17 +370,10 @@ export function Settings() {
               onChange={(e) => setDateFormat(e.target.value)}
               className="w-full mt-2 px-3 py-2 bg-input border border-border rounded-md"
             >
-              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
               <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
               <option value="YYYY-MM-DD">YYYY-MM-DD</option>
             </select>
-          </div>
-          <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-            <div>
-              <p className="font-medium">Dark Mode</p>
-              <p className="text-sm text-muted-foreground">Always enabled</p>
-            </div>
-            <Badge variant="outline" className="bg-green-500/10 text-green-500">On</Badge>
           </div>
           <Button onClick={handleSaveSystem} disabled={systemSaving}>
             {systemSaving ? 'Saving...' : 'Save Changes'}
@@ -339,32 +388,30 @@ export function Settings() {
           <CardDescription>Third-party service integrations</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {[
-            { name: 'Slack', status: 'Connected', color: 'text-green-500' },
-            { name: 'Email Service', status: 'Connected', color: 'text-green-500' },
-          ].map((integration) => (
-            <div key={integration.name} className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div>
-                <p className="font-medium">{integration.name}</p>
-                <p className={`text-sm ${integration.color}`}>{integration.status}</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  alert('Coming soon');
-                }}
-              >
-                Configure
-              </Button>
-            </div>
-          ))}
           <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-            <div>
-              <p className="font-medium">SIEM Platform</p>
-              <p className={`text-sm ${siemConnected ? 'text-green-500' : 'text-red-500'}`}>
-                {siemLoading ? 'Checking...' : siemConnected ? 'Connected' : 'Not Connected'}
-              </p>
+            <div className="flex items-center gap-3">
+              <Mail className="size-5 text-primary" />
+              <div>
+                <p className="font-medium">Email Service</p>
+                <p className={`text-sm ${emailConnected ? 'text-green-500' : 'text-amber-500'}`}>
+                  {emailConnected ? 'SMTP Configured' : 'Using Log Fallback (No SMTP)'}
+                </p>
+              </div>
+            </div>
+            <Badge variant="outline" className={emailConnected ? 'bg-green-500/10 text-green-500' : 'bg-amber-500/10 text-amber-500'}>
+              {emailConnected ? 'Connected' : 'Not Configured'}
+            </Badge>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+            <div className="flex items-center gap-3">
+              <Shield className="size-5 text-primary" />
+              <div>
+                <p className="font-medium">SIEM Platform</p>
+                <p className={`text-sm ${siemConnected ? 'text-green-500' : 'text-red-500'}`}>
+                  {siemLoading ? 'Checking...' : siemConnected ? 'Connected' : 'Not Connected'}
+                </p>
+              </div>
             </div>
             <Link href="/dashboard/siem">
               <Button variant="outline" size="sm">
@@ -378,25 +425,31 @@ export function Settings() {
       {/* Recent Activity */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="size-5" />
+            Recent Activity
+          </CardTitle>
           <CardDescription>Your account activity log</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[
-              { action: 'Login', time: '2 hours ago', ip: '192.168.1.1' },
-              { action: 'Password changed', time: '5 days ago', ip: '192.168.1.1' },
-              { action: 'Two-factor enabled', time: '10 days ago', ip: '192.168.1.1' },
-            ].map((activity) => (
-              <div key={`${activity.action}-${activity.time}`} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                <div>
-                  <p className="font-medium">{activity.action}</p>
-                  <p className="text-sm text-muted-foreground">{activity.ip}</p>
-                </div>
-                <p className="text-sm text-muted-foreground">{activity.time}</p>
-              </div>
-            ))}
-          </div>
+          {recentActivity.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No recent activity found.</p>
+          ) : (
+            <div className="space-y-3">
+              {recentActivity.map((log) => {
+                const { action, timeAgo, ip } = formatActivity(log);
+                return (
+                  <div key={log.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+                    <div>
+                      <p className="font-medium">{action}</p>
+                      <p className="text-sm text-muted-foreground">{ip}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{timeAgo}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -10,20 +10,26 @@ export async function PUT(
     const body = await request.json()
     const token = await getBackendAuthToken()
 
+    const payload: Record<string, any> = {}
+    if (body.status) payload.status = body.status
+    if (body.adminNotes !== undefined) payload.adminNotes = body.adminNotes
+    if (body.assignedVolunteerId !== undefined) payload.assignedVolunteerId = body.assignedVolunteerId
+    if (body.assignedSpecialistId !== undefined) payload.assignedSpecialistId = body.assignedSpecialistId
+
     const response = await backendFetch(`/api/bookings/${id}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: body.status }),
+      body: JSON.stringify(payload),
     }, token)
-    const payload = await response.json().catch(() => null)
+    const data = await response.json().catch(() => null)
 
     if (!response.ok) {
-      return NextResponse.json({ success: false, error: payload?.error || 'Unable to update booking status' }, { status: response.status })
+      return NextResponse.json({ success: false, error: data?.error || 'Unable to update booking' }, { status: response.status })
     }
 
-    return NextResponse.json(payload)
+    return NextResponse.json(data)
   } catch (error) {
-    console.error('Update booking status error:', error)
-    return NextResponse.json({ success: false, error: 'Unable to update booking status' }, { status: 500 })
+    console.error('Update booking error:', error)
+    return NextResponse.json({ success: false, error: 'Unable to update booking' }, { status: 500 })
   }
 }

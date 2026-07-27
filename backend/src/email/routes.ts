@@ -8,6 +8,11 @@ const router = Router();
 
 router.use(emailRateLimiter);
 
+router.get('/status', (_req: Request, res: Response) => {
+  const configured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  res.json({ configured, smtpHost: process.env.SMTP_HOST || null });
+});
+
 router.post('/send', async (req: Request, res: Response) => {
   const { to, subject } = req.body;
   if (!to || !subject) {

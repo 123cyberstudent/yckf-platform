@@ -41,4 +41,48 @@ router.get('/my', verifyToken, async (req: Request, res: Response) => {
   }
 });
 
+// Public: Look up a case by ticket number (no auth required)
+router.get('/lookup/:ticketNumber', async (req: Request, res: Response) => {
+  try {
+    const ticketNumber = req.params.ticketNumber?.trim();
+    if (!ticketNumber) {
+      return res.status(400).json({ error: 'Ticket number is required' });
+    }
+
+    const caseRecord = await prisma.case.findFirst({
+      where: { report: { ticketNumber } },
+      include: {
+        report: { select: { id: true, ticketNumber: true, incidentType: true, description: true, reporterName: true, reporterEmail: true, createdAt: true } },
+        assignedInvestigator: { select: { id: true, fullName: true, email: true } },
+        responses: {
+          include: { author: { select: { id: true, fullName: true, role: true } } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!caseRecord) {
+      return res.status(404).json({ error: 'Case not found. Please check your ticket number.' });
+    }
+
+    res.json({
+      id: caseRecord.id,
+      status: caseRecord.status,
+      createdAt: caseRecord.createdAt,
+      updatedAt: caseRecord.updatedAt,
+      report: caseRecord.report,
+      assignedInvestigator: caseRecord.assignedInvestigator,
+      responses: caseRecord.responses.map((r) => ({
+        id: r.id,
+        message: r.responseText,
+        createdAt: r.createdAt,
+        author: r.author,
+      })),
+    });
+  } catch (err) {
+    console.error('Failed to lookup case');
+    res.status(500).json({ error: 'Failed to lookup case' });
+  }
+});
+
 export default router;

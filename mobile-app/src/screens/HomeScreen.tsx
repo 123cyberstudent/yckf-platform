@@ -690,6 +690,20 @@ const HomeScreen: React.FC = () => {
                 <Text style={styles.activityLabel}>Cases Tracked</Text>
               </View>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.activityCard}
+              onPress={() => navigation.navigate(SCREEN_NAMES.MY_REPORTS as never)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.activityIcon, { backgroundColor: '#8B5CF615' }]}>
+                <Ionicons name="clipboard" size={24} color="#8B5CF6" />
+              </View>
+              <View style={styles.activityInfo}>
+                <Text style={styles.activityValue}>My</Text>
+                <Text style={styles.activityLabel}>Reports Portal</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 

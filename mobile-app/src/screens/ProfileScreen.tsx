@@ -326,6 +326,28 @@ const handleEmailSupport = async () => {
             <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate(SCREEN_NAMES.MY_REPORTS as never)}
+          >
+            <View style={styles.menuIconContainer}>
+              <Ionicons name="document-text" size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.menuText}>My Reports</Text>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate(SCREEN_NAMES.SETTINGS as never)}
+          >
+            <View style={styles.menuIconContainer}>
+              <Ionicons name="settings" size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.menuText}>Settings</Text>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+          </TouchableOpacity>
+
           {user.role === 'admin' && (
             <TouchableOpacity
               style={styles.menuItem}

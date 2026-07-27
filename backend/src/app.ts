@@ -30,6 +30,7 @@ import emergencyReportsRouter from './emergencyReports/routes.js';
 import bookingsRouter from './bookings/routes.js';
 import enquiriesRouter from './enquiries/routes.js';
 import siemRouter from './siem/routes.js';
+import specialistsRouter from './specialists/routes.js';
 import { siteStatsPublicRouter } from './admin/siteStats.js';
 import { generalRateLimiter } from './shared/rateLimiter.js';
 import { requestAuditLogger } from './audit/middleware.js';
@@ -125,6 +126,7 @@ app.use('/api/emergency-reports', emergencyReportsRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/enquiries', enquiriesRouter);
 app.use('/api/siem', siemRouter);
+app.use('/api/specialists', specialistsRouter);
 
 app.get('/', (_req, res) => {
   res.json({

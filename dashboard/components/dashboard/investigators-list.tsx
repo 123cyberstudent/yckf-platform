@@ -22,7 +22,6 @@ export function InvestigatorsList() {
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [usingMockData, setUsingMockData] = useState(false);
   const [search, setSearch] = useState('');
   const [currentRole, setCurrentRole] = useState<string | null>(null);
 
@@ -52,14 +51,10 @@ export function InvestigatorsList() {
     try {
       setLoading(true);
       setError(null);
-      setUsingMockData(false);
 
       const response = await fetch('/api/investigators');
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 404) {
-          setUsingMockData(true);
-        }
         throw new Error(`Failed to load volunteers: ${response.status}`);
       }
 
@@ -73,22 +68,6 @@ export function InvestigatorsList() {
     } catch (error) {
       console.error('Failed to fetch volunteers:', error);
       setError('Failed to load volunteers. Please try again later.');
-
-      try {
-        const mockResponse = await fetch('/api/investigators/mock');
-        if (mockResponse.ok) {
-          const mockData = await mockResponse.json();
-          const parsed = mockData.map((inv: any) => ({
-            ...inv,
-            createdAt: new Date(inv.createdAt),
-            lastLogin: inv.lastLogin ? new Date(inv.lastLogin) : null,
-          }));
-          setVolunteers(parsed);
-          setUsingMockData(true);
-        }
-      } catch (mockError) {
-        console.error('Failed to load mock volunteers:', mockError);
-      }
     } finally {
       setLoading(false);
     }
@@ -138,7 +117,7 @@ export function InvestigatorsList() {
 
     setAddLoading(true);
     try {
-      const res = await fetch('/api/investigators', {
+      const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: addForm.email, password: addForm.password, fullName: addForm.fullName, role: 'VOLUNTEER' }),
@@ -295,15 +274,6 @@ export function InvestigatorsList() {
         <div className={`rounded-lg p-4 flex items-center gap-3 ${feedback.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
           <AlertCircle className={`size-5 ${feedback.type === 'success' ? 'text-green-600' : 'text-red-600'}`} />
           <p className={`text-sm font-medium ${feedback.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>{feedback.message}</p>
-        </div>
-      )}
-
-      {usingMockData && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
-          <AlertCircle className="size-4 text-yellow-600 mt-0.5" />
-          <p className="text-sm text-yellow-700">
-            Using demo volunteer data - Backend connection unavailable
-          </p>
         </div>
       )}
 

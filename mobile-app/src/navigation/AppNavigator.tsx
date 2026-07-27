@@ -42,6 +42,8 @@ import SubscriptionTermsScreen from '../screens/SubscriptionTermsScreen';
 
 // ⭐ Profile Screen (NEW)
 import ProfileScreen from '../screens/ProfileScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import MyReportsScreen from '../screens/MyReportsScreen';
 
 // CMS Content Screens
 import NewsScreen from '../screens/NewsScreen';
@@ -86,6 +88,8 @@ type RootStackParamList = {
   AdminLogin: undefined;
   Root: undefined;
   [SCREEN_NAMES.ABOUT]: undefined;
+  [SCREEN_NAMES.SETTINGS]: undefined;
+  [SCREEN_NAMES.MY_REPORTS]: undefined;
   [SCREEN_NAMES.CASE_TRACKER]: undefined;
   [SCREEN_NAMES.POLICE_STATION]: undefined;
   [SCREEN_NAMES.FIRE_STATION]: undefined;
@@ -223,6 +227,18 @@ const AppNavigator: React.FC = () => {
         name={SCREEN_NAMES.ABOUT}
         component={ensureScreen(AboutScreen, 'AboutScreen')}
         options={{ title: 'About' }}
+      />
+
+      <Stack.Screen
+        name={SCREEN_NAMES.SETTINGS}
+        component={ensureScreen(SettingsScreen, 'SettingsScreen')}
+        options={{ title: 'Settings' }}
+      />
+
+      <Stack.Screen
+        name={SCREEN_NAMES.MY_REPORTS}
+        component={ensureScreen(MyReportsScreen, 'MyReportsScreen')}
+        options={{ title: 'My Reports' }}
       />
 
       <Stack.Screen

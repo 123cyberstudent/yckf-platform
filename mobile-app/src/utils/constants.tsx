@@ -345,6 +345,7 @@ export const SCREEN_NAMES = {
   EVENTS: 'Events',
   COURSES: 'Courses',
   RESOURCES: 'Resources',
+  MY_REPORTS: 'MyReports',
 };
 
 /**

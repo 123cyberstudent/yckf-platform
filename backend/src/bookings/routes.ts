@@ -96,7 +96,7 @@ router.get('/', async (req: Request, res: Response) => {
     if (status) where.status = String(status);
     const skip = (Number(page) - 1) * Number(limit);
     const [bookings, total] = await Promise.all([
-      prisma.booking.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: Number(limit) }),
+      prisma.booking.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: Number(limit), include: { assignedSpecialist: true } }),
       prisma.booking.count({ where }),
     ]);
     res.json({ bookings, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
@@ -118,13 +118,14 @@ router.get('/:ticketNumber', async (req: Request, res: Response) => {
 
 router.put('/:id/status', async (req: Request, res: Response) => {
   try {
-    const { status, adminNotes, assignedVolunteerId } = req.body;
+    const { status, adminNotes, assignedVolunteerId, assignedSpecialistId } = req.body;
     const valid = ['new', 'confirmed', 'in_progress', 'completed', 'cancelled'];
     if (!valid.includes(status)) return res.status(400).json({ error: `Status must be one of: ${valid.join(', ')}` });
     const data: any = { status };
     if (adminNotes !== undefined) data.adminNotes = adminNotes;
     if (assignedVolunteerId !== undefined) data.assignedVolunteerId = assignedVolunteerId ? Number(assignedVolunteerId) : null;
-    const booking = await prisma.booking.update({ where: { id: Number(req.params.id) }, data });
+    if (assignedSpecialistId !== undefined) data.assignedSpecialistId = assignedSpecialistId ? Number(assignedSpecialistId) : null;
+    const booking = await prisma.booking.update({ where: { id: Number(req.params.id) }, data, include: { assignedSpecialist: true } });
     res.json(booking);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update booking' });

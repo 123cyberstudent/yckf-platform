@@ -30,7 +30,7 @@ export const users: User[] = [
   {
     id: 'user-2',
     email: 'mypracticalworks@gmail.com',
-    name: 'First Volunteer',
+    name: 'Bright Peter Kwaku Boateng',
     role: 'volunteer',
     avatar: undefined,
     status: 'active',

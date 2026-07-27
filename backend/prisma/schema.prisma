@@ -301,29 +301,51 @@ model EmergencyReport {
   @@index([createdAt])
 }
 
+model Specialist {
+  id          Int       @id @default(autoincrement())
+  name        String
+  email       String    @unique
+  phone       String?
+  specialty   String
+  bio         String?
+  avatarUrl   String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  assignedBookings Booking[]
+
+  @@index([specialty])
+  @@index([isActive])
+}
+
 model Booking {
-  id                Int      @id @default(autoincrement())
-  ticketNumber      String   @unique
-  fullName          String
-  email             String
-  phone             String
-  specialist        String?
-  preferredDate     DateTime?
-  preferredTime     String?
-  caseDescription   String
-  paymentMethod     String?
-  paymentReference  String?
-  status            String   @default("new")
-  assignedVolunteerId Int?
-  adminNotes        String?
-  emailStatus       String   @default("queued")
-  submittedAt       DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                    Int       @id @default(autoincrement())
+  ticketNumber          String    @unique
+  fullName              String
+  email                 String
+  phone                 String
+  specialist            String?
+  preferredDate         DateTime?
+  preferredTime         String?
+  caseDescription       String
+  paymentMethod         String?
+  paymentReference      String?
+  status                String    @default("new")
+  assignedVolunteerId   Int?
+  assignedSpecialistId  Int?
+  adminNotes            String?
+  emailStatus           String    @default("queued")
+  submittedAt           DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  assignedSpecialist Specialist? @relation(fields: [assignedSpecialistId], references: [id])
 
   @@index([ticketNumber])
   @@index([status])
   @@index([email])
+  @@index([assignedSpecialistId])
   @@index([createdAt])
 }
 

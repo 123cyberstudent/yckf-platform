@@ -17,6 +17,7 @@ router.get(
           id: true,
           email: true,
           fullName: true,
+          role: true,
           isActive: true,
           createdAt: true,
           lastLogin: true,
