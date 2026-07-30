@@ -10,7 +10,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     getRoleFromCookie().then((role) => {
-      if (role && role !== 'admin') {
+      if (role && role !== 'admin' && role !== 'super_admin') {
         router.replace('/dashboard');
       }
     });

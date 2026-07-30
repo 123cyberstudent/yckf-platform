@@ -260,7 +260,7 @@ export function DashboardOverview() {
             <p className="text-xs text-teal-300/60 uppercase tracking-widest font-semibold">
               {dateTime}
             </p>
-            {role === 'admin' && (
+            {(role === 'admin' || role === 'super_admin') && (
               <Button
                 variant="outline"
                 size="sm"

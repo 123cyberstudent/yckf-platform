@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { isSuperAdmin } from '@/lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, BarChart3, CheckCircle, Clock, FolderOpen } from 'lucide-react';
@@ -47,8 +49,17 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function VolunteerStatsPage() {
+  const router = useRouter();
   const [stats, setStats] = useState<VolunteerStats | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    isSuperAdmin().then((allowed) => {
+      if (!allowed) {
+        router.replace('/dashboard');
+      }
+    });
+  }, [router]);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);

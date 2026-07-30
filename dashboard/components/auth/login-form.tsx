@@ -197,11 +197,9 @@ export function LoginForm() {
         return
       }
 
-      if (selectedRole === 'user') {
-        router.push('/')
-      } else {
-        router.push('/dashboard')
-      }
+      const actualRole = result.data?.role || result.role || '';
+      const isStaff = ['SUPER_ADMIN', 'ADMIN', 'VOLUNTEER'].includes(actualRole);
+      router.push(isStaff ? '/dashboard' : '/')
       router.refresh()
     } catch {
       setError('An unexpected error occurred. Please try again.')

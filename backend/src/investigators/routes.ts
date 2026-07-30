@@ -1,5 +1,5 @@
 import { Response, Router } from 'express';
-import { verifyToken, isAdmin, isInvestigator, AuthRequest } from '../auth/middleware.js';
+import { verifyToken, isSuperAdmin, isInvestigator, AuthRequest } from '../auth/middleware.js';
 import { prisma } from '../shared/db.js';
 
 const router = Router();
@@ -8,7 +8,7 @@ const router = Router();
 router.get(
   '/',
   verifyToken,
-  isAdmin,
+  isSuperAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
       const investigators = await prisma.user.findMany({
@@ -36,7 +36,7 @@ router.get(
 router.get(
   '/metrics/performance',
   verifyToken,
-  isAdmin,
+  isSuperAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
       const investigators = await prisma.user.findMany({
@@ -88,7 +88,7 @@ router.get(
     try {
       const investigatorId = Number(req.params.id);
       // Only allow admins or the investigator themselves to view details
-      if (req.user!.role !== 'ADMIN' && req.user!.id !== investigatorId) {
+      if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN' && req.user!.id !== investigatorId) {
         return res.status(403).json({ error: 'Access denied' });
       }
 

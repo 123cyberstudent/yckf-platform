@@ -64,15 +64,29 @@ export function isAuthenticated(req: AuthRequest, res: Response, next: NextFunct
   next();
 }
 
+export function isSuperAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.user || req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ error: 'Super admin access required' });
+  }
+  next();
+}
+
 export function isAdmin(req: AuthRequest, res: Response, next: NextFunction) {
-  if (!req.user || req.user.role !== 'ADMIN') {
+  if (!req.user || (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN')) {
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();
 }
 
+export function isStaff(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.user || (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN' && req.user.role !== 'VOLUNTEER')) {
+    return res.status(403).json({ error: 'Staff access required' });
+  }
+  next();
+}
+
 export function isInvestigator(req: AuthRequest, res: Response, next: NextFunction) {
-  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'INVESTIGATOR' && req.user.role !== 'VOLUNTEER')) {
+  if (!req.user || (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN' && req.user.role !== 'INVESTIGATOR' && req.user.role !== 'VOLUNTEER')) {
     return res.status(403).json({ error: 'Investigator access required' });
   }
   next();

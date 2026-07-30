@@ -77,7 +77,7 @@ router.get('/:id', verifyToken, isInvestigator, [param('id').isInt().withMessage
     if (!caseItem) {
       return res.status(404).json({ error: 'Case not found' });
     }
-    if (req.user!.role !== 'ADMIN' && caseItem.assignedInvestigatorId !== req.user!.id) {
+    if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN' && caseItem.assignedInvestigatorId !== req.user!.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
     const decryptedNotes = caseItem.notes.map((note: { note: string; }) => ({
@@ -143,7 +143,7 @@ router.put(
       if (!targetCase) {
         return res.status(404).json({ error: 'Case not found' });
       }
-      if (req.user!.role !== 'ADMIN' && targetCase.assignedInvestigatorId !== req.user!.id) {
+      if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN' && targetCase.assignedInvestigatorId !== req.user!.id) {
         return res.status(403).json({ error: 'Access denied' });
       }
       const updated = await prisma.case.update({
@@ -201,7 +201,7 @@ router.post(
       if (!targetCase) {
         return res.status(404).json({ error: 'Case not found' });
       }
-      if (req.user!.role !== 'ADMIN' && targetCase.assignedInvestigatorId !== req.user!.id) {
+      if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN' && targetCase.assignedInvestigatorId !== req.user!.id) {
         return res.status(403).json({ error: 'Access denied' });
       }
       const note = await prisma.investigationNote.create({

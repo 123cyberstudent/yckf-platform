@@ -11,8 +11,8 @@ import volunteerStatsRouter from './volunteerStats.js';
 const router = Router();
 
 router.use('/volunteer-stats', verifyToken, (req: AuthRequest, res: Response, next) => {
-  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'VOLUNTEER')) {
-    return res.status(403).json({ error: 'Admin or volunteer access required' });
+  if (!req.user || req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ error: 'Super admin access required' });
   }
   next();
 }, volunteerStatsRouter);

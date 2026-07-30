@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { Response, Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { verifyToken, isAdmin, AuthRequest } from '../auth/middleware.js';
+import { verifyToken, isSuperAdmin, AuthRequest } from '../auth/middleware.js';
 import { prisma } from '../shared/db.js';
 import { validateRequest } from '../utils/validators.js';
 import { logAudit } from '../audit/service.js';
@@ -13,7 +13,7 @@ const STATUS_OPTIONS = ['active', 'inactive'];
 router.get(
   '/',
   verifyToken,
-  isAdmin,
+  isSuperAdmin,
   [
     query('role').optional().isIn(ROLES).withMessage('Invalid role filter'),
     query('status').optional().isIn(STATUS_OPTIONS).withMessage('Invalid status filter'),
@@ -62,7 +62,7 @@ router.get(
 router.post(
   '/',
   verifyToken,
-  isAdmin,
+  isSuperAdmin,
   [
     body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
     body('password')
@@ -108,7 +108,7 @@ router.post(
 router.put(
   '/:id',
   verifyToken,
-  isAdmin,
+  isSuperAdmin,
   [
     param('id').isInt().withMessage('User ID must be an integer'),
     body('fullName').optional().trim().notEmpty().withMessage('Full name cannot be empty'),
@@ -148,7 +148,7 @@ router.put(
 router.delete(
   '/:id',
   verifyToken,
-  isAdmin,
+  isSuperAdmin,
   [param('id').isInt().withMessage('User ID must be an integer')],
   validateRequest,
   async (req: AuthRequest, res: Response) => {
@@ -166,7 +166,7 @@ router.delete(
 router.put(
   '/:id/suspend',
   verifyToken,
-  isAdmin,
+  isSuperAdmin,
   [
     param('id').isInt().withMessage('User ID must be an integer'),
     body('active').optional().isBoolean().withMessage('Active flag must be boolean'),

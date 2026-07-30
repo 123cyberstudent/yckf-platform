@@ -7,13 +7,13 @@ const router = Router();
 router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const role = req.user!.role;
-    if (role !== 'ADMIN' && role !== 'VOLUNTEER') {
-      return res.status(403).json({ error: 'Admin or volunteer access required' });
+    if (role !== 'SUPER_ADMIN' && role !== 'VOLUNTEER') {
+      return res.status(403).json({ error: 'Super admin or volunteer access required' });
     }
 
     const volunteerId = req.query.volunteerId ? Number(req.query.volunteerId) : req.user!.id;
 
-    if (role !== 'ADMIN' && volunteerId !== req.user!.id) {
+    if (role !== 'SUPER_ADMIN' && volunteerId !== req.user!.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

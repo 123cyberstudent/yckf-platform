@@ -22,6 +22,7 @@ import {
   Phone,
   AlertCircle,
   MessageSquare,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getRoleFromCookie } from '@/lib/permissions';
@@ -46,16 +47,18 @@ export function DashboardSidebar() {
     router.push('/login');
   };
 
-  const isPrivileged = role === 'admin' || role === 'investigator' || role === 'volunteer';
+  const isSuperAdmin = role === 'super_admin';
+  const isAdmin = role === 'admin' || role === 'super_admin';
+  const isStaff = role === 'super_admin' || role === 'admin' || role === 'volunteer';
+  const isUser = role === 'user';
 
   const menuItems = [
-    { icon: Home, label: 'Dashboard', href: '/dashboard', roles: ['admin', 'investigator', 'volunteer', 'user'] },
-    { icon: AlertTriangle, label: 'Incidents', href: '/dashboard/incidents', roles: ['admin', 'investigator', 'volunteer'] },
-    { icon: Shield, label: 'Volunteers', href: '/dashboard/volunteers', roles: ['admin', 'investigator'] },
-    { icon: FileText, label: 'Evidence Vault', href: '/dashboard/evidence', roles: ['admin', 'investigator', 'volunteer'] },
-    { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', roles: ['admin', 'investigator', 'volunteer'] },
-    { icon: Bell, label: 'Notifications', href: '/dashboard/notifications', roles: ['admin', 'investigator', 'volunteer', 'user'] },
-    { icon: FileText, label: 'My Portal', href: '/dashboard/user-portal', roles: ['user'] },
+    { icon: Home, label: 'Dashboard', href: '/dashboard', roles: ['super_admin', 'admin', 'volunteer'] },
+    { icon: AlertTriangle, label: 'Incidents', href: '/dashboard/incidents', roles: ['super_admin', 'admin', 'volunteer'] },
+    { icon: FileText, label: 'Evidence Vault', href: '/dashboard/evidence', roles: ['super_admin', 'admin', 'volunteer'] },
+    { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', roles: ['super_admin', 'admin', 'volunteer'] },
+    { icon: Bell, label: 'Notifications', href: '/dashboard/notifications', roles: ['super_admin', 'admin', 'volunteer', 'user'] },
+    { icon: BookOpen, label: 'My Portal', href: '/dashboard/user-portal', roles: ['user'] },
   ];
 
   const adminOnlyItems = [
@@ -67,16 +70,19 @@ export function DashboardSidebar() {
     { icon: Phone, label: 'Bookings', href: '/dashboard/bookings' },
     { icon: Users, label: 'Specialists', href: '/dashboard/specialists' },
     { icon: MessageSquare, label: 'Enquiries', href: '/dashboard/enquiries' },
-    { icon: Users, label: 'Users', href: '/dashboard/users' },
-    { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },
-    { icon: ClipboardList, label: 'Login Logs', href: '/dashboard/login-logs' },
-    { icon: Shield, label: 'SIEM Platform', href: '/dashboard/siem' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
+    { icon: Shield, label: 'SIEM Platform', href: '/dashboard/siem' },
+    { icon: ClipboardList, label: 'Login Logs', href: '/dashboard/login-logs' },
+  ];
+
+  const superAdminItems = [
+    { icon: Users, label: 'Users', href: '/dashboard/users' },
+    { icon: Shield, label: 'Volunteers', href: '/dashboard/volunteers' },
+    { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },
   ];
 
   return (
     <>
-      {/* Mobile toggle */}
       <Button
         variant="ghost"
         size="icon"
@@ -91,12 +97,10 @@ export function DashboardSidebar() {
         onClick={() => setOpen(false)}
       />
 
-      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-72 transform overflow-hidden bg-white border-r border-gray-200 transition-transform duration-300 md:static md:translate-x-0 md:w-64 ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="h-full flex flex-col">
-          {/* Logo */}
           <div className="p-5 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-[#06292D] flex items-center justify-center shadow-sm">
@@ -109,7 +113,6 @@ export function DashboardSidebar() {
             </div>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
               Menu
@@ -135,7 +138,7 @@ export function DashboardSidebar() {
                 );
               })}
             </div>
-            {role === 'admin' && (
+            {isAdmin && (
               <>
                 <p className="px-3 mt-5 mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                   Admin
@@ -163,9 +166,36 @@ export function DashboardSidebar() {
                 </div>
               </>
             )}
+            {isSuperAdmin && (
+              <>
+                <p className="px-3 mt-5 mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  Super Admin
+                </p>
+                <div className="space-y-1">
+                  {superAdminItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors border-l-[3px] pl-[9px] ${
+                          active
+                            ? 'bg-blue-50 text-[#2563EB] border-[#2563EB]'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent'
+                        }`}
+                        onClick={() => setOpen(false)}
+                      >
+                        <Icon className="size-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </nav>
 
-          {/* Logout */}
           <div className="p-3 border-t border-gray-100">
             <Button
               onClick={handleLogout}

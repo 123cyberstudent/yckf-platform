@@ -386,7 +386,7 @@ export function UsersList() {
             <FileDown className="mr-2 size-4" />
             Download PDF
           </Button>
-          <Button onClick={() => { setAddForm({ fullName: '', email: '', password: '', role: 'USER' }); setAddErrors({}); setAddOpen(true); }} className={currentRole && currentRole !== 'admin' ? 'hidden' : ''}>
+          <Button onClick={() => { setAddForm({ fullName: '', email: '', password: '', role: 'USER' }); setAddErrors({}); setAddOpen(true); }} className={currentRole && currentRole !== 'super_admin' ? 'hidden' : ''}>
             <UserPlus className="mr-2 size-4" />
             Add User
           </Button>
@@ -422,6 +422,7 @@ export function UsersList() {
             <div className="flex flex-wrap gap-2">
               <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm">
                 <option value="all">All Roles</option>
+                <option value="super_admin">Super Admin</option>
                 <option value="admin">Admin</option>
                 <option value="volunteer">Volunteer</option>
                 <option value="investigator">Investigator</option>
@@ -566,6 +567,7 @@ export function UsersList() {
                   <option value="VOLUNTEER">Volunteer</option>
                   <option value="INVESTIGATOR">Investigator</option>
                   <option value="ADMIN">Admin</option>
+                  <option value="SUPER_ADMIN">Super Admin</option>
                 </select>
               </div>
             </div>
@@ -606,6 +608,7 @@ export function UsersList() {
                   <option value="volunteer">Volunteer</option>
                   <option value="investigator">Investigator</option>
                   <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
                 </select>
               </div>
               <div>

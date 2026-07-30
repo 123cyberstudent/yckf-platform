@@ -91,7 +91,7 @@ export default function IncidentDetailPage() {
   }, [params.id]);
 
   useEffect(() => {
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'super_admin') {
       fetch('/api/users?role=VOLUNTEER')
         .then(r => r.json())
         .then(d => setVolunteers(d.users ?? []))
@@ -194,9 +194,9 @@ export default function IncidentDetailPage() {
   const caseRecord = report?.cases?.[0];
   const isAssigned = !!caseRecord?.assignedInvestigatorId;
   const isAssignedToMe = caseRecord?.assignedInvestigatorId !== undefined;
-  const canAccept = role && (role === 'admin' || role === 'volunteer' || role === 'investigator');
-  const canRespond = role && (role === 'admin' || role === 'volunteer' || role === 'investigator');
-  const canAssign = role === 'admin';
+  const canAccept = role && (role === 'super_admin' || role === 'admin' || role === 'volunteer' || role === 'investigator');
+  const canRespond = role && (role === 'super_admin' || role === 'admin' || role === 'volunteer' || role === 'investigator');
+  const canAssign = role === 'super_admin' || role === 'admin';
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen text-muted-foreground">Loading case details...</div>;

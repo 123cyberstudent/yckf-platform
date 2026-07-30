@@ -12,7 +12,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
     const role = user?.role;
 
     // Role-based premium (admin/investigator/volunteer)
-    const roleBasedPremium = role === 'ADMIN' || role === 'INVESTIGATOR' || role === 'VOLUNTEER';
+    const roleBasedPremium = role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'INVESTIGATOR' || role === 'VOLUNTEER';
 
     if (roleBasedPremium) {
       return res.json({

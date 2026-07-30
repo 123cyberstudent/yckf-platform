@@ -28,9 +28,19 @@ export async function getRoleFromCookie(): Promise<string | null> {
   return fetchPromise;
 }
 
+export async function isSuperAdmin(): Promise<boolean> {
+  const role = await getRoleFromCookie();
+  return role === 'super_admin';
+}
+
 export async function isAdmin(): Promise<boolean> {
   const role = await getRoleFromCookie();
-  return role === 'admin';
+  return role === 'admin' || role === 'super_admin';
+}
+
+export async function isStaff(): Promise<boolean> {
+  const role = await getRoleFromCookie();
+  return role === 'super_admin' || role === 'admin' || role === 'volunteer';
 }
 
 export async function isVolunteer(): Promise<boolean> {
@@ -40,12 +50,12 @@ export async function isVolunteer(): Promise<boolean> {
 
 export async function canModify(): Promise<boolean> {
   const role = await getRoleFromCookie();
-  return role === 'admin';
+  return role === 'super_admin' || role === 'admin';
 }
 
 export async function canDelete(): Promise<boolean> {
   const role = await getRoleFromCookie();
-  return role === 'admin';
+  return role === 'super_admin' || role === 'admin';
 }
 
 export function resetCachedRole() {

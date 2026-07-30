@@ -5,7 +5,8 @@ const prisma = new PrismaClient();
 
 async function main() {
   const users = [
-    { email: 'yckfadmin@youngcyberknightsfoundation.org', fullName: 'YCKF Admin', password: 'admin@123', role: 'ADMIN' as const },
+    { email: 'yckfadmin@youngcyberknightsfoundation.org', fullName: 'YCKF Super Admin', password: 'admin@123', role: 'SUPER_ADMIN' as const },
+    { email: 'secondadmin@yckf.org', fullName: 'Second Admin', password: 'admin@123', role: 'ADMIN' as const },
     { email: 'mypracticalworks@gmail.com', fullName: 'Bright Peter Kwaku Boateng', password: 'volunteer@123', role: 'VOLUNTEER' as const },
     { email: 'user@youngcyberknightsfoundation.org', fullName: 'Demo User', password: 'user@123', role: 'USER' as const },
   ];

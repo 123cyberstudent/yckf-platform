@@ -11,7 +11,7 @@ router.get('/my', verifyToken, async (req: Request, res: Response) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     let whereClause: any = {};
-    if (user.role === 'ADMIN' || user.role === 'INVESTIGATOR') {
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'INVESTIGATOR') {
       whereClause = { assignedInvestigatorId: user.id };
     } else if (user.role === 'VOLUNTEER') {
       whereClause = { assignedInvestigatorId: user.id };

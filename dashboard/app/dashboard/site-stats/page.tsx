@@ -97,7 +97,7 @@ export default function SiteStatsPage() {
   }, []);
 
   useEffect(() => {
-    if (role === 'admin') fetchStats();
+    if (role === 'admin' || role === 'super_admin') fetchStats();
   }, [role, fetchStats]);
 
   const openCreate = () => {
@@ -160,7 +160,7 @@ export default function SiteStatsPage() {
     } catch {}
   };
 
-  if (role !== 'admin') return null;
+  if (role !== 'admin' && role !== 'super_admin') return null;
 
   const heroStats = stats.filter((s) => s.section === 'hero');
   const impactStats = stats.filter((s) => s.section === 'impact');
