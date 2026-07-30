@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   Shield,
+  ShieldCheck,
   Users,
   User,
   ArrowLeft,
@@ -30,7 +31,7 @@ import {
   FieldDescription,
 } from '@/components/ui/field'
 
-type Role = 'admin' | 'volunteer' | 'user'
+type Role = 'super_admin' | 'admin' | 'volunteer' | 'user'
 
 interface RoleCard {
   id: Role
@@ -46,10 +47,21 @@ interface RoleCard {
 
 const roles: RoleCard[] = [
   {
+    id: 'super_admin',
+    title: 'Super Admin',
+    subtitle: 'Super Admin Dashboard',
+    description: 'Full access to all management features including users & volunteers',
+    icon: ShieldCheck,
+    color: 'text-[#7C3AED]',
+    borderColor: 'border-l-[#7C3AED]',
+    iconBg: 'bg-[#7C3AED]/10',
+    iconRing: 'ring-[#7C3AED]/20',
+  },
+  {
     id: 'admin',
     title: 'Admin',
     subtitle: 'Admin Dashboard',
-    description: 'Full access to management dashboard',
+    description: 'Secondary admins with access excluding user & volunteer management',
     icon: Shield,
     color: 'text-[#2563EB]',
     borderColor: 'border-l-[#2563EB]',
@@ -58,7 +70,7 @@ const roles: RoleCard[] = [
   },
   {
     id: 'volunteer',
-    title: 'Volunteer',
+    title: 'Volunteer / Investigator',
     subtitle: 'Volunteer Portal',
     description: 'Handle cases, evidence & investigations',
     icon: Users,
