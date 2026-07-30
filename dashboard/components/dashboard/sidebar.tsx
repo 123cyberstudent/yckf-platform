@@ -76,6 +76,7 @@ export function DashboardSidebar() {
   ];
 
   const superAdminItems = [
+    { icon: Users, label: 'Admins (Secondary Admins)', href: '/dashboard/admins' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
     { icon: Shield, label: 'Volunteers', href: '/dashboard/volunteers' },
     { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },
