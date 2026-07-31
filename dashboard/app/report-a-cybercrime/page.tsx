@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
+type LocationSource = 'gps' | 'ip' | 'manual'
+
 interface GeoLocation {
   latitude: number
   longitude: number
@@ -21,7 +23,7 @@ interface GeoLocation {
   nearestLandmark: string
   googleMapLink: string
   plusCode?: string
-  source: 'gps' | 'ip' | 'manual'
+  source: LocationSource
 }
 
 export default function ReportCybercrimePage() {
@@ -37,7 +39,7 @@ export default function ReportCybercrimePage() {
   const [geoDetected, setGeoDetected] = useState(false)
   const [copied, setCopied] = useState(false)
   const [refining, setRefining] = useState(false)
-  const [locationSource, setLocationSource] = useState<'gps' | 'ip' | 'manual' | null>(null)
+  const [locationSource, setLocationSource] = useState<LocationSource | null>(null)
   const [manualQuery, setManualQuery] = useState('')
   const [manualSearching, setManualSearching] = useState(false)
 
@@ -88,7 +90,7 @@ export default function ReportCybercrimePage() {
     }
   }, [])
 
-  const buildLocationFromCoords = useCallback(async (lat: number, lon: number, accuracy: number, source: 'gps' | 'ip'): Promise<GeoLocation> => {
+  const buildLocationFromCoords = useCallback(async (lat: number, lon: number, accuracy: number, source: LocationSource): Promise<GeoLocation> => {
     const googleMapLink = `https://www.google.com/maps?q=${lat},${lon}&z=18`
     const geoDetails = await reverseGeocode(lat, lon)
     return {
@@ -145,7 +147,7 @@ export default function ReportCybercrimePage() {
       async (position) => {
         const { latitude, longitude, accuracy, altitudeAccuracy } = position.coords
         const isRealGPS = accuracy < 100
-        const source: 'gps' | 'ip' = isRealGPS ? 'gps' : 'ip'
+        const source: LocationSource = isRealGPS ? 'gps' : 'ip'
 
         const newLocation = await buildLocationFromCoords(latitude, longitude, accuracy, source)
 
