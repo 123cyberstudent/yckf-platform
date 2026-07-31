@@ -1,10 +1,12 @@
+import './config/env.js';
 import http from 'http';
+import { env } from './config/env.js';
 import app from './app.js';
 import { initSocket } from './shared/socket.js';
 import { initCache } from './shared/cache.js';
 import { scheduleEvidenceRetention } from './evidence/retention.js';
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 4001;
+const PORT = env.port;
 const server = http.createServer(app);
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) ?? ['http://localhost:3000'];
 
