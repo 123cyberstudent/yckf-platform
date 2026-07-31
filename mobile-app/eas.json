@@ -12,6 +12,9 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://10.190.141.245:4001"
       }
     },
     "production": {
@@ -19,7 +22,10 @@
         "buildType": "apk"
       },
       "distribution": "store",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://10.190.141.245:4001"
+      }
     }
   },
   "submit": {

@@ -11,9 +11,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface AdminUser {
   id: number;
   email: string;
-  fullName: string;
+  name: string;
   role: string;
-  isActive: boolean;
+  status: string;
   createdAt: string;
   lastLogin: string | null;
 }
@@ -46,7 +46,7 @@ export function AdminsList() {
   useEffect(() => { fetchAdmins(); }, [fetchAdmins]);
 
   const filtered = admins.filter((a) =>
-    a.fullName.toLowerCase().includes(search.toLowerCase()) ||
+    a.name.toLowerCase().includes(search.toLowerCase()) ||
     a.email.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -82,7 +82,7 @@ export function AdminsList() {
       const res = await fetch(`/api/users/${admin.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !admin.isActive }),
+        body: JSON.stringify({ isActive: admin.status !== 'active' }),
       });
       if (res.ok) fetchAdmins();
     } catch {}
@@ -152,11 +152,11 @@ export function AdminsList() {
                 <tbody>
                   {filtered.map((admin) => (
                     <tr key={admin.id} className="border-b last:border-0">
-                      <td className="py-3 text-sm font-medium">{admin.fullName}</td>
+                      <td className="py-3 text-sm font-medium">{admin.name}</td>
                       <td className="py-3 text-sm text-muted-foreground">{admin.email}</td>
                       <td className="py-3">
-                        <Badge variant={admin.isActive ? 'default' : 'secondary'} className="text-xs">
-                          {admin.isActive ? 'Active' : 'Inactive'}
+                        <Badge variant={admin.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                          {admin.status === 'active' ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>
                       <td className="py-3 text-sm text-muted-foreground">
@@ -173,11 +173,11 @@ export function AdminsList() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className={`size-8 ${admin.isActive ? 'text-red-500 hover:text-red-600' : 'text-green-500 hover:text-green-600'}`}
+                            className={`size-8 ${admin.status === 'active' ? 'text-red-500 hover:text-red-600' : 'text-green-500 hover:text-green-600'}`}
                             onClick={() => handleToggleActive(admin)}
-                            title={admin.isActive ? 'Suspend' : 'Activate'}
+                            title={admin.status === 'active' ? 'Suspend' : 'Activate'}
                           >
-                            {admin.isActive ? <Trash2 className="size-3.5" /> : <Check className="size-3.5" />}
+                            {admin.status === 'active' ? <Trash2 className="size-3.5" /> : <Check className="size-3.5" />}
                           </Button>
                         </div>
                       </td>

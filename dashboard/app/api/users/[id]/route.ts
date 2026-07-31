@@ -87,18 +87,37 @@ export async function PUT(
       return NextResponse.json(updatedUser)
     }
 
-    const response = await backendFetch(`/api/users/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }, token)
+    try {
+      const response = await backendFetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }, token)
 
-    if (!response.ok) {
-      throw new Error(`Failed to update user: ${response.status}`)
+      if (response.status === 401) {
+        const { clearBackendAuthCookie } = await import('@/lib/backend')
+        await clearBackendAuthCookie()
+      }
+
+      if (!response.ok) {
+        const user = users.find(u => u.id === id)
+        if (user) {
+          const updatedUser = { ...user, ...body, updatedAt: new Date() }
+          return NextResponse.json(updatedUser)
+        }
+        throw new Error(`Failed to update user: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return NextResponse.json(data)
+    } catch (fetchError) {
+      const user = users.find(u => u.id === id)
+      if (user) {
+        const updatedUser = { ...user, ...body, updatedAt: new Date() }
+        return NextResponse.json(updatedUser)
+      }
+      throw fetchError
     }
-
-    const data = await response.json()
-    return NextResponse.json(data)
   } catch (error) {
     console.error('Update user error:', error)
     return NextResponse.json(

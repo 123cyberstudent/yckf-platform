@@ -25,7 +25,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getRoleFromCookie } from '@/lib/permissions';
+import { getRoleFromCookie, resetCachedRole } from '@/lib/permissions';
 
 export function DashboardSidebar() {
   const [open, setOpen] = useState(false);
@@ -38,11 +38,15 @@ export function DashboardSidebar() {
   }, []);
 
   const isActive = (href: string) => {
+    if (href === '/dashboard/super-admin' || href === '/dashboard/admin' || href === '/dashboard/volunteer') {
+      return pathname === href;
+    }
     if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
   };
 
   const handleLogout = async () => {
+    resetCachedRole();
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
   };
@@ -52,8 +56,11 @@ export function DashboardSidebar() {
   const isStaff = role === 'super_admin' || role === 'admin' || role === 'volunteer';
   const isUser = role === 'user';
 
+  const dashboardHref = isSuperAdmin ? '/dashboard/super-admin' : isAdmin ? '/dashboard/admin' : '/dashboard/volunteer';
+  const dashboardLabel = isSuperAdmin ? 'Super Admin Dashboard' : isAdmin ? 'Admin Dashboard' : 'Volunteer Dashboard';
+
   const menuItems = [
-    { icon: Home, label: 'Dashboard', href: '/dashboard', roles: ['super_admin', 'admin', 'volunteer'] },
+    { icon: Home, label: dashboardLabel, href: dashboardHref, roles: ['super_admin', 'admin', 'volunteer'] },
     { icon: AlertTriangle, label: 'Incidents', href: '/dashboard/incidents', roles: ['super_admin', 'admin', 'volunteer'] },
     { icon: FileText, label: 'Evidence Vault', href: '/dashboard/evidence', roles: ['super_admin', 'admin', 'volunteer'] },
     { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', roles: ['super_admin', 'admin', 'volunteer'] },
@@ -70,12 +77,12 @@ export function DashboardSidebar() {
     { icon: Phone, label: 'Bookings', href: '/dashboard/bookings' },
     { icon: Users, label: 'Specialists', href: '/dashboard/specialists' },
     { icon: MessageSquare, label: 'Enquiries', href: '/dashboard/enquiries' },
-    { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
     { icon: Shield, label: 'SIEM Platform', href: '/dashboard/siem' },
     { icon: ClipboardList, label: 'Login Logs', href: '/dashboard/login-logs' },
   ];
 
   const superAdminItems = [
+    { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
     { icon: Users, label: 'Admins (Secondary Admins)', href: '/dashboard/admins' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
     { icon: Shield, label: 'Volunteers', href: '/dashboard/volunteers' },

@@ -1,15 +1,25 @@
 'use client';
 
-import { DashboardOverview } from '@/components/dashboard/overview';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getRoleFromCookie } from '@/lib/permissions';
 
 export default function DashboardPage() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome to YCKF Security Portal</p>
-      </div>
-      <DashboardOverview />
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    getRoleFromCookie().then((role) => {
+      if (role === 'super_admin') {
+        router.replace('/dashboard/super-admin');
+      } else if (role === 'admin') {
+        router.replace('/dashboard/admin');
+      } else if (role === 'volunteer' || role === 'investigator') {
+        router.replace('/dashboard/volunteer');
+      } else {
+        router.replace('/dashboard/user-portal');
+      }
+    });
+  }, [router]);
+
+  return null;
 }

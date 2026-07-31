@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { resetCachedRole } from '@/lib/permissions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -211,6 +212,7 @@ export function LoginForm() {
 
       const actualRole = result.data?.role || result.role || '';
       const isStaff = ['SUPER_ADMIN', 'ADMIN', 'VOLUNTEER'].includes(actualRole);
+      resetCachedRole();
       router.push(isStaff ? '/dashboard' : '/')
       router.refresh()
     } catch {

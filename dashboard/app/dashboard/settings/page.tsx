@@ -2,19 +2,16 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getRoleFromCookie } from '@/lib/permissions';
-import { Settings } from '@/components/dashboard/settings';
+import { isSuperAdmin } from '@/lib/permissions';
 
 export default function SettingsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    getRoleFromCookie().then((role) => {
-      if (role && role !== 'admin' && role !== 'super_admin') {
+    isSuperAdmin().then((allowed) => {
+      if (!allowed) {
         router.replace('/dashboard');
       }
     });
   }, [router]);
-
-  return <Settings />;
 }
