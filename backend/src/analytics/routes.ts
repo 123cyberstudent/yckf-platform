@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Prisma } from '@prisma/client';
 import { verifyToken, isInvestigator } from '../auth/middleware.js';
 import { prisma } from '../shared/db.js';
 import PDFDocument from 'pdfkit';
@@ -29,11 +30,14 @@ router.get('/stats', verifyToken, isInvestigator, async (req, res) => {
         report: { select: { createdAt: true } },
       },
     });
+    type CaseWithReport = Prisma.CaseGetPayload<{
+      include: { report: { select: { createdAt: true } } };
+    }>;
     const responseTimes = casesWithReports
-      .filter((item: { report: { createdAt: any; }; }) => item.report?.createdAt)
-      .map((item: { createdAt: { getTime: () => number; }; report: { createdAt: { getTime: () => number; }; }; }) => (item.createdAt.getTime() - item.report.createdAt.getTime()) / 1000);
+      .filter((item: CaseWithReport) => item.report?.createdAt)
+      .map((item: CaseWithReport) => (item.createdAt.getTime() - item.report!.createdAt.getTime()) / 1000);
 
-    const avgResponseTimeSeconds = responseTimes.length > 0 ? responseTimes.reduce((sum: any, time: any) => sum + time, 0) / responseTimes.length : 0;
+    const avgResponseTimeSeconds = responseTimes.length > 0 ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length : 0;
 
     const payload = {
       active_cases: activeCases,
@@ -83,7 +87,7 @@ router.get('/data', verifyToken, isInvestigator, async (req, res) => {
     };
     const incidentTypeCounts: Record<string, number> = {};
 
-    reports.forEach((report: { createdAt: any; incidentType: string | number; }) => {
+    reports.forEach((report) => {
       const createdAt = report.createdAt;
       const label = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
       const monthBucket = incidentsPerMonth.find((item) => item.month === label);
@@ -103,7 +107,13 @@ router.get('/data', verifyToken, isInvestigator, async (req, res) => {
 
     const investigatorCounts: Record<string, number> = {};
     const caseResolutionTimes: number[] = [];
-    cases.forEach((caseItem: { assignedInvestigator: { fullName: string } | null; report: { createdAt: { getTime: () => number } } | null; createdAt: { getTime: () => number } }) => {
+    type CaseWithInvestigator = Prisma.CaseGetPayload<{
+      include: {
+        assignedInvestigator: { select: { id: true; fullName: true } };
+        report: { select: { createdAt: true } };
+      };
+    }>;
+    cases.forEach((caseItem: CaseWithInvestigator) => {
       if (caseItem.assignedInvestigator) {
         const name = caseItem.assignedInvestigator.fullName;
         investigatorCounts[name] = (investigatorCounts[name] ?? 0) + 1;
@@ -145,7 +155,7 @@ router.get('/reports/export', verifyToken, isInvestigator, async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    const rows = reports.map((report: { id: number; title: string; incidentType: string; priority: string; status: string; location: string; user: { fullName: string; email: string } | null; createdAt: { toISOString: () => string } }) => [
+    const rows = reports.map((report) => [
       report.id,
       report.title,
       report.incidentType,
@@ -158,7 +168,7 @@ router.get('/reports/export', verifyToken, isInvestigator, async (req, res) => {
     ]);
 
     const header = ['id', 'title', 'incident_type', 'priority', 'status', 'location', 'reporter_name', 'reporter_email', 'created_at'];
-    const csv = [header.join(','), ...rows.map((row: any[]) => row.map((value) => String(value).replace(/"/g, '""')).join(','))].join('\n');
+    const csv = [header.join(','), ...rows.map((row) => row.map((value) => String(value).replace(/"/g, '""')).join(','))].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=reports-last-30-days.csv');

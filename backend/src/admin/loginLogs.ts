@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../shared/db.js';
 
 const router = Router();
@@ -24,7 +25,7 @@ router.get('/', async (req: Request, res: Response) => {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.LoginLogWhereInput = {};
     if (req.query.email) {
       where.email = { contains: String(req.query.email), mode: 'insensitive' };
     }

@@ -1,5 +1,6 @@
 import { Response, Router } from 'express';
 import { body, param, query } from 'express-validator';
+import type { Prisma } from '@prisma/client';
 import { verifyToken, isAdmin, AuthRequest } from '../auth/middleware.js';
 import { prisma } from '../shared/db.js';
 import { validateRequest } from '../utils/validators.js';
@@ -22,7 +23,7 @@ router.get(
   async (req: AuthRequest, res: Response) => {
     try {
       const { start_date, end_date, userId, action } = req.query;
-      const where: any = {};
+      const where: Prisma.AuditLogWhereInput = {};
       if (start_date || end_date) {
         where.timestamp = {};
         if (start_date) where.timestamp.gte = new Date(String(start_date));

@@ -68,7 +68,7 @@ async function applyLoginFailure(userId: number, attempts: number, email: string
     await prisma.auditLog.create({ data: { userId, action: 'account suspended', targetId: null, ipAddress: 'system' } });
     const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true }, select: { id: true } });
     await Promise.all(
-      admins.map((admin: { id: any; }) =>
+      admins.map((admin) =>
         createNotification({
           recipientId: admin.id,
           senderId: null,

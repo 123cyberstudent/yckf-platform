@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Prisma } from '@prisma/client';
 import { verifyToken, isAdmin } from '../auth/middleware.js';
 import { prisma } from '../shared/db.js';
 import { logAudit } from '../audit/service.js';
@@ -84,9 +85,12 @@ router.get('/platform-report', verifyToken, isAdmin, async (req, res) => {
     const avgResponseTimeSeconds = await prisma.case.findMany({
       include: { report: { select: { createdAt: true } } },
     }).then((cases) => {
+      type CaseWithReport = Prisma.CaseGetPayload<{
+        include: { report: { select: { createdAt: true } } };
+      }>;
       const times = cases
-        .filter((c: any) => c.report?.createdAt)
-        .map((c: any) => (c.createdAt.getTime() - c.report.createdAt.getTime()) / 1000);
+        .filter((c: CaseWithReport) => c.report?.createdAt)
+        .map((c: CaseWithReport) => (c.createdAt.getTime() - c.report!.createdAt.getTime()) / 1000);
       return times.length > 0 ? Math.round(times.reduce((s: number, t: number) => s + t, 0) / times.length) : 0;
     });
 

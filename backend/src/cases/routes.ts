@@ -1,16 +1,17 @@
 import { Router, Request, Response } from 'express';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../shared/db.js';
-import { verifyToken, isInvestigator, isAdmin } from '../auth/middleware.js';
+import { verifyToken, isInvestigator, isAdmin, AuthRequest } from '../auth/middleware.js';
 
 const router = Router();
 
 // List cases for the current user (if volunteer/admin, show assigned cases; if user, show own reports' cases)
-router.get('/my', verifyToken, async (req: Request, res: Response) => {
+router.get('/my', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: (req as any).user.id } });
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    let whereClause: any = {};
+    let whereClause: Prisma.CaseWhereInput = {};
     if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'INVESTIGATOR') {
       whereClause = { assignedInvestigatorId: user.id };
     } else if (user.role === 'VOLUNTEER') {
