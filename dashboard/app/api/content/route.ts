@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const BACKEND = process.env.BACKEND_URL || 'http://localhost:4001';
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const res = await fetch(`${BACKEND}/api/content`, { cache: 'no-store' });
     const data = await res.json();

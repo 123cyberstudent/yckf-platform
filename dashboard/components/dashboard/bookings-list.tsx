@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Download, FileDown, Filter, Search, Ticket, Users, XCircle, Clock, UserCheck, X } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Download, FileDown, Filter, Search, Ticket, Users, XCircle, Clock, UserCheck, X } from 'lucide-react';
 import { generatePDFReport } from '@/lib/pdf-utils';
 import { getRoleFromCookie } from '@/lib/permissions';
 import { logExport } from '@/lib/export-logger';

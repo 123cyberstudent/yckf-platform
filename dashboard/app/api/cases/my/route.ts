@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const token = await getBackendAuthToken()
     if (!token) {

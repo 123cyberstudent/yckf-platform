@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import {
   Shield,
   AlertTriangle,
-  CheckCircle2,
   Clock,
   Users,
   Upload,

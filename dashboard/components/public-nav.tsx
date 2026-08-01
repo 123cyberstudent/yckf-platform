@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { SiteNav } from '@/components/site-nav';
 
-const PUBLIC_PATHS = ['/', '/about', '/team', '/volunteers', '/news', '/events', '/courses', '/resources', '/contact', '/report', '/reports', '/partners', '/certifications', '/book', '/signup', '/forgot-password', '/reset-password'];
-
 export function PublicNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isDashboard = pathname.startsWith('/dashboard');

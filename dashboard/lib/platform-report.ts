@@ -5,7 +5,6 @@ const BLUE = '#2563EB'
 const DARK = '#06292D'
 const TEAL = '#2DD4BF'
 const WHITE = '#FFFFFF'
-const LIGHT_GRAY = '#F8FAFC'
 const MED_GRAY = '#94A3B8'
 
 interface PlatformReportData {

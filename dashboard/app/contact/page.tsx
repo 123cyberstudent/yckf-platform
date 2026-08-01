@@ -2,7 +2,6 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { useState, useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
 
 interface ContactData {
   hero: { title: string; subtitle: string; description: string }
@@ -52,7 +51,6 @@ const FALLBACK: ContactData = {
 
 export default function ContactPage() {
   const [data, setData] = useState<ContactData>(FALLBACK)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetch('/api/content/contact')
@@ -71,7 +69,6 @@ export default function ContactPage() {
         }
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
   }, [])
 
   return (

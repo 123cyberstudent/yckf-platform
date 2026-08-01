@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, CheckCircle, Clock, Users, Shield, Activity, Smartphone, Globe, FileDown, Download } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Users, Shield, Activity, Smartphone, Globe, FileDown } from 'lucide-react';
 import { generatePlatformActivityReport } from '@/lib/platform-report';
 import { logExport } from '@/lib/export-logger';
 import { getRoleFromCookie } from '@/lib/permissions';

@@ -4,11 +4,8 @@ import {
   getDashboardStats, 
   getIncidentTrends, 
   getSeverityDistribution,
-  getInvestigatorPerformance,
   getVolunteerPerformance,
-  getRecentActivity,
-  incidents,
-  users
+  getRecentActivity
 } from '@/lib/mock-data';
 
 export async function GET() {

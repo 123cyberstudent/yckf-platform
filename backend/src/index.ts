@@ -10,6 +10,14 @@ const PORT = env.port;
 const server = http.createServer(app);
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) ?? ['http://localhost:3000'];
 
+process.on('unhandledRejection', (reason) => {
+  console.error('[process] Unhandled promise rejection (server kept alive):', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[process] Uncaught exception (server kept alive):', error);
+});
+
 initSocket(server, allowedOrigins);
 initCache().catch((error) => {
   console.error('Redis init failed:', error);

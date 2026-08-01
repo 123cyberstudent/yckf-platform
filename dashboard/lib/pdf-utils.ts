@@ -123,7 +123,7 @@ export function generatePDFReport(options: PDFExportOptions) {
         fillColor: [245, 248, 255],
       },
       margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
+      didDrawPage: () => {
         addFooter(doc, doc.getNumberOfPages())
       },
     })

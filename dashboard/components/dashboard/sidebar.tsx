@@ -56,8 +56,6 @@ export function DashboardSidebar() {
 
   const isSuperAdmin = role === 'super_admin';
   const isAdmin = role === 'admin' || role === 'super_admin';
-  const isStaff = role === 'super_admin' || role === 'admin' || role === 'volunteer';
-  const isUser = role === 'user';
 
   const dashboardHref = isSuperAdmin ? '/dashboard/super-admin' : isAdmin ? '/dashboard/admin' : '/dashboard/volunteer';
   const dashboardLabel = isSuperAdmin ? 'Super Admin Dashboard' : isAdmin ? 'Admin Dashboard' : 'Volunteer Dashboard';

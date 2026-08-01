@@ -45,7 +45,7 @@ export async function GET(
 
       const data = await response.json()
       return NextResponse.json(data)
-    } catch (fetchError) {
+    } catch {
       console.log('Backend unreachable, using mock user data')
       const user = users.find(u => u.id === id)
       if (!user) {

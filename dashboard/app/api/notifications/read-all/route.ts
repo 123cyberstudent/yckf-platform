@@ -32,7 +32,7 @@ export async function PATCH() {
 
       const data = await response.json()
       return NextResponse.json(data)
-    } catch (fetchError) {
+    } catch {
       console.log('Backend unreachable, using mock read-all')
       return NextResponse.json({
         success: true,

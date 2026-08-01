@@ -7,7 +7,6 @@ import type {
   DashboardStats,
   IncidentTrend,
   SeverityDistribution,
-  InvestigatorPerformance,
   VolunteerPerformance,
   RecentActivity,
 } from './types'

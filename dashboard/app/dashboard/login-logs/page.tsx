@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface LoginLog {
   id: number;

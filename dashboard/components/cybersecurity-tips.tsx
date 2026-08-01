@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Lightbulb, AlertTriangle, Key, Wifi, Mail, Smartphone, Shield, Eye, Lock } from 'lucide-react';
+import { AlertTriangle, Key, Wifi, Mail, Smartphone, Shield, Eye, Lock } from 'lucide-react';
 
 const tips = [
   { icon: Key, title: 'Use Strong Passwords', text: 'Create passwords with 12+ characters mixing letters, numbers, and symbols. Never reuse passwords across sites.' },

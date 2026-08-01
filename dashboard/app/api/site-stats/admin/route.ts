@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { backendFetch, getBackendAuthToken, mockResponse } from '@/lib/backend';
+import { backendFetch, mockResponse } from '@/lib/backend';
 
 export async function GET(request: NextRequest) {
   try {

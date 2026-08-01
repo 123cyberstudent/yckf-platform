@@ -426,11 +426,6 @@ export function IncidentsList() {
     }
   };
 
-  const canViewSensitive =
-    currentRole === 'admin' ||
-    (detailIncident?.status === 'investigating' && isVolunteerRole && detailIncident?.assignedVolunteerName) ||
-    isUserRole;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">

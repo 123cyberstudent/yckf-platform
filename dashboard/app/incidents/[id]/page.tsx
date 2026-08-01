@@ -193,7 +193,6 @@ export default function IncidentDetailPage() {
 
   const caseRecord = report?.cases?.[0];
   const isAssigned = !!caseRecord?.assignedInvestigatorId;
-  const isAssignedToMe = caseRecord?.assignedInvestigatorId !== undefined;
   const canAccept = role && (role === 'super_admin' || role === 'admin' || role === 'volunteer' || role === 'investigator');
   const canRespond = role && (role === 'super_admin' || role === 'admin' || role === 'volunteer' || role === 'investigator');
   const canAssign = role === 'super_admin' || role === 'admin';

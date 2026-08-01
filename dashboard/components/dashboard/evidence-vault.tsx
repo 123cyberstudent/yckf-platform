@@ -52,8 +52,6 @@ export function EvidenceVault() {
     getRoleFromCookie().then(setCurrentRole);
   }, []);
 
-  const canPerformActions = currentRole === 'admin';
-
   const fetchEvidence = async () => {
     try {
       setLoading(true);
@@ -360,7 +358,7 @@ export function EvidenceVault() {
               </div>
             ) : (
               <div className="relative ml-3 border-l-2 border-border pl-6 space-y-6">
-                {chainItem.chainOfCustody.map((entry, idx) => (
+                {chainItem.chainOfCustody.map((entry) => (
                   <div key={entry.id} className="relative">
                     <div className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-primary bg-background" />
                     <div className="rounded-md border border-border bg-muted/30 p-4">

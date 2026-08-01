@@ -57,7 +57,7 @@ export async function PUT(
 
       const data = await response.json()
       return NextResponse.json(data)
-    } catch (fetchError) {
+    } catch {
       console.log('Backend unreachable, using mock update')
       const notification = notifications.find(n => n.id === id)
       if (!notification) {
@@ -123,7 +123,7 @@ export async function DELETE(
       return NextResponse.json(
         { success: true, message: 'Notification deleted successfully' }
       )
-    } catch (fetchError) {
+    } catch {
       console.log('Backend unreachable, using mock delete')
       return NextResponse.json(
         { success: true, message: 'Notification deleted successfully' }

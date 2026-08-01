@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Shield, UserPlus, Edit3, Trash2, X, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Search, UserPlus, Edit3, Trash2, X, Check, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AdminUser {
@@ -24,8 +24,6 @@ export function AdminsList() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<AdminUser | null>(null);
   const [addForm, setAddForm] = useState({ fullName: '', email: '', password: '' });
   const [addErrors, setAddErrors] = useState<Record<string, string>>({});
 

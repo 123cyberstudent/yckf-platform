@@ -12,13 +12,6 @@ import {
   Lock,
   Eye,
   Globe,
-  Zap,
-  Lightbulb,
-  AlertTriangle,
-  Key,
-  Wifi,
-  Mail,
-  Smartphone,
 } from 'lucide-react'
 
 const styles = `
@@ -72,7 +65,6 @@ const styles = `
 
 const animBase = 'opacity-0'
 const animFadeInUp = 'animate-[fadeInUp_0.8s_ease-out_forwards]'
-const animFadeIn = 'animate-[fadeIn_0.6s_ease-out_forwards]'
 const animSlideInLeft = 'animate-[slideInLeft_0.8s_ease-out_forwards]'
 
 const stagger = (i: number) => `${animFadeInUp} [animation-delay:${i * 150}ms]`

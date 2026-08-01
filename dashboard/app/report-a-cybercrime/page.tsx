@@ -146,7 +146,7 @@ export default function ReportCybercrimePage() {
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { latitude, longitude, accuracy, altitudeAccuracy } = position.coords
+        const { latitude, longitude, accuracy } = position.coords
         const isRealGPS = accuracy < 100
         const source: LocationSource = isRealGPS ? 'gps' : 'ip'
 

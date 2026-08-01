@@ -273,16 +273,20 @@ router.post(
 );
 
 router.get('/me', verifyToken, async (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-  const user = await getCurrentUser(req.user.id);
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
+    const user = await getCurrentUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-  res.json(user);
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to load user' });
+  }
 });
 
 router.post(
@@ -300,58 +304,78 @@ router.post(
 );
 
 router.get('/2fa/status', verifyToken, async (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (req.user.role === 'USER') {
+      return res.status(403).json({ error: '2FA status is only available for admin or investigator accounts' });
+    }
+    const status = await getTwoFactorStatusForUser(req.user.id);
+    res.json({ twoFactorEnabled: status?.twoFactorEnabled ?? false, hasBackupCodes: Array.isArray(status?.twoFactorBackupCodes) && status.twoFactorBackupCodes.length > 0 });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to load 2FA status' });
   }
-  if (req.user.role === 'USER') {
-    return res.status(403).json({ error: '2FA status is only available for admin or investigator accounts' });
-  }
-  const status = await getTwoFactorStatusForUser(req.user.id);
-  res.json({ twoFactorEnabled: status?.twoFactorEnabled ?? false, hasBackupCodes: Array.isArray(status?.twoFactorBackupCodes) && status.twoFactorBackupCodes.length > 0 });
 });
 
 router.post('/2fa/setup', verifyToken, async (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (req.user.role === 'USER') {
+      return res.status(403).json({ error: '2FA setup is only available for admin or investigator accounts' });
+    }
+    const setup = await prepareTwoFactorSetup(req.user.id);
+    res.json(setup);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to prepare 2FA setup' });
   }
-  if (req.user.role === 'USER') {
-    return res.status(403).json({ error: '2FA setup is only available for admin or investigator accounts' });
-  }
-  const setup = await prepareTwoFactorSetup(req.user.id);
-  res.json(setup);
 });
 
 router.post('/2fa/verify', verifyToken, [body('token').trim().notEmpty().withMessage('Verification code is required')], validateRequest, async (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (req.user.role === 'USER') {
+      return res.status(403).json({ error: '2FA verification is only available for admin or investigator accounts' });
+    }
+    const result = await confirmTwoFactorSetup(req.user.id, req.body.token);
+    res.json({ message: 'Two-factor authentication enabled', twoFactorEnabled: result.twoFactorEnabled });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to verify 2FA code' });
   }
-  if (req.user.role === 'USER') {
-    return res.status(403).json({ error: '2FA verification is only available for admin or investigator accounts' });
-  }
-  const result = await confirmTwoFactorSetup(req.user.id, req.body.token);
-  res.json({ message: 'Two-factor authentication enabled', twoFactorEnabled: result.twoFactorEnabled });
 });
 
 router.post('/2fa/disable', verifyToken, async (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (req.user.role === 'USER') {
+      return res.status(403).json({ error: '2FA disable is only available for admin or investigator accounts' });
+    }
+    const result = await disableUserTwoFactor(req.user.id);
+    res.json({ message: 'Two-factor authentication disabled', twoFactorEnabled: result.twoFactorEnabled });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to disable 2FA' });
   }
-  if (req.user.role === 'USER') {
-    return res.status(403).json({ error: '2FA disable is only available for admin or investigator accounts' });
-  }
-  const result = await disableUserTwoFactor(req.user.id);
-  res.json({ message: 'Two-factor authentication disabled', twoFactorEnabled: result.twoFactorEnabled });
 });
 
 router.post('/2fa/backup-codes', verifyToken, async (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (req.user.role === 'USER') {
+      return res.status(403).json({ error: 'Backup codes are only available for admin or investigator accounts' });
+    }
+    const codes = await generateUserBackupCodes(req.user.id);
+    res.json({ backupCodes: codes });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to generate backup codes' });
   }
-  if (req.user.role === 'USER') {
-    return res.status(403).json({ error: 'Backup codes are only available for admin or investigator accounts' });
-  }
-  const codes = await generateUserBackupCodes(req.user.id);
-  res.json({ backupCodes: codes });
 });
 
 export default router;
