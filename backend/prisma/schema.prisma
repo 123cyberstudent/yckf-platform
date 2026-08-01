@@ -490,7 +490,7 @@ model CourseEnrolment {
 
 model CreditPackage {
   id             Int      @id @default(autoincrement())
-  name           String
+  name           String   @unique
   description    String?
   baseCredits    Int
   bonusCredits   Int      @default(0)

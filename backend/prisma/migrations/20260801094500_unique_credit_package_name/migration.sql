@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "CreditPackage_name_key" ON "CreditPackage"("name");
