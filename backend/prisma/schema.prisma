@@ -52,6 +52,16 @@ model User {
   couponRedemptions       CouponRedemption[]
   loginLogs               LoginLog[]
   caseResponses           CaseResponse[]
+  wallet                  CreditWallet?
+  orders                  Order[]
+  paymentAttempts         PaymentAttempt[]
+  promotionRedemptions    PromotionRedemption[]
+  creditLedgerEntries     CreditLedgerEntry[]
+  enrolments              CourseEnrolment[]
+  ownedPromoCodes         PromoCode[]              @relation("PromoCodeOwner")
+  referralsMade           ReferralRelationship[]   @relation("Referrer")
+  referralsReceived       ReferralRelationship[]   @relation("Referred")
+  requestedRefunds        Refund[]                 @relation("RefundRequestedBy")
 }
 
 model Report {
@@ -417,4 +427,357 @@ model CaseResponse {
 
   @@index([caseId])
   @@index([authorId])
+}
+
+// =========================================================
+// MONETIZATION: courses, credit wallet, orders, promotions,
+// payments, referrals, refunds
+//
+// Money is stored as integer minor units (GHS pesewas).
+// Status/type fields are plain strings (project convention) with
+// valid values enforced by the application layer.
+// Idempotency is guaranteed by unique keys on:
+//   PaymentAttempt.idempotencyKey / providerReference
+//   CreditLedgerEntry.idempotencyKey
+//   PromotionRedemption.idempotencyKey
+//   WebhookEvent providerEventId
+// =========================================================
+
+model Course {
+  id           Int               @id @default(autoincrement())
+  slug         String            @unique
+  title        String
+  description  String?
+  level        String?
+  duration     String?
+  category     String?
+  imageUrl     String?
+  price        Int               @default(0) // GHS pesewas (0 = free)
+  currency     String            @default("GHS")
+  creditsPrice Int               @default(0) // 0 = not purchasable with credits
+  active       Boolean           @default(true)
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  enrolments   CourseEnrolment[]
+
+  @@index([active, sortOrder])
+}
+
+model CourseEnrolment {
+  id              Int             @id @default(autoincrement())
+  user            User            @relation(fields: [userId], references: [id])
+  userId          Int
+  course          Course          @relation(fields: [courseId], references: [id])
+  courseId        Int
+  source          String          @default("PURCHASE") // PURCHASE | CREDITS | PROMOTION | REFERRAL | ADMIN
+  status          String          @default("active")   // active | completed | revoked
+  order           Order?          @relation(fields: [orderId], references: [id])
+  orderId         Int?
+  payment         PaymentAttempt? @relation(fields: [paymentId], references: [id])
+  paymentId       Int?
+  progressPercent Float           @default(0)
+  grantedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+}
+
+model CreditPackage {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?
+  baseCredits    Int
+  bonusCredits   Int      @default(0)
+  totalCredits   Int
+  price          Int      // GHS pesewas
+  currency       String   @default("GHS")
+  active         Boolean  @default(true)
+  featured       Boolean  @default(false)
+  displayOrder   Int      @default(0)
+  promotionLabel String?
+  startAt        DateTime?
+  endAt          DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([active, displayOrder])
+}
+
+model CreditWallet {
+  id                Int                 @id @default(autoincrement())
+  user              User                @relation(fields: [userId], references: [id])
+  userId            Int                 @unique
+  availableBalance  Int                 @default(0)
+  reservedBalance   Int                 @default(0)
+  lifetimePurchased Int                 @default(0)
+  lifetimeBonus     Int                 @default(0)
+  lifetimeSpent     Int                 @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  ledgerEntries     CreditLedgerEntry[]
+
+  @@index([userId])
+}
+
+model CreditLedgerEntry {
+  id              Int          @id @default(autoincrement())
+  wallet          CreditWallet @relation(fields: [walletId], references: [id])
+  walletId        Int
+  user            User         @relation(fields: [userId], references: [id])
+  userId          Int
+  type            String // PURCHASE | SIGNUP_BONUS | PROMOTION_BONUS | REFERRAL_BONUS | ADMIN_ADJUSTMENT | COURSE_PURCHASE | REFUND | REVERSAL | RESERVATION | RESERVATION_RELEASE | EXPIRATION
+  amount          Int          // signed: positive = credit, negative = debit
+  balanceBefore   Int
+  balanceAfter    Int
+  description     String?
+  idempotencyKey  String       @unique
+  sourceType      String?
+  sourceId        Int?
+  expiresAt       DateTime?
+  createdByUserId Int?
+  createdAt       DateTime     @default(now())
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([type])
+  @@index([sourceType, sourceId])
+  @@index([createdAt])
+}
+
+model Order {
+  id                 Int          @id @default(autoincrement())
+  orderNumber        String       @unique
+  user               User         @relation(fields: [userId], references: [id])
+  userId             Int
+  orderType          String       // COURSE | CREDIT_PACKAGE
+  status             String       @default("CREATED") // CREATED | PENDING_PAYMENT | PAID | FULFILLED | FAILED | CANCELLED | EXPIRED | REFUNDED | PARTIALLY_REFUNDED
+  currency           String       @default("GHS")
+  subtotalAmount     Int          @default(0)
+  discountAmount     Int          @default(0)
+  taxAmount          Int          @default(0)
+  totalAmount        Int          @default(0)
+  appliedPromotion   Promotion?   @relation(fields: [appliedPromotionId], references: [id])
+  appliedPromotionId Int?
+  appliedPromoCode   PromoCode?   @relation(fields: [appliedPromoCodeId], references: [id])
+  appliedPromoCodeId Int?
+  metadata           Json?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  paidAt             DateTime?
+  fulfilledAt        DateTime?
+  cancelledAt        DateTime?
+  expiresAt          DateTime?
+  items              OrderItem[]
+  paymentAttempts    PaymentAttempt[]
+  redemptions        PromotionRedemption[]
+  enrolments         CourseEnrolment[]
+  refunds            Refund[]
+
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  order       Order    @relation(fields: [orderId], references: [id])
+  orderId     Int
+  productType String   // COURSE | CREDIT_PACKAGE
+  productId   Int
+  productName String
+  quantity    Int      @default(1)
+  unitPrice   Int
+  totalPrice  Int
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productType, productId])
+}
+
+model PaymentAttempt {
+  id                Int             @id @default(autoincrement())
+  order             Order           @relation(fields: [orderId], references: [id])
+  orderId           Int
+  user              User            @relation(fields: [userId], references: [id])
+  userId            Int
+  provider          String          @default("paystack")
+  providerReference String          @unique
+  status            String          @default("CREATED") // CREATED | INITIALIZED | PENDING | PROCESSING | SUCCESSFUL | FAILED | CANCELLED | EXPIRED | REFUNDED | PARTIALLY_REFUNDED
+  amount            Int
+  currency          String          @default("GHS")
+  channel           String?
+  authorizationCode String?
+  providerResponse  Json?
+  failureCode       String?
+  failureMessage    String?
+  idempotencyKey    String          @unique
+  initializedAt     DateTime?
+  paidAt            DateTime?
+  failedAt          DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  webhookEvents     WebhookEvent[]
+  refunds           Refund[]
+  enrolments        CourseEnrolment[]
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([providerReference])
+  @@index([status])
+}
+
+model Promotion {
+  id                     Int                @id @default(autoincrement())
+  internalName           String
+  publicTitle            String?
+  publicDescription      String?
+  promotionType          String             // BONUS_CREDITS | PERCENTAGE_DISCOUNT | FIXED_DISCOUNT | FREE_COURSE | COURSE_BUNDLE | SIGNUP_REWARD | REFERRAL_REWARD
+  status                 String             @default("DRAFT") // DRAFT | SCHEDULED | ACTIVE | PAUSED | EXPIRED | ARCHIVED
+  codeRequired           Boolean            @default(false)
+  bonusCredits           Int                @default(0)
+  discountType           String?            // PERCENT | FIXED
+  discountValue          Int                @default(0)
+  minimumPurchaseAmount  Int                @default(0)
+  minimumCreditPackageId Int?
+  eligibleProductType    String?            // COURSE | CREDIT_PACKAGE
+  eligibleCourseIds      Int[]              @default([])
+  eligiblePackageIds     Int[]              @default([])
+  eligibleUserSegment    String?            // NEW | EXISTING
+  firstPurchaseOnly      Boolean            @default(false)
+  perUserRedemptionLimit Int                @default(1)
+  totalRedemptionLimit   Int?
+  redemptionCount        Int                @default(0)
+  stackable              Boolean            @default(false)
+  priority               Int                @default(0)
+  bannerEnabled          Boolean            @default(false)
+  modalEnabled           Boolean            @default(false)
+  startAt                DateTime?
+  endAt                  DateTime?
+  createdByUserId        Int?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  orders                 Order[]
+  redemptions            PromotionRedemption[]
+  promoCodes             PromoCode[]
+
+  @@index([status])
+  @@index([promotionType])
+  @@index([startAt, endAt])
+}
+
+model PromoCode {
+  id                    Int             @id @default(autoincrement())
+  code                  String          @unique
+  normalizedCode        String          @unique
+  type                  String          @default("PROMO") // PROMO | REFERRAL
+  status                String          @default("ACTIVE") // ACTIVE | DISABLED | EXPIRED
+  promotion             Promotion?      @relation(fields: [promotionId], references: [id])
+  promotionId           Int?
+  owner                 User?           @relation("PromoCodeOwner", fields: [ownerUserId], references: [id])
+  ownerUserId           Int?
+  maxRedemptions        Int?
+  maxRedemptionsPerUser Int             @default(1)
+  redemptionCount       Int             @default(0)
+  startAt               DateTime?
+  endAt                 DateTime?
+  createdAt             DateTime        @default(now())
+  orders                Order[]
+  referrals             ReferralRelationship[]
+
+  @@index([type])
+  @@index([status])
+  @@index([ownerUserId])
+}
+
+model PromotionRedemption {
+  id                  Int       @id @default(autoincrement())
+  promotion           Promotion @relation(fields: [promotionId], references: [id])
+  promotionId         Int
+  user                User      @relation(fields: [userId], references: [id])
+  userId              Int
+  order               Order?    @relation(fields: [orderId], references: [id])
+  orderId             Int?
+  paymentId           Int?
+  creditLedgerEntryId Int?
+  discountAmount      Int       @default(0)
+  bonusCredits        Int       @default(0)
+  status              String    @default("REDEEMED") // REDEEMED | REVERSED
+  idempotencyKey      String    @unique
+  redeemedAt          DateTime  @default(now())
+  reversedAt          DateTime?
+
+  @@index([userId])
+  @@index([promotionId])
+  @@index([orderId])
+}
+
+model ReferralRelationship {
+  id                  Int       @id @default(autoincrement())
+  referrer            User      @relation("Referrer", fields: [referrerUserId], references: [id])
+  referrerUserId      Int
+  referred            User      @relation("Referred", fields: [referredUserId], references: [id])
+  referredUserId      Int
+  referralCode        PromoCode @relation(fields: [referralCodeId], references: [id])
+  referralCodeId      Int
+  status              String    @default("PENDING") // PENDING | QUALIFIED | REWARDED
+  qualifyingOrderId   Int?
+  qualifyingPaymentId Int?
+  rewardCredits       Int       @default(0)
+  qualifiedAt         DateTime?
+  rewardedAt          DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@unique([referrerUserId, referredUserId])
+  @@index([referredUserId])
+  @@index([referralCodeId])
+  @@index([status])
+}
+
+model WebhookEvent {
+  id               Int             @id @default(autoincrement())
+  provider         String          @default("paystack")
+  providerEventId  String?         // Paystack does not always supply a stable event id; dedupe by paymentReference + payload hash instead
+  eventType        String
+  payloadHash      String?
+  paymentReference String?
+  paymentAttemptId Int?
+  paymentAttempt   PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id])
+  processingStatus String          @default("RECEIVED") // RECEIVED | PROCESSING | PROCESSED | FAILED | IGNORED | DUPLICATE
+  attemptCount     Int             @default(0)
+  lastError        String?
+  receivedAt       DateTime        @default(now())
+  processedAt      DateTime?
+
+  @@index([provider, eventType])
+  @@index([processingStatus])
+  @@index([paymentReference])
+}
+
+model Refund {
+  id                Int             @id @default(autoincrement())
+  payment           PaymentAttempt  @relation(fields: [paymentId], references: [id])
+  paymentId         Int
+  order             Order           @relation(fields: [orderId], references: [id])
+  orderId           Int
+  amount            Int
+  currency          String          @default("GHS")
+  reason            String?
+  status            String          @default("PENDING") // PENDING | PROCESSED | FAILED | REJECTED
+  providerReference String?
+  requestedBy       User?           @relation("RefundRequestedBy", fields: [requestedById], references: [id])
+  requestedById     Int?
+  createdAt         DateTime        @default(now())
+  processedAt       DateTime?
+
+  @@index([paymentId])
+  @@index([orderId])
+  @@index([status])
 }
