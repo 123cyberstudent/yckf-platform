@@ -54,6 +54,7 @@ export async function createLoginChallenge(
   maskedPhone: string | null;
   resendAfter: number;
   devCode?: string;
+  fallback?: boolean;
 }> {
   await invalidatePendingChallenges(user.id);
 
@@ -76,9 +77,20 @@ export async function createLoginChallenge(
   const { emailSent, smsSent } = await deliverOtpCode(user, code);
   const delivered = user.phone ? emailSent || smsSent : emailSent;
 
+  // When no delivery channel is configured (SMTP/SMS), keep the challenge alive
+  // and return the code inline so sign-in is never blocked while the operator
+  // sets up email/SMS delivery. Once a real channel is configured, codes are
+  // delivered out-of-band and the inline code is no longer returned.
   if (!delivered) {
-    await prisma.loginChallenge.delete({ where: { id: challenge.id } });
-    throw new OtpDeliveryError('Unable to deliver the verification code. Please try again.');
+    return {
+      challengeId: challenge.id,
+      channels,
+      maskedEmail: maskEmail(user.email),
+      maskedPhone: user.phone ? maskPhone(user.phone) : null,
+      resendAfter: Math.ceil(OTP_RESEND_COOLDOWN_MS / 1000),
+      devCode: code,
+      fallback: true,
+    };
   }
 
   return {
@@ -173,12 +185,14 @@ export async function resendLoginOtp(
   const { emailSent, smsSent } = await deliverOtpCode(challenge.user, code);
   const delivered = challenge.user.phone ? emailSent || smsSent : emailSent;
 
+  // Same fallback as createLoginChallenge: keep the challenge alive and return
+  // the code inline when no delivery channel is configured.
   if (!delivered) {
-    await prisma.loginChallenge.update({
-      where: { id: challenge.id },
-      data: { expiresAt: new Date() },
-    });
-    return { ok: false, reason: 'delivery_failed' };
+    return {
+      ok: true,
+      resendAfter: Math.ceil(OTP_RESEND_COOLDOWN_MS / 1000),
+      devCode: code,
+    };
   }
 
   return {

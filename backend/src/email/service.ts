@@ -71,12 +71,13 @@ export async function sendEmail(payload: EmailPayload): Promise<{ success: boole
     }
 
     console.log(`[email] No SMTP configured. Email logged for ${payload.recipientEmail}: ${payload.subject}`);
+    const isProduction = process.env.NODE_ENV === 'production';
     await prisma.emailLog.update({
       where: { id: logId },
-      data: { status: 'sent', sentAt: new Date() },
+      data: { status: isProduction ? 'failed' : 'sent', sentAt: new Date() },
     });
 
-    return { success: true };
+    return { success: !isProduction };
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error(`[email] Failed to send to ${payload.recipientEmail}:`, errMsg);

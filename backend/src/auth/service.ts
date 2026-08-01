@@ -181,6 +181,7 @@ export type LoginResult =
       maskedPhone: string | null;
       resendAfter: number;
       devCode?: string;
+      fallback?: boolean;
       message: string;
     }
   | {
@@ -293,7 +294,10 @@ export async function loginUser({
     maskedPhone: otp.maskedPhone,
     resendAfter: otp.resendAfter,
     ...(otp.devCode ? { devCode: otp.devCode } : {}),
-    message: 'A verification code has been sent.',
+    ...(otp.fallback ? { fallback: true } : {}),
+    message: otp.fallback
+      ? 'Verification code delivery is not configured (email/SMS), so the code is shown below for this session. Add SMTP_* (or an SMS provider) env vars to receive codes.'
+      : 'A verification code has been sent.',
   };
 }
 

@@ -210,6 +210,7 @@ export function LoginForm() {
     maskedEmail?: string
     maskedPhone?: string | null
     devCode?: string
+    message?: string
     resendAfter?: number
   } | null>(null)
   const [otpCode, setOtpCode] = useState('')
@@ -282,6 +283,7 @@ export function LoginForm() {
           maskedEmail: result.maskedEmail,
           maskedPhone: result.maskedPhone,
           devCode: result.devCode,
+          message: result.message,
           resendAfter: result.resendAfter,
         })
         setOtpCode(result.devCode || '')
@@ -555,10 +557,16 @@ export function LoginForm() {
                             <h3 className="text-lg font-bold text-foreground">
                               Enter Verification Code
                             </h3>
-                            <p className="mt-1 text-base text-muted-foreground">
-                              Enter the 6-digit code sent to{' '}
-                              {otpState.maskedEmail || otpState.maskedPhone || 'your email'}
-                            </p>
+                            {otpState.message ? (
+                              <p className="mt-1 text-base text-muted-foreground">
+                                {otpState.message}
+                              </p>
+                            ) : (
+                              <p className="mt-1 text-base text-muted-foreground">
+                                Enter the 6-digit code sent to{' '}
+                                {otpState.maskedEmail || otpState.maskedPhone || 'your email'}
+                              </p>
+                            )}
                           </div>
 
                           {otpError && (
