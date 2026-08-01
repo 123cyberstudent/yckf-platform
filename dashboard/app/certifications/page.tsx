@@ -46,7 +46,7 @@ export default function CertificationsPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary">YCKF Cybersecurity Certifications</p>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Earn your cybersecurity credentials.</h1>
             <p className="mx-auto max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">
-              Validate your skills with YCKF's industry-recognized certification programs for beginners, analysts, and security leaders.
+              Validate your skills with YCKF&apos;s industry-recognized certification programs for beginners, analysts, and security leaders.
             </p>
           </div>
         </section>

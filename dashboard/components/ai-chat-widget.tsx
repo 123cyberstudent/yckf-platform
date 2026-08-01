@@ -30,11 +30,11 @@ export function AIChatWidget() {
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
-  if (isApi) return null;
-
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  if (isApi) return null;
 
   const send = async (text: string) => {
     if (!text.trim() || loading) return;

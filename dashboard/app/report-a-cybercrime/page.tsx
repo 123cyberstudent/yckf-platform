@@ -11,6 +11,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 type LocationSource = 'gps' | 'ip' | 'manual'
 
@@ -128,7 +129,7 @@ export default function ReportCybercrimePage() {
   }, [])
 
   const MAX_RETRIES = 5
-  const detectLocation = useCallback(async (attempt = 0, isRefine = false) => {
+  const detectLocation = useCallback(async function detectLocationFn(attempt = 0, isRefine = false) {
     if (!navigator.geolocation) {
       setGeoError('Geolocation is not supported by your browser')
       return
@@ -162,7 +163,7 @@ export default function ReportCybercrimePage() {
         setGeoDetected(true)
 
         if (accuracy > 50 && attempt < MAX_RETRIES - 1) {
-          setTimeout(() => detectLocation(attempt + 1, isRefine), 2000)
+          setTimeout(() => detectLocationFn(attempt + 1, isRefine), 2000)
         } else {
           setGeoLoading(false)
           setRefining(false)
@@ -170,12 +171,12 @@ export default function ReportCybercrimePage() {
       },
       async (err) => {
         if (attempt < 2) {
-          setTimeout(() => detectLocation(attempt + 1, isRefine), 2000)
+          setTimeout(() => detectLocationFn(attempt + 1, isRefine), 2000)
           return
         }
 
         if (attempt < MAX_RETRIES - 1) {
-          setTimeout(() => detectLocation(attempt + 1, isRefine), 2000)
+          setTimeout(() => detectLocationFn(attempt + 1, isRefine), 2000)
           return
         }
 
@@ -319,7 +320,7 @@ export default function ReportCybercrimePage() {
             </div>
           )}
           <Button asChild>
-            <a href="/">Back to Home</a>
+            <Link href="/">Back to Home</Link>
           </Button>
         </div>
       </main>

@@ -204,7 +204,7 @@ export default function SiteStatsPage() {
             </CardHeader>
             <CardContent>
               {heroStats.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4">No hero stats. Click "Add Stat" to create one.</p>
+                <p className="text-sm text-gray-400 py-4">No hero stats. Click &quot;Add Stat&quot; to create one.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -262,7 +262,7 @@ export default function SiteStatsPage() {
             </CardHeader>
             <CardContent>
               {impactStats.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4">No impact stats. Click "Add Stat" to create one.</p>
+                <p className="text-sm text-gray-400 py-4">No impact stats. Click &quot;Add Stat&quot; to create one.</p>
               ) : (
                 <Table>
                   <TableHeader>
