@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import { verifyToken, isAdmin, AuthRequest } from '../auth/middleware.js';
 import { generalRateLimiter } from '../shared/rateLimiter.js';
 import couponsRouter from './coupons.js';
+import ordersRouter from './orders.js';
+import packagesRouter from './packages.js';
+import promotionsRouter from './promotions.js';
 import redemptionsRouter from './redemptions.js';
 import demoRouter from './demo.js';
 import { siteStatsAdminRouter } from './siteStats.js';
@@ -25,6 +28,9 @@ router.get('/audit-logs', async (req: Request, res: Response) => {
 });
 
 router.use('/coupons', couponsRouter);
+router.use('/orders', ordersRouter);
+router.use('/packages', packagesRouter);
+router.use('/promotions', promotionsRouter);
 router.use('/redemptions', redemptionsRouter);
 router.use('/demo', demoRouter);
 router.use('/login-logs', loginLogsRouter);
