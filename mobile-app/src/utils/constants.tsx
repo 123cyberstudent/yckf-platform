@@ -44,11 +44,12 @@ export const CONTACT_INFO = {
   },
   
   whatsapp: {
-    test: '+233505313578', // Testing WhatsApp number
-    official: '+233505313578', // YCKF official WhatsApp number (update for production)
+    test: '+233505313578', // Testing WhatsApp number (Telcel)
+    official: '+233505313578', // YCKF official WhatsApp number (Telcel)
   },
   
-  phone: '+233505313578',
+  phone: '+233505313578', // Primary (Telcel)
+  phoneAlt: '+233553141199', // Backup (MTN)
   address: 'YCKF Headquarters, Accra, Ghana',
 };
 

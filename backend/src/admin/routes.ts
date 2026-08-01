@@ -10,6 +10,7 @@ import demoRouter from './demo.js';
 import { siteStatsAdminRouter } from './siteStats.js';
 import loginLogsRouter from './loginLogs.js';
 import volunteerStatsRouter from './volunteerStats.js';
+import testSendRouter from './testSend.js';
 
 const router = Router();
 
@@ -35,5 +36,6 @@ router.use('/redemptions', redemptionsRouter);
 router.use('/demo', demoRouter);
 router.use('/login-logs', loginLogsRouter);
 router.use('/site-stats', siteStatsAdminRouter);
+router.use('/test-send', testSendRouter);
 
 export default router;

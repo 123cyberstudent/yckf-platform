@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (typecheck, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:backend
+      - run: npm test --workspace=backend
+      - run: npm run build:backend
+
+  dashboard:
+    name: Dashboard (typecheck, lint, test, build)
+    runs-on: ubuntu-latest
+    env:
+      CI: 'true'
+      JWT_SECRET: ci-only-insecure-secret-do-not-use
+      BACKEND_URL: http://localhost:4001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:dashboard
+      - run: npm run lint:dashboard
+      - run: npm test --workspace=dashboard
+      - run: npm run build:dashboard
+
+  mobile:
+    name: Mobile (typecheck, Metro bundle)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:mobile
+      - name: Verify Metro bundles without crashing (reanimated/worklets)
+        working-directory: mobile-app
+        run: npx expo export --platform android --output-dir dist-ci

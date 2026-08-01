@@ -84,7 +84,7 @@ class DemoAccessService {
   async hasActiveDemoSession(): Promise<boolean> {
     try {
       const access = await PremiumAccessService.checkPremiumAccess();
-      return access.demoSessionActive;
+      return access.demoSessionActive ?? false;
     } catch (error) {
       console.error('Failed to check demo session:', error);
       return false;

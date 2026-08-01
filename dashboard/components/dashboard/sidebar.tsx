@@ -23,6 +23,9 @@ import {
   AlertCircle,
   MessageSquare,
   BookOpen,
+  Receipt,
+  Coins,
+  Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getRoleFromCookie, resetCachedRole } from '@/lib/permissions';
@@ -73,6 +76,9 @@ export function DashboardSidebar() {
     { icon: Users, label: 'Members', href: '/dashboard/members' },
     { icon: Hash, label: 'Site Stats', href: '/dashboard/site-stats' },
     { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
+    { icon: Receipt, label: 'Orders', href: '/dashboard/orders' },
+    { icon: Coins, label: 'Credit Packages', href: '/dashboard/credit-packages' },
+    { icon: Megaphone, label: 'Promotions', href: '/dashboard/promotions' },
     { icon: AlertCircle, label: 'Emergency Reports', href: '/dashboard/emergencies' },
     { icon: Phone, label: 'Bookings', href: '/dashboard/bookings' },
     { icon: Users, label: 'Specialists', href: '/dashboard/specialists' },

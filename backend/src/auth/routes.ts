@@ -14,14 +14,26 @@ import {
   refreshTokens,
   registerUser,
   requestPasswordReset,
+  resendOtpCode,
   resetPasswordWithCode,
+  verifyOtpLogin,
   verifyResetCode,
 } from './service.js';
 import { validateRequest } from '../utils/validators.js';
-import { loginRateLimiter, generalRateLimiter } from '../shared/rateLimiter.js';
+import { OtpDeliveryError } from './otpService.js';
+import { loginRateLimiter, generalRateLimiter, otpVerifyLimiter, otpResendLimiter } from '../shared/rateLimiter.js';
 import { verifyToken, AuthRequest } from './middleware.js';
+import type { LoginResult } from './service.js';
 
 const router = Router();
+
+function isTwoFactorRequired(result: LoginResult): result is Extract<LoginResult, { requiresTwoFactor: true }> {
+  return 'requiresTwoFactor' in result && result.requiresTwoFactor === true;
+}
+
+function isOtpRequired(result: LoginResult): result is Extract<LoginResult, { requiresOtp: true }> {
+  return 'requiresOtp' in result && result.requiresOtp === true;
+}
 
 router.post(
   '/register',
@@ -34,13 +46,14 @@ router.post(
       .matches(/^(?=.*[0-9])(?=.*[^A-Za-z0-9]).*$/)
       .withMessage('Password must contain at least one number and one special character'),
     body('fullName').trim().notEmpty().withMessage('Full name is required'),
+    body('phone').optional().isString().withMessage('Phone must be a string'),
   ],
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const { email, password, fullName, platform } = req.body;
-      const user = await registerUser({ email, password, fullName, platform });
-      res.status(201).json({ id: user.id, email: user.email, fullName: user.fullName, role: user.role, createdAt: user.createdAt });
+      const { email, password, fullName, phone, platform } = req.body;
+      const user = await registerUser({ email, password, fullName, phone, platform });
+      res.status(201).json({ id: user.id, email: user.email, phone: user.phone, fullName: user.fullName, role: user.role, createdAt: user.createdAt });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Registration failed' });
     }
@@ -51,7 +64,8 @@ router.post(
   '/login',
   loginRateLimiter,
   [
-    body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+    body('identifier').optional().isString().withMessage('Identifier must be a string'),
+    body('email').optional().isEmail().withMessage('Valid email is required').normalizeEmail(),
     body('password').notEmpty().withMessage('Password is required'),
     body('twoFactorToken').optional().isString(),
     body('backupCode').optional().isString(),
@@ -61,17 +75,33 @@ router.post(
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const { email, password, twoFactorToken, backupCode, rememberDeviceToken, rememberDevice, platform } = req.body;
+      const { identifier, email, password, twoFactorToken, backupCode, rememberDeviceToken, rememberDevice, platform } = req.body;
+      if (!identifier && !email) {
+        return res.status(400).json({ error: 'An email or phone number is required' });
+      }
       const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
       const userAgent = req.headers['user-agent'] || undefined;
-      const result = await loginUser({ email, password, twoFactorToken, backupCode, rememberDeviceToken, rememberDevice, ipAddress, userAgent, platform });
-      if ('requiresTwoFactor' in result && result.requiresTwoFactor) {
+      const result = await loginUser({ identifier, email, password, twoFactorToken, backupCode, rememberDeviceToken, rememberDevice, ipAddress, userAgent, platform });
+      if (isTwoFactorRequired(result)) {
         return res.json({ requiresTwoFactor: true, user: { id: result.user.id, email: result.user.email, fullName: result.user.fullName, role: result.user.role } });
+      }
+      if (isOtpRequired(result)) {
+        return res.json({
+          requiresOtp: true,
+          challengeId: result.challengeId,
+          delivery: result.delivery,
+          maskedEmail: result.maskedEmail,
+          maskedPhone: result.maskedPhone,
+          resendAfter: result.resendAfter,
+          message: result.message,
+          ...(result.devCode ? { devCode: result.devCode } : {}),
+        });
       }
       res.json({
         user: {
           id: result.user.id,
           email: result.user.email,
+          phone: result.user.phone,
           fullName: result.user.fullName,
           role: result.user.role,
           isActive: result.user.isActive,
@@ -81,7 +111,60 @@ router.post(
         rememberDeviceToken: result.rememberDeviceToken,
       });
     } catch (error) {
+      if (error instanceof OtpDeliveryError) {
+        return res.status(503).json({ error: error.message });
+      }
       res.status(401).json({ error: error instanceof Error ? error.message : 'Login failed' });
+    }
+  }
+);
+
+router.post(
+  '/otp/verify',
+  otpVerifyLimiter,
+  [
+    body('challengeId').isInt().toInt().withMessage('A valid challengeId is required'),
+    body('code').trim().isLength({ min: 6, max: 6 }).isNumeric().withMessage('A 6-digit code is required'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const { challengeId, code, platform } = req.body;
+      const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+      const userAgent = req.headers['user-agent'] || undefined;
+      const result = await verifyOtpLogin({ challengeId, code, ipAddress, userAgent, platform });
+      res.json({
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          phone: result.user.phone,
+          fullName: result.user.fullName,
+          role: result.user.role,
+          isActive: result.user.isActive,
+        },
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
+    } catch (error) {
+      res.status(401).json({ error: error instanceof Error ? error.message : 'Verification failed' });
+    }
+  }
+);
+
+router.post(
+  '/otp/resend',
+  otpResendLimiter,
+  [body('challengeId').isInt().toInt().withMessage('A valid challengeId is required')],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const result = await resendOtpCode(req.body.challengeId);
+      res.json(result);
+    } catch (error) {
+      if (error instanceof OtpDeliveryError) {
+        return res.status(503).json({ error: error.message });
+      }
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Resend failed' });
     }
   }
 );

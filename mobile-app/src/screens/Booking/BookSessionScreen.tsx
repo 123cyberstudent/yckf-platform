@@ -285,7 +285,7 @@ const [bookingData, setBookingData] = useState<BookingData>({
         // Error - show error message
         Alert.alert(
           'Submission Error',
-          `We couldn't submit your booking at this time.\n\nError: ${result.error}\n\nPlease try again or contact us directly at:\n${CONTACT_INFO.phone.official}`,
+          `We couldn't submit your booking at this time.\n\nError: ${result.error}\n\nPlease try again or contact us directly at:\n${CONTACT_INFO.phone}`,
           [
             { text: 'Retry', onPress: () => setIsSubmitting(false) },
             { text: 'Cancel', style: 'cancel', onPress: () => setIsSubmitting(false) },
@@ -544,7 +544,7 @@ const [bookingData, setBookingData] = useState<BookingData>({
             <View style={bookingStyles.footer}>
               <Text style={bookingStyles.footerText}>
                 Need immediate assistance?{'\n'}
-                Call us: <Text style={bookingStyles.footerEmail}>{CONTACT_INFO.phone.official}</Text>
+                Call us: <Text style={bookingStyles.footerEmail}>{CONTACT_INFO.phone}</Text>
                 {'\n'}Email: <Text style={bookingStyles.footerEmail}>{CONTACT_INFO.email.official}</Text>
               </Text>
             </View>

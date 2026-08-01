@@ -110,7 +110,13 @@ const MyOrdersScreen: React.FC = () => {
               {item.items.map((i) => i.productName).join(', ')}
             </Text>
             <View style={styles.orderFooter}>
-              <Text style={styles.orderType}>{item.orderType === 'COURSE' ? 'Course' : 'Credit package'}</Text>
+              <Text style={styles.orderType}>
+                {item.orderType === 'COURSE'
+                  ? 'Course'
+                  : item.orderType === 'CREDIT_PACKAGE'
+                    ? 'Credit package'
+                    : 'Premium'}
+              </Text>
               <Text style={styles.orderTotal}>
                 {item.appliedCode ? `${item.appliedCode} · ` : ''}
                 {formatMoney(item.totalAmount)}

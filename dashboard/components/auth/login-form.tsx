@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { resetCachedRole } from '@/lib/permissions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -20,6 +20,8 @@ import {
   EyeOff,
   ChevronRight,
   Fingerprint,
+  KeyRound,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -170,6 +172,28 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
+  // OTP (verification code) states
+  const [otpState, setOtpState] = useState<{
+    challengeId: number
+    maskedEmail?: string
+    maskedPhone?: string | null
+    devCode?: string
+    resendAfter?: number
+  } | null>(null)
+  const [otpCode, setOtpCode] = useState('')
+  const [isOtpLoading, setIsOtpLoading] = useState(false)
+  const [otpError, setOtpError] = useState<string | null>(null)
+  const [resendIn, setResendIn] = useState(0)
+
+  useEffect(() => {
+    if (resendIn <= 0) return
+    const timer = setInterval(
+      () => setResendIn((s) => (s <= 1 ? 0 : s - 1)),
+      1000
+    )
+    return () => clearInterval(timer)
+  }, [resendIn])
+
   const {
     register,
     handleSubmit,
@@ -210,6 +234,20 @@ export function LoginForm() {
         return
       }
 
+      if (result.requiresOtp && result.challengeId) {
+        setOtpState({
+          challengeId: result.challengeId,
+          maskedEmail: result.maskedEmail,
+          maskedPhone: result.maskedPhone,
+          devCode: result.devCode,
+          resendAfter: result.resendAfter,
+        })
+        setOtpCode(result.devCode || '')
+        setOtpError(null)
+        setResendIn(result.resendAfter || 60)
+        return
+      }
+
       const actualRole = result.data?.role || result.role || '';
       const isStaff = ['SUPER_ADMIN', 'ADMIN', 'VOLUNTEER'].includes(actualRole);
       resetCachedRole();
@@ -220,6 +258,82 @@ export function LoginForm() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  async function handleVerifyOtp() {
+    if (!otpState) return
+    if (!otpCode.trim()) {
+      setOtpError('Please enter the 6-digit code')
+      return
+    }
+
+    setIsOtpLoading(true)
+    setOtpError(null)
+    try {
+      const response = await fetch('/api/auth/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          challengeId: otpState.challengeId,
+          code: otpCode.trim(),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        setOtpError(result.error || 'Invalid code. Please try again.')
+        return
+      }
+
+      const actualRole = result.data?.role || result.role || '';
+      const isStaff = ['SUPER_ADMIN', 'ADMIN', 'VOLUNTEER'].includes(actualRole);
+      setOtpState(null)
+      resetCachedRole();
+      router.push(isStaff ? '/dashboard' : '/')
+      router.refresh()
+    } catch {
+      setOtpError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsOtpLoading(false)
+    }
+  }
+
+  async function handleResendOtp() {
+    if (!otpState || resendIn > 0) return
+    setIsOtpLoading(true)
+    setOtpError(null)
+    try {
+      const response = await fetch('/api/auth/otp/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId: otpState.challengeId }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        setOtpError(result.error || 'Failed to resend code')
+        return
+      }
+
+      if (result.devCode) setOtpCode(result.devCode)
+      setResendIn(result.resendAfter || 60)
+    } catch {
+      setOtpError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsOtpLoading(false)
+    }
+  }
+
+  function handleOtpBack() {
+    setOtpState(null)
+    setOtpCode('')
+    setOtpError(null)
+    setError(null)
+    setSelectedRole(null)
+    reset()
+    setShowPassword(false)
   }
 
   return (
@@ -355,6 +469,87 @@ export function LoginForm() {
                         </p>
                       </div>
 
+                      {otpState ? (
+                        <div className="space-y-4">
+                          <div className="flex flex-col items-center text-center">
+                            <div className={`mb-3 flex size-14 items-center justify-center rounded-2xl ${activeRole.iconBg} ring-2 ${activeRole.iconRing}`}>
+                              <KeyRound className={`size-7 ${activeRole.color}`} />
+                            </div>
+                            <h3 className="text-lg font-bold text-foreground">
+                              Enter Verification Code
+                            </h3>
+                            <p className="mt-1 text-base text-muted-foreground">
+                              Enter the 6-digit code sent to{' '}
+                              {otpState.maskedEmail || otpState.maskedPhone || 'your email'}
+                            </p>
+                          </div>
+
+                          {otpError && (
+                            <Alert variant="destructive">
+                              <AlertCircle className="size-4" />
+                              <AlertDescription>{otpError}</AlertDescription>
+                            </Alert>
+                          )}
+
+                          <Field>
+                            <FieldLabel htmlFor="otp">Verification Code</FieldLabel>
+                            <div className="relative">
+                              <KeyRound className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                              <Input
+                                id="otp"
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                placeholder="6-digit code"
+                                autoComplete="one-time-code"
+                                value={otpCode}
+                                onChange={(e) =>
+                                  setOtpCode(e.target.value.replace(/[^0-9]/g, ''))
+                                }
+                                className="pl-9 text-center text-2xl font-bold tracking-[0.4em]"
+                              />
+                            </div>
+                          </Field>
+
+                          <Button
+                            type="button"
+                            onClick={handleVerifyOtp}
+                            className="w-full bg-gradient-to-r from-[#2563EB] to-[#3B82F6] font-medium shadow-lg shadow-[#2563EB]/25 transition-all duration-200 hover:from-[#2563EB]/90 hover:to-[#3B82F6]/90 hover:shadow-xl hover:shadow-[#2563EB]/30"
+                            disabled={isOtpLoading}
+                          >
+                            {isOtpLoading ? (
+                              <span className="flex items-center gap-2">
+                                <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                Verifying...
+                              </span>
+                            ) : (
+                              'Verify & Sign In'
+                            )}
+                          </Button>
+
+                          <div className="flex items-center justify-between pt-1">
+                            <button
+                              type="button"
+                              onClick={handleResendOtp}
+                              disabled={resendIn > 0 || isOtpLoading}
+                              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#2563EB] transition-colors hover:text-[#2563EB]/80 disabled:cursor-not-allowed disabled:text-muted-foreground/50"
+                            >
+                              <RefreshCw className="size-3.5" />
+                              {resendIn > 0
+                                ? `Resend code in ${resendIn}s`
+                                : 'Resend code'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleOtpBack}
+                              disabled={isOtpLoading}
+                              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              Back
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
                         <input type="text" name="fake_username" autoComplete="username" className="hidden" tabIndex={-1} />
                         <input type="password" name="fake_password" autoComplete="new-password" className="hidden" tabIndex={-1} />
@@ -435,6 +630,7 @@ export function LoginForm() {
                           )}
                         </Button>
                       </form>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

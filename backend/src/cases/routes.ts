@@ -53,8 +53,8 @@ router.get('/lookup/:ticketNumber', async (req: Request, res: Response) => {
     const caseRecord = await prisma.case.findFirst({
       where: { report: { ticketNumber } },
       include: {
-        report: { select: { id: true, ticketNumber: true, incidentType: true, description: true, reporterName: true, reporterEmail: true, createdAt: true } },
-        assignedInvestigator: { select: { id: true, fullName: true, email: true } },
+        report: { select: { id: true, ticketNumber: true, title: true, incidentType: true, status: true, createdAt: true } },
+        assignedInvestigator: { select: { id: true, fullName: true } },
         responses: {
           include: { author: { select: { id: true, fullName: true, role: true } } },
           orderBy: { createdAt: 'asc' },

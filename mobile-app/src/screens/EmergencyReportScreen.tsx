@@ -33,9 +33,6 @@ import { POLICE_STATIONS, PoliceStation } from '../data/policeStations';
 // Utils
 import { findNearestStation } from '../utils/stationUtils';
 
-// Types
-import { LocationData } from '../types';
-
 // Constants
 import { COLORS, SPACING, TYPOGRAPHY } from '../utils/constants';
 
@@ -61,7 +58,7 @@ const EmergencyReportScreen: React.FC = () => {
   const navigation = useNavigation();
 
   // Location & Police Station
-  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
   const [nearestStation, setNearestStation] = useState<{ station: PoliceStation; distance: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
@@ -1030,7 +1027,7 @@ const sendViaEmailAuto = async () => {
  /**
    * Modal for entering custom WhatsApp number - FIXED keyboard issue
    */
-  const WhatsApp2Modal = (): JSX.Element => (
+  const WhatsApp2Modal = (): React.JSX.Element => (
     <Modal
       visible={whatsapp2ModalVisible}
       transparent
@@ -1103,7 +1100,7 @@ const sendViaEmailAuto = async () => {
   /**
   * START <=Custom Send Options Modal - Shows all 6 send options
   */
-  const SendOptionsModal = (): JSX.Element => {
+  const SendOptionsModal = (): React.JSX.Element => {
     const stationName = nearestStation?.station.name || 'Emergency Services';
 
     return (

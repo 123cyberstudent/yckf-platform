@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: TYPOGRAPHY.fontSizes.md,
-    fontWeight: (TYPOGRAPHY.fontWeights?.medium as unknown as string) || '500',
+    fontWeight: TYPOGRAPHY.fontWeights.medium,
     color: COLORS.text.primary,
   },
   statusBadge: {
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     color: COLORS.secondary,
-    fontWeight: (TYPOGRAPHY.fontWeights?.medium as unknown as string) || '500',
+    fontWeight: TYPOGRAPHY.fontWeights.medium,
     marginLeft: 4,
   },
 
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   coordinatesText: {
     fontSize: TYPOGRAPHY.fontSizes.md,
-    fontWeight: (TYPOGRAPHY.fontWeights?.semibold as unknown as string) || '600',
+    fontWeight: TYPOGRAPHY.fontWeights.semibold,
     color: COLORS.text.primary,
     marginBottom: 2,
   },
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   captureButtonText: {
     fontSize: TYPOGRAPHY.fontSizes.md,
-    fontWeight: (TYPOGRAPHY.fontWeights?.medium as unknown as string) || '500',
+    fontWeight: TYPOGRAPHY.fontWeights.medium,
     color: COLORS.primary,
   },
 

@@ -1,6 +1,7 @@
 export const OrderType = {
   COURSE: 'COURSE',
   CREDIT_PACKAGE: 'CREDIT_PACKAGE',
+  PREMIUM_SUBSCRIPTION: 'PREMIUM_SUBSCRIPTION',
 } as const;
 export type OrderTypeValue = (typeof OrderType)[keyof typeof OrderType];
 
@@ -126,3 +127,7 @@ export const PAYMENT_EXPIRY_MINUTES = 30;
 
 export const DEFAULT_REFERRAL_REWARD_CREDITS = 50;
 export const DEFAULT_SIGNUP_BONUS_CREDITS = 25;
+
+/** YCKF Premium subscription pricing (GHS pesewas) and duration. */
+export const PREMIUM_SUBSCRIPTION_PRICE_PESEWAS = 100_00; // GHS 100.00 / year
+export const PREMIUM_SUBSCRIPTION_MONTHS = 12;

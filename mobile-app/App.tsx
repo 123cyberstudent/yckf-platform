@@ -7,7 +7,7 @@ import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { Alert, Platform, View, Text, Button } from 'react-native';
+import { Alert, Platform, View, Text, Button, DevSettings } from 'react-native';
 
 // Components and Navigation
 import AppNavigator from './src/navigation/AppNavigator';

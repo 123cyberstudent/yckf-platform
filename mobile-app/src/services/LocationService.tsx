@@ -57,18 +57,16 @@ class LocationService {
 
       const location = await Location.getCurrentPositionAsync({
         accuracy: LOCATION_CONFIG.accuracy,
-        timeout: LOCATION_CONFIG.timeout,
-        maximumAge: LOCATION_CONFIG.maximumAge,
       });
 
       const locationData: LocationData = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy,
-        altitude: location.coords.altitude,
-        altitudeAccuracy: location.coords.altitudeAccuracy,
-        heading: location.coords.heading,
-        speed: location.coords.speed,
+        accuracy: location.coords.accuracy ?? undefined,
+        altitude: location.coords.altitude ?? undefined,
+        altitudeAccuracy: location.coords.altitudeAccuracy ?? undefined,
+        heading: location.coords.heading ?? undefined,
+        speed: location.coords.speed ?? undefined,
         timestamp: location.timestamp,
       };
 
@@ -94,14 +92,14 @@ class LocationService {
       if (addresses && addresses.length > 0) {
         const address = addresses[0];
         return {
-          street: address.street,
-          city: address.city,
-          region: address.region,
-          postalCode: address.postalCode,
-          country: address.country,
-          name: address.name,
-          district: address.district,
-          subregion: address.subregion,
+          street: address.street ?? undefined,
+          city: address.city ?? undefined,
+          region: address.region ?? undefined,
+          postalCode: address.postalCode ?? undefined,
+          country: address.country ?? undefined,
+          name: address.name ?? undefined,
+          district: address.district ?? undefined,
+          subregion: address.subregion ?? undefined,
         };
       }
 
@@ -142,11 +140,11 @@ class LocationService {
           const locationData: LocationData = {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
-            accuracy: location.coords.accuracy,
-            altitude: location.coords.altitude,
-            altitudeAccuracy: location.coords.altitudeAccuracy,
-            heading: location.coords.heading,
-            speed: location.coords.speed,
+            accuracy: location.coords.accuracy ?? undefined,
+            altitude: location.coords.altitude ?? undefined,
+            altitudeAccuracy: location.coords.altitudeAccuracy ?? undefined,
+            heading: location.coords.heading ?? undefined,
+            speed: location.coords.speed ?? undefined,
             timestamp: location.timestamp,
           };
           callback(locationData);

@@ -85,10 +85,6 @@ const AboutScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        updateCellsBatchingPeriod={50}
-        initialNumToRender={10}
-        windowSize={21}
         nestedScrollEnabled={true}
         scrollEnabled={true}
       >

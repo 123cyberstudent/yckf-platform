@@ -38,15 +38,12 @@ interface CaseData {
     id: number;
     ticketNumber: string;
     incidentType: string;
-    description: string;
-    reporterName: string;
-    reporterEmail: string;
+    status: string;
     createdAt: string;
   };
   assignedInvestigator: {
     id: number;
     fullName: string;
-    email: string;
   } | null;
   responses: CaseResponse[];
 }
@@ -258,7 +255,6 @@ const CaseTrackerScreen: React.FC = () => {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.investigatorName}>{caseData.assignedInvestigator.fullName}</Text>
-                      <Text style={styles.investigatorEmail}>{caseData.assignedInvestigator.email}</Text>
                     </View>
                     <View style={styles.activeDot} />
                   </View>
@@ -389,7 +385,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   investigatorName: { fontSize: 14, fontWeight: '600', color: COLORS.text.primary },
-  investigatorEmail: { fontSize: 12, color: COLORS.text.secondary, marginTop: 2 },
   activeDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#10b981' },
 
   timeline: { paddingLeft: 4 },

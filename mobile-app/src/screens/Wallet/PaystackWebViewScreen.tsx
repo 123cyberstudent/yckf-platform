@@ -19,11 +19,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING } from '../../utils/constants';
 import OrdersService from '../../services/OrdersService';
-import { RootStackParamList } from '../../types';
+import { OrderContinueTarget, RootStackParamList } from '../../types';
 
 type Params = {
   orderNumber: string;
   authorizationUrl: string;
+  continueTo?: OrderContinueTarget;
 };
 
 const POLL_INTERVAL_MS = 3000;
@@ -34,7 +35,7 @@ const DONE_STATUSES = new Set(['FULFILLED', 'PAID', 'FAILED', 'EXPIRED', 'CANCEL
 const PaystackWebViewScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<Record<string, Params>, string>>();
-  const { orderNumber, authorizationUrl } = route.params ?? ({} as Params);
+  const { orderNumber, authorizationUrl, continueTo } = route.params ?? ({} as Params);
 
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -45,9 +46,9 @@ const PaystackWebViewScreen: React.FC = () => {
     (success: boolean, message: string) => {
       if (finishedRef.current) return;
       finishedRef.current = true;
-      navigation.navigate('OrderResult', { success, orderNumber, message });
+      navigation.navigate('OrderResult', { success, orderNumber, message, continueTo });
     },
-    [navigation, orderNumber]
+    [navigation, orderNumber, continueTo]
   );
 
   const pollOrder = useCallback(async () => {

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../shared/db.js';
 import { generateTicketNumber } from '../shared/tickets.js';
 import { sendAdminNotification, sendSenderAcknowledgement } from '../email/service.js';
+import { verifyToken, isStaff, AuthRequest } from '../auth/middleware.js';
 
 const router = Router();
 
@@ -89,7 +90,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const { status, page = '1', limit = '20' } = req.query;
     const where: any = {};
@@ -106,7 +107,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:ticketNumber', async (req: Request, res: Response) => {
+router.get('/:ticketNumber', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({ where: { ticketNumber: req.params.ticketNumber } });
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
@@ -116,7 +117,7 @@ router.get('/:ticketNumber', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id/status', async (req: Request, res: Response) => {
+router.put('/:id/status', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const { status, adminNotes, assignedVolunteerId, assignedSpecialistId } = req.body;
     const valid = ['new', 'confirmed', 'in_progress', 'completed', 'cancelled'];

@@ -14,6 +14,7 @@ import {
   Download,
   FileDown,
   Filter,
+  Loader2,
   MapPin,
   Phone,
   Play,
@@ -412,11 +413,26 @@ export default function EmergenciesPage() {
 function VoicePlayer({ url }: { url: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const toggle = () => {
+  const toggle = async () => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(url);
-      audioRef.current.onended = () => setPlaying(false);
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/emergency-reports/audio?filename=${encodeURIComponent(url)}`);
+        if (!response.ok) throw new Error('Failed to load audio');
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        audioRef.current = new Audio(objectUrl);
+        audioRef.current.onended = () => setPlaying(false);
+        audioRef.current.play();
+        setPlaying(true);
+      } catch (err) {
+        console.error('Audio playback failed:', err);
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
     if (playing) {
       audioRef.current.pause();
@@ -432,7 +448,7 @@ function VoicePlayer({ url }: { url: string }) {
       className="inline-flex items-center gap-1.5 rounded-md border border-[#2563EB]/30 bg-[#2563EB]/10 px-2 py-1 text-xs text-[#2563EB] hover:bg-[#2563EB]/20 transition-colors"
       title="Play voice recording"
     >
-      {playing ? <Pause className="size-3" /> : <Play className="size-3" />}
+      {loading ? <Loader2 className="size-3 animate-spin" /> : playing ? <Pause className="size-3" /> : <Play className="size-3" />}
       <Volume2 className="size-3" />
     </button>
   );

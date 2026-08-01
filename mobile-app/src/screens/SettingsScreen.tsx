@@ -180,6 +180,14 @@ const SettingsScreen: React.FC = () => {
   );
 };
 
+const LAYOUT_SHADOW = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.1,
+  shadowRadius: 2,
+  elevation: 1,
+};
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
@@ -232,13 +240,5 @@ const styles = StyleSheet.create({
   },
   logoutText: { fontSize: 15, fontWeight: '600', color: COLORS.error, marginLeft: 8 },
 });
-
-const LAYOUT_SHADOW = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.1,
-  shadowRadius: 2,
-  elevation: 1,
-};
 
 export default SettingsScreen;

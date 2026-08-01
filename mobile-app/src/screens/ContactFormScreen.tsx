@@ -281,10 +281,6 @@ const onSubmit = async (data: ContactForm) => {
   contentContainerStyle={{ paddingBottom: 100 }}
   keyboardShouldPersistTaps="handled"
   removeClippedSubviews={true}
-  maxToRenderPerBatch={10}
-  updateCellsBatchingPeriod={50}
-  initialNumToRender={10}
-  windowSize={21}
 >
         <View style={styles.content}>
           {/* Header */}

@@ -1,0 +1,43 @@
+// OTP Verify API Route
+import { NextResponse } from 'next/server'
+import { backendFetch, setBackendAuthCookie, setBackendRefreshCookie } from '@/lib/backend'
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const response = await backendFetch('/api/auth/otp/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    const payload = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, error: payload?.error || 'Verification failed' },
+        { status: response.status }
+      )
+    }
+
+    if (payload?.accessToken) {
+      await setBackendAuthCookie(payload.accessToken)
+    }
+    if (payload?.refreshToken) {
+      await setBackendRefreshCookie(payload.refreshToken)
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: payload?.user || payload,
+      accessToken: payload?.accessToken,
+      refreshToken: payload?.refreshToken,
+    })
+  } catch (error) {
+    console.error('OTP verify error:', error)
+    return NextResponse.json(
+      { success: false, error: 'An error occurred during verification' },
+      { status: 500 }
+    )
+  }
+}

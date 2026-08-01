@@ -49,7 +49,7 @@ const CouponRedemptionScreen: React.FC = () => {
         // Check premium access
         const access = await PremiumAccessService.checkPremiumAccess();
         
-        if (access.hasAccess && access.reason === 'coupon') {
+        if (access.premium && access.reason === 'coupon') {
           // Calculate time remaining if has coupon access
           const timeRemaining = access.expiresAt 
             ? Math.max(0, Math.floor((new Date(access.expiresAt).getTime() - Date.now()) / (1000 * 60)))

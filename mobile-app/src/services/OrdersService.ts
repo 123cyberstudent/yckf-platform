@@ -5,7 +5,7 @@
 
 import AuthService, { API_BASE_URL } from './AuthService';
 
-export type OrderType = 'COURSE' | 'CREDIT_PACKAGE';
+export type OrderType = 'COURSE' | 'CREDIT_PACKAGE' | 'PREMIUM_SUBSCRIPTION';
 
 export interface OrderItemSummary {
   productType: string;
@@ -60,7 +60,7 @@ class OrdersService {
 
   async createOrder(input: {
     orderType: OrderType;
-    productId: number;
+    productId?: number;
     promoCode?: string;
     payWithCredits?: boolean;
   }): Promise<OrderSummary> {

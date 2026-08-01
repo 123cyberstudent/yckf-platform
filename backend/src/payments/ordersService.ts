@@ -10,6 +10,8 @@ import {
   PAYMENT_EXPIRY_MINUTES,
   PaystackChannels,
   PaymentStatus,
+  PREMIUM_SUBSCRIPTION_MONTHS,
+  PREMIUM_SUBSCRIPTION_PRICE_PESEWAS,
   PromoCodeType,
   ReferralStatus,
   WalletTransactionType,
@@ -22,7 +24,7 @@ import { initializeTransaction, verifyTransaction } from './paystack.js';
 export interface CreateOrderInput {
   userId: number;
   orderType: (typeof OrderType)[keyof typeof OrderType];
-  productId: number;
+  productId?: number;
   promoCode?: string;
   payWithCredits?: boolean;
 }
@@ -120,8 +122,20 @@ async function isFirstPurchase(userId: number): Promise<boolean> {
 
 export async function createOrder(input: CreateOrderInput): Promise<OrderSummary> {
   let product: { id: number; name: string; unitPrice: number; creditPrice: number };
+  let metadata: { payWithCredits: boolean } | { subscriptionMonths: number } = { payWithCredits: Boolean(input.payWithCredits) };
 
-  if (input.orderType === OrderType.COURSE) {
+  if (input.orderType === OrderType.PREMIUM_SUBSCRIPTION) {
+    if (input.payWithCredits) {
+      throw new PaymentError(PaymentErrorCode.INVALID_REQUEST, 'Premium subscription must be paid with money');
+    }
+    product = {
+      id: 0,
+      name: 'YCKF Premium Subscription (1 Year)',
+      unitPrice: PREMIUM_SUBSCRIPTION_PRICE_PESEWAS,
+      creditPrice: 0,
+    };
+    metadata = { subscriptionMonths: PREMIUM_SUBSCRIPTION_MONTHS };
+  } else if (input.orderType === OrderType.COURSE) {
     const course = await prisma.course.findUnique({ where: { id: input.productId } });
     if (!course || !course.active) {
       throw new PaymentError(PaymentErrorCode.NOT_FOUND, 'Course not found', 404);
@@ -146,15 +160,18 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderSummary
   }
 
   const subtotal = product.unitPrice;
-  const discount: DiscountResult = subtotal > 0
-    ? await resolveDiscountForQuote(input.promoCode, {
-        userId: input.userId,
-        orderType: input.orderType,
-        subtotal,
-        productIds: [input.productId],
-        isFirstPurchase: await isFirstPurchase(input.userId),
-      })
-    : emptyDiscount();
+  // Premium subscriptions are fixed-price (no promos / referral discounts).
+  const discount: DiscountResult = input.orderType === OrderType.PREMIUM_SUBSCRIPTION
+    ? emptyDiscount()
+    : subtotal > 0
+      ? await resolveDiscountForQuote(input.promoCode, {
+          userId: input.userId,
+          orderType: input.orderType,
+          subtotal,
+          productIds: [input.productId!],
+          isFirstPurchase: await isFirstPurchase(input.userId),
+        })
+      : emptyDiscount();
 
   const total = Math.max(0, subtotal - discount.discountAmount);
   const now = new Date();
@@ -174,7 +191,7 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderSummary
       appliedPromotionId: discount.promotionId,
       appliedPromoCodeId: discount.promoCodeId,
       expiresAt,
-      metadata: { payWithCredits: Boolean(input.payWithCredits) },
+      metadata,
       items: {
         create: [{
           productType: input.orderType,

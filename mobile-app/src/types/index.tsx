@@ -26,14 +26,35 @@ export type RootStackParamList = {
   PaystackWebView: {
     orderNumber: string;
     authorizationUrl: string;
+    continueTo?: OrderContinueTarget;
   };
   OrderResult: {
     success: boolean;
     orderNumber: string;
     message: string;
+    continueTo?: OrderContinueTarget;
   };
   MyOrders: undefined;
 };
+
+/**
+ * Destination to hand off to after a successful payment. Used by the premium
+ * subscription checkout so a booking (BookSession) or the home tab (Root) can
+ * resume exactly where the user left off.
+ */
+export type OrderContinueTarget =
+  | {
+      screen: 'BookSession';
+      params: {
+        specialist: Specialist;
+        paymentReference: string;
+        paymentMethod: string;
+      };
+    }
+  | {
+      screen: 'Root';
+      params?: undefined;
+    };
 
 // Report from backend
 export interface Report {

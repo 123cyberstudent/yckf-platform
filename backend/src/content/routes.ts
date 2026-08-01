@@ -64,8 +64,8 @@ const DEFAULT_CONTENT: Record<string, { title: string; content: object }> = {
         description: 'Whether you are reporting cybercrime, seeking cybersecurity advice, or looking to partner with us – reach out today.',
       },
       phone: {
-        numbers: ['+254 700 123 456', '+254 700 789 012'],
-        availability: 'Mon\u2013Fri, 8 AM \u2013 6 PM (EAT)',
+        numbers: ['+233505313578', '+233553141199'],
+        availability: 'Mon\u2013Fri, 8 AM \u2013 6 PM (GMT)',
       },
       email: {
         general: 'info@youngcyberknightsfoundation.org',
@@ -74,8 +74,8 @@ const DEFAULT_CONTENT: Record<string, { title: string; content: object }> = {
       },
       address: {
         organization: 'Young Cyber Knights Foundation',
-        poBox: 'P.O. Box 12345-00100',
-        city: 'Nairobi, Kenya',
+        poBox: 'P.O. Box',
+        city: 'Accra, Ghana',
       },
       social: {
         linkedin: 'linkedin.com/company/youngcyberknights',

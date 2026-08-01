@@ -10,17 +10,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, LAYOUT } from '../../utils/constants';
 import Button from '../../components/common/Button';
+import { OrderContinueTarget } from '../../types';
 
 type Params = {
   success: boolean;
   orderNumber: string;
   message: string;
+  continueTo?: OrderContinueTarget;
 };
 
 const OrderResultScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<Record<string, Params>, string>>();
-  const { success, orderNumber, message } = route.params ?? ({} as Params);
+  const { success, orderNumber, message, continueTo } = route.params ?? ({} as Params);
+
+  const handleContinue = () => {
+    if (!continueTo) return;
+    (navigation as any).navigate(continueTo.screen, continueTo.params);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -48,18 +55,18 @@ const OrderResultScreen: React.FC = () => {
 
         <Text style={styles.note}>
           {success
-            ? 'Credits and course access are applied automatically and may take a moment to appear.'
+            ? continueTo
+              ? 'Your Premium subscription is now active on this account.'
+              : 'Credits and course access are applied automatically and may take a moment to appear.'
             : 'You can review your orders or try again from the checkout.'}
         </Text>
 
         <Button
-          title="View My Orders"
-          onPress={() => {
-            navigation.navigate('MyOrders' as never);
-          }}
+          title={continueTo && success ? 'Continue' : 'View My Orders'}
+          onPress={continueTo && success ? handleContinue : () => navigation.navigate('MyOrders' as never)}
           size="large"
           fullWidth
-          icon="receipt"
+          icon={continueTo && success ? 'arrow-forward' : 'receipt'}
           style={styles.primaryButton}
         />
         <Button

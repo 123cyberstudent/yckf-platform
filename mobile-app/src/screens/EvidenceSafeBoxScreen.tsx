@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18, // Further reduced from 20
-    fontWeight: TYPOGRAPHY.fontWeights.bold as any,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
     color: COLORS.text.primary,
     marginTop: SPACING.xs,
     marginBottom: SPACING.xs / 2,
@@ -505,7 +505,6 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSizes.xs,
     color: COLORS.text.secondary,
     textAlign: 'center',
-    numberOfLines: 2, // Allow text wrapping
   },
 
   // Footer - Improved spacing

@@ -46,9 +46,27 @@ const LoginScreen: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
 
+  // OTP (verification code) states
+  const [otpState, setOtpState] = useState<{
+    challengeId: number;
+    delivery: string[];
+    maskedEmail?: string;
+    maskedPhone?: string | null;
+    devCode?: string;
+  } | null>(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [isOtpLoading, setIsOtpLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
   useEffect(() => {
     loadLastUser();
   }, []);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setInterval(() => setResendIn((s) => (s <= 1 ? 0 : s - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [resendIn]);
 
   const loadLastUser = async () => {
     try {
@@ -67,7 +85,7 @@ const LoginScreen: React.FC = () => {
 const handleLogin = async () => {
   // Validate inputs
   if (!email.trim()) {
-    Alert.alert('Error', 'Please enter your email');
+    Alert.alert('Error', 'Please enter your email or phone number');
     return;
   }
 
@@ -76,13 +94,28 @@ const handleLogin = async () => {
     return;
   }
 
-  // ⭐ NEW: Normalize email (lowercase and trim)
-  const normalizedEmail = email.trim().toLowerCase();
-
   setIsLoading(true);
 
   try {
-    const result = await AuthService.login(normalizedEmail, password);
+    const result = await AuthService.login(email.trim(), password);
+
+      if (result.requiresOtp && result.challengeId) {
+        setOtpState({
+          challengeId: result.challengeId,
+          delivery: result.delivery || [],
+          maskedEmail: result.maskedEmail,
+          maskedPhone: result.maskedPhone,
+          devCode: result.devCode,
+        });
+        setOtpCode('');
+        setResendIn(result.resendAfter || 60);
+        Alert.alert(
+          'Verification Code Sent',
+          `We've sent a 6-digit code to ${result.maskedEmail || 'your email'}. Enter it to complete login.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
 
       if (result.success) {
         Alert.alert(
@@ -109,7 +142,7 @@ const handleLogin = async () => {
         if (errorMsg.toLowerCase().includes('invalid credentials')) {
           Alert.alert(
             'Login Failed',
-            'The email or password you entered is incorrect. Please try again.',
+            'The email, phone or password you entered is incorrect. Please try again.',
             [{ text: 'OK' }]
           );
         } else {
@@ -126,6 +159,71 @@ const handleLogin = async () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ============================================
+  // OTP (VERIFICATION CODE) HANDLERS
+  // ============================================
+
+  const handleVerifyOtp = async () => {
+    if (!otpState) return;
+    if (!otpCode.trim()) {
+      Alert.alert('Error', 'Please enter the 6-digit code');
+      return;
+    }
+
+    setIsOtpLoading(true);
+    try {
+      const result = await AuthService.verifyOtp(otpState.challengeId, otpCode);
+      if (result.success) {
+        setOtpState(null);
+        Alert.alert(
+          'Welcome Back! 👋',
+          `Hello ${result.user?.name || 'User'}!`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Root' as never }],
+                });
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Verification Failed', result.error || 'Invalid code. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!otpState || resendIn > 0) return;
+    setIsOtpLoading(true);
+    try {
+      const result = await AuthService.resendOtp(otpState.challengeId);
+      if (result.success) {
+        if (result.devCode) setOtpCode(result.devCode);
+        setResendIn(result.resendAfter || 60);
+        Alert.alert('Code Resent', 'A new verification code has been sent.');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to resend code. Please try again later.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsOtpLoading(false);
+    }
+  };
+
+  const cancelOtp = () => {
+    setOtpState(null);
+    setOtpCode('');
   };
   // ============================================
   // FORGOT PASSWORD HANDLERS
@@ -520,9 +618,9 @@ const handleResetPassword = async () => {
 
             {/* Form */}
             <View style={styles.formContainer}>
-              {/* Email Input */}
+              {/* Email / Phone Input */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email Address</Text>
+                <Text style={styles.inputLabel}>Email or Phone Number</Text>
                 <View style={styles.inputWrapper}>
                   <Ionicons
                     name="mail"
@@ -532,7 +630,7 @@ const handleResetPassword = async () => {
                   />
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter your email"
+                    placeholder="Enter your email or phone"
                     placeholderTextColor="rgba(255, 255, 255, 0.5)"
                     value={email}
                     onChangeText={setEmail}
@@ -610,6 +708,55 @@ const handleResetPassword = async () => {
                 )}
               </TouchableOpacity>
 
+              {/* OTP Verification Step */}
+              {otpState && (
+                <View style={styles.otpCard}>
+                  <Text style={styles.otpTitle}>Enter Verification Code</Text>
+                  <Text style={styles.otpSubtitle}>
+                    Enter the 6-digit code sent to {otpState.maskedEmail || otpState.maskedPhone || 'your email'}.
+                  </Text>
+                  <TextInput
+                    style={styles.otpInput}
+                    placeholder="6-digit code"
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={!isOtpLoading}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.loginButton,
+                      isOtpLoading && styles.loginButtonDisabled,
+                    ]}
+                    onPress={handleVerifyOtp}
+                    disabled={isOtpLoading}
+                  >
+                    {isOtpLoading ? (
+                      <ActivityIndicator color={COLORS.primary} size="small" />
+                    ) : (
+                      <Text style={styles.loginButtonText}>Verify & Login</Text>
+                    )}
+                  </TouchableOpacity>
+                  <View style={styles.otpRow}>
+                    <TouchableOpacity
+                      onPress={handleResendOtp}
+                      disabled={resendIn > 0 || isOtpLoading}
+                    >
+                      <Text style={styles.otpResend}>
+                        {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={cancelOtp} disabled={isOtpLoading}>
+                      <Text style={styles.otpCancel}>Back</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {!otpState && (
+              <>
               {/* Divider */}
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
@@ -624,8 +771,8 @@ const handleResetPassword = async () => {
                   <TouchableOpacity
                     style={styles.quickLoginButton}
                     onPress={() => {
-                      setEmail('yckfadmin@youngcyberknightsfoundation.org');
-                      setPassword('admin@123');
+                      setEmail('mypracticalworks@gmail.com');
+                      setPassword('SecureSuperAdmin@2026');
                     }}
                     disabled={isLoading}
                   >
@@ -635,8 +782,8 @@ const handleResetPassword = async () => {
                   <TouchableOpacity
                     style={[styles.quickLoginButton, styles.quickLoginButtonUser]}
                     onPress={() => {
-                      setEmail('user@youngcyberknightsfoundation.org');
-                      setPassword('user@123');
+                      setEmail('user@yckf.org');
+                      setPassword('SecureUser@2026');
                     }}
                     disabled={isLoading}
                   >
@@ -655,6 +802,8 @@ const handleResetPassword = async () => {
                   <Text style={styles.registerLink}>Sign Up</Text>
                 </TouchableOpacity>
               </View>
+              </>
+              )}
             </View>
           </ScrollView>
         </LinearGradient>
@@ -823,6 +972,59 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary,
     marginRight: SPACING.xs,
+  },
+  otpCard: {
+    marginTop: SPACING.lg,
+    padding: SPACING.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  otpTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: SPACING.xs,
+  },
+  otpSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+    lineHeight: 18,
+  },
+  otpInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 12,
+    paddingHorizontal: SPACING.md,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 6,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+  },
+  otpRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: SPACING.md,
+  },
+  otpResend: {
+    fontSize: 13,
+    color: '#fff',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  otpCancel: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '600',
   },
   divider: {
     flexDirection: 'row',

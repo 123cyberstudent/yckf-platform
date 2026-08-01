@@ -38,11 +38,18 @@ export async function sendEmail(payload: EmailPayload): Promise<{ success: boole
     if (smtpHost && smtpUser && smtpPass) {
       const nodemailer = await import('nodemailer').catch(() => null);
       if (nodemailer) {
+        const secureEnv = process.env.SMTP_SECURE;
+        const secure = secureEnv !== undefined
+          ? secureEnv === 'true' || secureEnv === '1'
+          : smtpPort === 465;
         transporter = nodemailer.default.createTransport({
           host: smtpHost,
           port: smtpPort,
-          secure: smtpPort === 465,
+          secure,
           auth: { user: smtpUser, pass: smtpPass },
+          connectionTimeout: 15000,
+          greetingTimeout: 15000,
+          socketTimeout: 30000,
         });
       }
     }
@@ -143,6 +150,35 @@ export async function sendSenderAcknowledgement(options: {
       </div>
     `,
   });
+}
+
+export async function sendOtpEmail(recipientEmail: string, code: string, purpose = 'login'): Promise<{ success: boolean }> {
+  const subject = purpose === 'login' ? 'Your YCKF login code' : 'Your YCKF verification code';
+  const result = await sendEmail({
+    ticketNumber: `otp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    reportType: 'otp',
+    recipientEmail,
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #2563EB; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 20px;">Young Cyber Knights Foundation</h1>
+          <p style="margin: 8px 0 0 0; opacity: 0.9;">${subject}</p>
+        </div>
+        <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
+          <p>Your security code is:</p>
+          <div style="background: white; padding: 18px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 15px 0; text-align: center;">
+            <span style="font-size: 30px; font-weight: bold; letter-spacing: 6px; color: #2563EB;">${code}</span>
+          </div>
+          <p>This code expires in <strong>10 minutes</strong>. If you did not attempt to ${purpose === 'login' ? 'log in' : 'verify your account'}, please ignore this email and secure your account.</p>
+          <p style="font-size: 12px; color: #94a3b8;">Never share this code with anyone. YCKF will never ask for your password or codes by phone or email.</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #94a3b8;">Young Cyber Knights Foundation | Cybersecurity & Digital Safety</p>
+        </div>
+      </div>
+    `,
+  });
+  return result;
 }
 
 export { ADMIN_EMAIL, DEV_EMAIL };

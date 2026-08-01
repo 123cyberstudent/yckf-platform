@@ -32,6 +32,13 @@ export async function POST(request: Request) {
       data: payload?.user || payload,
       accessToken: payload?.accessToken,
       refreshToken: payload?.refreshToken,
+      requiresOtp: payload?.requiresOtp,
+      challengeId: payload?.challengeId,
+      delivery: payload?.delivery,
+      maskedEmail: payload?.maskedEmail,
+      maskedPhone: payload?.maskedPhone,
+      resendAfter: payload?.resendAfter,
+      devCode: payload?.devCode,
     })
   } catch (error) {
     console.error('Login error:', error)

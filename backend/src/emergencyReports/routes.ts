@@ -5,6 +5,7 @@ import { prisma } from '../shared/db.js';
 import { generateTicketNumber } from '../shared/tickets.js';
 import { sendAdminNotification, sendSenderAcknowledgement } from '../email/service.js';
 import { computeHash, generateFilename, saveFile, getUploadPath } from '../shared/file.js';
+import { verifyToken, isStaff, AuthRequest } from '../auth/middleware.js';
 
 const router = Router();
 const upload = multer({
@@ -115,7 +116,7 @@ router.post('/', upload.single('audio'), async (req: Request, res: Response) => 
   }
 });
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const { status, page = '1', limit = '20' } = req.query;
     const where: any = {};
@@ -132,7 +133,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:ticketNumber', async (req: Request, res: Response) => {
+router.get('/:ticketNumber', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const report = await prisma.emergencyReport.findUnique({ where: { ticketNumber: req.params.ticketNumber } });
     if (!report) return res.status(404).json({ error: 'Report not found' });
@@ -142,7 +143,7 @@ router.get('/:ticketNumber', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id/status', async (req: Request, res: Response) => {
+router.put('/:id/status', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const { status } = req.body;
     const valid = ['new', 'under_review', 'assigned', 'in_progress', 'resolved', 'closed'];
@@ -154,7 +155,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/audio/:filename', async (req: Request, res: Response) => {
+router.get('/audio/:filename', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const filePath = getUploadPath(req.params.filename);
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Audio file not found' });

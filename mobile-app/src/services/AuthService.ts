@@ -24,7 +24,7 @@ export interface User {
   name: string;
   fullName?: string;
   phoneNumber?: string;
-  role: 'admin' | 'volunteer' | 'user';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'INVESTIGATOR' | 'VOLUNTEER' | 'USER';
   profileImage?: string;
 }
 
@@ -34,6 +34,13 @@ export interface AuthResponse {
   user?: User;
   error?: string;
   message?: string;
+  requiresOtp?: boolean;
+  challengeId?: number;
+  delivery?: string[];
+  maskedEmail?: string;
+  maskedPhone?: string | null;
+  resendAfter?: number;
+  devCode?: string;
 }
 
 // ============================================
@@ -171,7 +178,8 @@ class AuthService {
       headers: {
         'Content-Type': 'application/json',
       },
-body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNumber, platform: 'MOBILE' }),   
+      body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phone: phoneNumber, platform: 'MOBILE' }),   
+ 
  });
 
       const data = await response.json();
@@ -223,21 +231,35 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
   }
 
   /**
-   * Login user
+   * Step 1 of login: email/phone + password. Returns an OTP challenge.
    */
-  async login(email: string, password: string): Promise<AuthResponse> {
+  async login(identifier: string, password: string): Promise<AuthResponse> {
   try {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedIdentifier = identifier.trim().toLowerCase();
 
     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email: normalizedEmail, password, platform: 'MOBILE' }),
+      body: JSON.stringify({ identifier: normalizedIdentifier, password, platform: 'MOBILE' }),
     });
 
       const data = await response.json();
+
+      if (data.requiresOtp) {
+        return {
+          success: false,
+          requiresOtp: true,
+          challengeId: data.challengeId,
+          delivery: data.delivery,
+          maskedEmail: data.maskedEmail,
+          maskedPhone: data.maskedPhone,
+          resendAfter: data.resendAfter,
+          devCode: data.devCode,
+          message: data.message || 'A verification code has been sent.',
+        };
+      }
 
       if (response.ok && (data.accessToken || data.token)) {
         const authToken = data.accessToken || data.token;
@@ -251,7 +273,7 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
 
         await AsyncStorage.setItem('lastUser', JSON.stringify({
           name: user.name,
-          email: normalizedEmail,
+          email: normalizedIdentifier,
           profileImage: user.profileImage,
         }));
 
@@ -277,6 +299,77 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
         success: false,
         error: 'Network error. Please check your connection.',
       };
+    }
+  }
+
+  /**
+   * Step 2 of login: verify the OTP code and receive tokens.
+   */
+  async verifyOtp(challengeId: number, code: string): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId, code: code.trim(), platform: 'MOBILE' }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && (data.accessToken || data.token)) {
+        const authToken = data.accessToken || data.token;
+        const user = data.user ? {
+          ...data.user,
+          name: data.user.fullName || data.user.name,
+        } : data.user;
+
+        await AsyncStorage.setItem('auth_token', authToken);
+        await AsyncStorage.setItem('user_data', JSON.stringify(user));
+        await AsyncStorage.setItem('lastUser', JSON.stringify({
+          name: user.name,
+          email: user.email,
+          profileImage: user.profileImage,
+        }));
+
+        this.authToken = authToken;
+        this.currentUser = user;
+        this.startInactivityMonitoring();
+
+        return { success: true, token: authToken, user };
+      }
+
+      return { success: false, error: data.error || 'Invalid verification code' };
+    } catch (error) {
+      console.error('OTP verify error:', error);
+      return { success: false, error: 'Network error. Please check your connection.' };
+    }
+  }
+
+  /**
+   * Resend the OTP code for a pending challenge.
+   */
+  async resendOtp(challengeId: number): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/otp/resend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return {
+          success: true,
+          devCode: data.devCode,
+          resendAfter: data.resendAfter,
+          message: data.message || 'A new code has been sent.',
+        };
+      }
+
+      return { success: false, error: data.error || 'Failed to resend code' };
+    } catch (error) {
+      console.error('OTP resend error:', error);
+      return { success: false, error: 'Network error. Please check your connection.' };
     }
   }
 
@@ -535,7 +628,7 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
   }
    async isAdmin(): Promise<boolean> {
     const user = await this.getCurrentUser();
-    return user?.role === 'admin' || user?.role === 'volunteer';
+    return user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'VOLUNTEER';
   }
 
   async refreshUser(): Promise<User | null> {
@@ -602,7 +695,7 @@ body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phoneNu
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Account Type:</span>
-                  <span class="detail-value">${userData.role === 'admin' ? 'Administrator' : 'Standard User'}</span>
+                  <span class="detail-value">${['ADMIN', 'SUPER_ADMIN'].includes(userData.role) ? 'Administrator' : 'Standard User'}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Registration Date:</span>

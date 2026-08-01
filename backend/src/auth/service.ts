@@ -1,9 +1,12 @@
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import type { Secret, SignOptions } from 'jsonwebtoken';
-import { Prisma, type User as PrismaUser } from '@prisma/client';
+import type { Prisma, User as PrismaUser } from '@prisma/client';
 import { prisma } from '../shared/db.js';
 import { createNotification } from '../notifications/service.js';
+import { hashPassword, verifyPassword } from './password.js';
+import { normalizePhone } from '../shared/phone.js';
+import { createLoginChallenge, resendLoginOtp, verifyLoginOtp, OtpDeliveryError } from './otpService.js';
 import {
   disableTwoFactor,
   enableTwoFactor,
@@ -52,7 +55,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-do-not-use-in-produ
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev-refresh-secret-do-not-use-in-production';
 const ACCESS_TOKEN_EXPIRES = process.env.ACCESS_TOKEN_EXPIRES || '1h';
 const REFRESH_TOKEN_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES || '7d';
-const SALT_ROUNDS = 10;
 const MAX_LOGIN_ATTEMPTS = 5;
 const SUSPEND_LOGIN_ATTEMPTS = 10;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
@@ -91,16 +93,41 @@ function isPasswordStrong(password: string) {
   return PASSWORD_COMPLEXITY_REGEX.test(password);
 }
 
-export async function registerUser({ email, password, fullName, platform = 'WEB' }: { email: string; password: string; fullName: string; platform?: string }) {
+export async function registerUser({
+  email,
+  password,
+  fullName,
+  phone,
+  platform = 'WEB',
+}: {
+  email: string;
+  password: string;
+  fullName: string;
+  phone?: string;
+  platform?: string;
+}) {
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     throw new Error('Email already in use');
   }
 
-  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  let normalizedPhone: string | null = null;
+  if (phone) {
+    normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      throw new Error('A valid phone number is required');
+    }
+    const phoneOwner = await prisma.user.findUnique({ where: { phone: normalizedPhone } });
+    if (phoneOwner) {
+      throw new Error('Phone number already in use');
+    }
+  }
+
+  const passwordHash = await hashPassword(password);
   return prisma.user.create({
     data: {
       email,
+      phone: normalizedPhone,
       passwordHash,
       fullName,
       role: 'USER',
@@ -112,7 +139,64 @@ export async function registerUser({ email, password, fullName, platform = 'WEB'
   });
 }
 
+async function resolveUserByIdentifier(identifier: string) {
+  const email = identifier.trim().toLowerCase();
+  const byEmail = await prisma.user.findUnique({ where: { email } });
+  if (byEmail) return byEmail;
+  const phone = normalizePhone(identifier);
+  if (phone) return prisma.user.findUnique({ where: { phone } });
+  return null;
+}
+
+async function completeLogin(
+  user: PrismaUser,
+  opts: { ipAddress?: string; userAgent?: string; deviceInfo?: string; platform?: string; email?: string }
+) {
+  const ip = opts.ipAddress || 'unknown';
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      lastLogin: new Date(),
+      failedLoginAttempts: 0,
+      lockoutUntil: null,
+      ...(opts.platform && { platform: opts.platform === 'MOBILE' ? 'MOBILE' : user.platform }),
+      suspendedUntil: null,
+    },
+  });
+
+  const accessToken = generateAccessToken(user.id, user.role, user.email, user.twoFactorEnabled);
+  const refreshToken = await createRefreshToken(user.id);
+
+  await logLoginAttempt({ email: opts.email || user.email, userId: user.id, success: true, ipAddress: ip, userAgent: opts.userAgent, deviceInfo: opts.deviceInfo });
+
+  return { user, accessToken, refreshToken, requiresTwoFactor: false };
+}
+
+export type LoginResult =
+  | {
+      requiresOtp: true;
+      challengeId: number;
+      delivery: string[];
+      maskedEmail: string;
+      maskedPhone: string | null;
+      resendAfter: number;
+      devCode?: string;
+      message: string;
+    }
+  | {
+      requiresTwoFactor: true;
+      user: { id: number; email: string; fullName: string; role: string };
+    }
+  | {
+      user: { id: number; email: string; phone: string | null; fullName: string; role: string; isActive: boolean };
+      accessToken: string;
+      refreshToken: string;
+      rememberDeviceToken?: string;
+      requiresTwoFactor: false;
+    };
+
 export async function loginUser({
+  identifier,
   email,
   password,
   twoFactorToken,
@@ -124,7 +208,8 @@ export async function loginUser({
   deviceInfo,
   platform,
 }: {
-  email: string;
+  identifier?: string;
+  email?: string;
   password: string;
   twoFactorToken?: string;
   backupCode?: string;
@@ -134,30 +219,41 @@ export async function loginUser({
   userAgent?: string;
   deviceInfo?: string;
   platform?: string;
-}) {
+}): Promise<LoginResult> {
   const ip = ipAddress || 'unknown';
-  const user = await prisma.user.findUnique({ where: { email } });
+  const idValue = (identifier || email || '').trim();
+  if (!idValue) {
+    throw new Error('An email or phone number is required');
+  }
+
+  const user = await resolveUserByIdentifier(idValue);
   if (!user || !user.isActive) {
-    await logLoginAttempt({ email, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid credentials' });
+    await logLoginAttempt({ email: idValue, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid credentials' });
     throw new Error('Invalid credentials');
   }
 
   const now = new Date();
   if (user.suspendedUntil && user.suspendedUntil > now) {
-    await logLoginAttempt({ email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Account suspended' });
+    await logLoginAttempt({ email: user.email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Account suspended' });
     throw new Error('Account temporarily suspended. Please contact support.');
   }
 
   if (user.lockoutUntil && user.lockoutUntil > now) {
-    await logLoginAttempt({ email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Account locked' });
+    await logLoginAttempt({ email: user.email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Account locked' });
     throw new Error('Account locked due to multiple failed login attempts. Try again later.');
   }
 
-  const validPassword = await bcrypt.compare(password, user.passwordHash);
-  if (!validPassword) {
+  const { valid, needsRehash } = await verifyPassword(password, user.passwordHash);
+  if (!valid) {
     await applyLoginFailure(user.id, user.failedLoginAttempts + 1, user.email);
-    await logLoginAttempt({ email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid password' });
+    await logLoginAttempt({ email: user.email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid password' });
     throw new Error('Invalid credentials');
+  }
+  if (needsRehash) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await hashPassword(password) },
+    });
   }
 
   const has2FA = user.twoFactorEnabled;
@@ -177,37 +273,91 @@ export async function loginUser({
       const backupValid = backupCode ? await verifyBackupCode(user.id, backupCode) : false;
       if (!totpValid && !backupValid) {
         await applyLoginFailure(user.id, user.failedLoginAttempts + 1, user.email);
-        await logLoginAttempt({ email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid 2FA code' });
+        await logLoginAttempt({ email: user.email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid 2FA code' });
         throw new Error('Invalid two-factor authentication code');
       }
       if (rememberDeviceFlag) {
         deviceToken = await rememberDevice(user.id);
       }
     }
+    const result = await completeLogin(user, { ipAddress: ip, userAgent, deviceInfo, platform, email: user.email });
+    return { ...result, rememberDeviceToken: deviceToken };
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      lastLogin: new Date(),
-      failedLoginAttempts: 0,
-      lockoutUntil: null,
-      ...(platform && { platform: platform === 'MOBILE' ? 'MOBILE' : user.platform }),
-      suspendedUntil: null,
-    },
-  });
-
-  const accessToken = generateAccessToken(user.id, user.role, user.email, has2FA);
-  const refreshToken = await createRefreshToken(user.id);
-
-  await logLoginAttempt({ email, userId: user.id, success: true, ipAddress: ip, userAgent, deviceInfo });
-
+  const otp = await createLoginChallenge(user, ip);
   return {
-    user,
-    accessToken,
-    refreshToken,
-    rememberDeviceToken: deviceToken,
-    requiresTwoFactor: false,
+    requiresOtp: true,
+    challengeId: otp.challengeId,
+    delivery: otp.channels.map((channel) => channel.toLowerCase()),
+    maskedEmail: otp.maskedEmail,
+    maskedPhone: otp.maskedPhone,
+    resendAfter: otp.resendAfter,
+    ...(otp.devCode ? { devCode: otp.devCode } : {}),
+    message: 'A verification code has been sent.',
+  };
+}
+
+export async function verifyOtpLogin({
+  challengeId,
+  code,
+  ipAddress,
+  userAgent,
+  deviceInfo,
+  platform,
+}: {
+  challengeId: number;
+  code: string;
+  ipAddress?: string;
+  userAgent?: string;
+  deviceInfo?: string;
+  platform?: string;
+}) {
+  const ip = ipAddress || 'unknown';
+  const result = await verifyLoginOtp(challengeId, code.trim());
+
+  if (!result.valid) {
+    const reasonMessages: Record<string, string> = {
+      not_found: 'Invalid verification code',
+      expired: 'Verification code has expired. Please request a new code.',
+      used: 'Verification code has already been used.',
+      too_many_attempts: 'Too many incorrect attempts. Please request a new code.',
+      invalid_code: 'Invalid verification code',
+    };
+    const reason = reasonMessages[result.reason] || 'Invalid verification code';
+    if (result.userId) {
+      const user = await prisma.user.findUnique({ where: { id: result.userId } });
+      if (user) {
+        await applyLoginFailure(user.id, user.failedLoginAttempts + 1, user.email);
+        await logLoginAttempt({ email: user.email, userId: user.id, success: false, ipAddress: ip, userAgent, deviceInfo, failureReason: 'Invalid OTP' });
+      }
+    }
+    throw new Error(reason);
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: result.user.id } });
+  if (!user || !user.isActive) {
+    throw new Error('Invalid credentials');
+  }
+
+  const completed = await completeLogin(user, { ipAddress: ip, userAgent, deviceInfo, platform, email: user.email });
+  return completed;
+}
+
+export async function resendOtpCode(challengeId: number) {
+  const result = await resendLoginOtp(challengeId);
+  if (!result.ok) {
+    if (result.reason === 'cooldown') {
+      throw new Error(`Please wait ${result.retryAfter ?? 60} seconds before requesting a new code.`);
+    }
+    if (result.reason === 'delivery_failed') {
+      throw new OtpDeliveryError('Unable to deliver a new verification code. Please try again.');
+    }
+    throw new Error('This verification code is no longer valid. Please log in again.');
+  }
+  return {
+    resendAfter: result.resendAfter,
+    ...(result.devCode ? { devCode: result.devCode } : {}),
+    message: 'A new verification code has been sent.',
   };
 }
 
@@ -225,12 +375,12 @@ export async function changePassword(userId: number, currentPassword: string, ne
     throw new Error('User not found');
   }
 
-  const validPassword = await bcrypt.compare(currentPassword, user.passwordHash);
-  if (!validPassword) {
+  const validPassword = await verifyPassword(currentPassword, user.passwordHash);
+  if (!validPassword.valid) {
     throw new Error('Current password is incorrect');
   }
 
-  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  const passwordHash = await hashPassword(newPassword);
   await prisma.user.update({
     where: { id: userId },
     data: {
@@ -292,7 +442,7 @@ export async function resetPasswordWithCode(email: string, code: string, newPass
     throw new Error('User not found');
   }
 
-  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  const passwordHash = await hashPassword(newPassword);
   await prisma.user.update({
     where: { id: user.id },
     data: {
@@ -323,7 +473,11 @@ function generateAccessToken(userId: number, role: string, email: string, twoFac
 }
 
 async function createRefreshToken(userId: number) {
-  const token = jwt.sign({ sub: userId, type: 'refresh' }, REFRESH_TOKEN_SECRET as Secret, { expiresIn: REFRESH_TOKEN_EXPIRES } as SignOptions);
+  const token = jwt.sign(
+    { sub: userId, type: 'refresh', jti: crypto.randomUUID() },
+    REFRESH_TOKEN_SECRET as Secret,
+    { expiresIn: REFRESH_TOKEN_EXPIRES } as SignOptions
+  );
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   await prisma.refreshToken.create({ data: { token, userId, expiresAt } });
   return token;
@@ -367,6 +521,8 @@ export async function getCurrentUser(userId: number) {
     select: {
       id: true,
       email: true,
+      phone: true,
+      phoneVerified: true,
       fullName: true,
       role: true,
       isActive: true,

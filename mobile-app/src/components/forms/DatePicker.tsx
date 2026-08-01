@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Modal,
   Platform,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,7 +73,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const getInputContainerStyle = () => {
-    const baseStyle = [styles.inputContainer];
+    const baseStyle: StyleProp<ViewStyle>[] = [styles.inputContainer];
 
     if (error) {
       baseStyle.push(styles.error);

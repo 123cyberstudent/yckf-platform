@@ -205,7 +205,7 @@ router.post('/', async (req: Request, res: Response) => {
               promoCodes: {
                 create: codes.map((code) => ({
                   code,
-                  normalizedCode: code.toLowerCase(),
+                  normalizedCode: code,
                   type: 'PROMO',
                   status: 'ACTIVE',
                 })),
@@ -320,7 +320,7 @@ router.post('/:id/codes', async (req: Request, res: Response) => {
     if (!codes.length) return res.status(400).json({ error: 'codes must be a non-empty array of strings' });
 
     const dup = await prisma.promoCode.findMany({
-      where: { normalizedCode: { in: codes.map((c) => c.toLowerCase()) } },
+      where: { normalizedCode: { in: codes } },
       select: { normalizedCode: true },
     });
     if (dup.length) {
@@ -330,7 +330,7 @@ router.post('/:id/codes', async (req: Request, res: Response) => {
     await prisma.promoCode.createMany({
       data: codes.map((code) => ({
         code,
-        normalizedCode: code.toLowerCase(),
+        normalizedCode: code,
         type: 'PROMO',
         status: 'ACTIVE',
         promotionId: id,

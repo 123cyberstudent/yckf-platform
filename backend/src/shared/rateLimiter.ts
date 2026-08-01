@@ -11,11 +11,41 @@ export const generalRateLimiter = rateLimit({
 
 export const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
-  keyGenerator: (req: Request) => req.ip ?? 'unknown',
+  max: 8,
+  keyGenerator: (req: Request) => {
+    const ip = req.ip ?? 'unknown';
+    const idValue = String((req.body as any)?.identifier || (req.body as any)?.email || '').toLowerCase();
+    return `${ip}:${idValue}`;
+  },
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts, please try again later.' },
+});
+
+export const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req: Request) => {
+    const ip = req.ip ?? 'unknown';
+    const challengeId = String((req.body as any)?.challengeId || '');
+    return `${ip}:${challengeId}`;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many verification attempts, please try again later.' },
+});
+
+export const otpResendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req: Request) => {
+    const ip = req.ip ?? 'unknown';
+    const challengeId = String((req.body as any)?.challengeId || '');
+    return `${ip}:${challengeId}`;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many resend requests, please try again later.' },
 });
 
 export const reportSubmissionLimiter = rateLimit({

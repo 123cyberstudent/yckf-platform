@@ -5,6 +5,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   View,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ButtonProps } from '../../types';
@@ -23,7 +26,7 @@ const Button: React.FC<ButtonProps> = ({
   testID,
 }) => {
   const getButtonStyle = () => {
-    const baseStyle = [styles.button];
+    const baseStyle: StyleProp<ViewStyle>[] = [styles.button];
     
     // Variant styles
     switch (variant) {
@@ -67,7 +70,7 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const getTextStyle = () => {
-    const baseStyle = [styles.text];
+    const baseStyle: StyleProp<TextStyle>[] = [styles.text];
 
     switch (variant) {
       case 'primary':

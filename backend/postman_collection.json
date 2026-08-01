@@ -11,7 +11,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"yckfadmin@youngcyberknightsfoundation.org\",\n  \"password\": \"Password123!\",\n  \"fullName\": \"Admin User\"\n}"
+          "raw": "{\n  \"email\": \"user@yckf.org\",\n  \"password\": \"SecureUser@2026\",\n  \"fullName\": \"Demo User\"\n}"
         },
         "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
       }
@@ -23,7 +23,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"yckfadmin@youngcyberknightsfoundation.org\",\n  \"password\": \"Password123!\"\n}"
+          "raw": "{\n  \"email\": \"mypracticalworks@gmail.com\",\n  \"password\": \"SecureSuperAdmin@2026\"\n}"
         },
         "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
       }

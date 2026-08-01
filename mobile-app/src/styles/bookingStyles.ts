@@ -44,6 +44,10 @@ export const bookingStyles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
+  headerContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
   backButton: {
     width: 40,
     height: 40,

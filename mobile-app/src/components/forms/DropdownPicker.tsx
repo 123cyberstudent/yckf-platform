@@ -7,6 +7,8 @@ import {
   Modal,
   FlatList,
   TextInput,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, LAYOUT } from '../../utils/constants';
@@ -62,7 +64,7 @@ const DropdownPicker: React.FC<DropdownPickerProps> = ({
   };
 
   const getInputContainerStyle = () => {
-    const baseStyle = [styles.inputContainer];
+    const baseStyle: StyleProp<ViewStyle>[] = [styles.inputContainer];
     
     if (isOpen) {
       baseStyle.push(styles.focused);

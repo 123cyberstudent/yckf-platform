@@ -80,10 +80,7 @@ const FireStationScreen: React.FC = () => {
       let latitude: number;
       let longitude: number;
 
-      if ('coords' in location && location.coords) {
-        latitude = location.coords.latitude;
-        longitude = location.coords.longitude;
-      } else if ('latitude' in location && 'longitude' in location) {
+      if ('latitude' in location && 'longitude' in location) {
         latitude = location.latitude;
         longitude = location.longitude;
       } else {
@@ -195,10 +192,7 @@ const FireStationScreen: React.FC = () => {
         let latitude: number;
         let longitude: number;
 
-        if ('coords' in location && location.coords) {
-          latitude = location.coords.latitude;
-          longitude = location.coords.longitude;
-        } else if ('latitude' in location && 'longitude' in location) {
+        if ('latitude' in location && 'longitude' in location) {
           latitude = location.latitude;
           longitude = location.longitude;
         } else {
@@ -245,10 +239,7 @@ const FireStationScreen: React.FC = () => {
         let latitude: number;
         let longitude: number;
 
-        if ('coords' in userLoc && userLoc.coords) {
-          latitude = userLoc.coords.latitude;
-          longitude = userLoc.coords.longitude;
-        } else if ('latitude' in userLoc && 'longitude' in userLoc) {
+        if ('latitude' in userLoc && 'longitude' in userLoc) {
           latitude = userLoc.latitude;
           longitude = userLoc.longitude;
         } else {

@@ -17,7 +17,7 @@ const router = Router();
 router.use(verifyToken, generalRateLimiter);
 
 function isOrderType(value: unknown): value is (typeof OrderType)[keyof typeof OrderType] {
-  return value === OrderType.COURSE || value === OrderType.CREDIT_PACKAGE;
+  return value === OrderType.COURSE || value === OrderType.CREDIT_PACKAGE || value === OrderType.PREMIUM_SUBSCRIPTION;
 }
 
 /** POST /api/orders — server-priced order creation (quote + reserve). */
@@ -25,9 +25,9 @@ router.post('/', async (req: AuthRequest, res) => {
   try {
     const { orderType, productId, promoCode, payWithCredits } = req.body ?? {};
     if (!isOrderType(orderType)) {
-      return res.status(400).json({ success: false, error: 'orderType must be COURSE or CREDIT_PACKAGE' });
+      return res.status(400).json({ success: false, error: 'orderType must be COURSE, CREDIT_PACKAGE or PREMIUM_SUBSCRIPTION' });
     }
-    if (!Number.isInteger(productId)) {
+    if (orderType !== OrderType.PREMIUM_SUBSCRIPTION && !Number.isInteger(productId)) {
       return res.status(400).json({ success: false, error: 'productId is required' });
     }
     const order = await createOrder({

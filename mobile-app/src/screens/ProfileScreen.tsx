@@ -247,7 +247,7 @@ const handleEmailSupport = async () => {
           </View>
           <Text style={styles.userName}>{user.name}</Text>
           
-          {user.role === 'admin' && (
+          {['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
             <View style={styles.adminBadge}>
               <Ionicons name="shield-checkmark" size={14} color="#fff" />
               <Text style={styles.adminBadgeText}>Admin</Text>
@@ -386,7 +386,7 @@ const handleEmailSupport = async () => {
             <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
           </TouchableOpacity>
 
-          {user.role === 'admin' && (
+          {['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
             <TouchableOpacity
               style={styles.menuItem}
               onPress={handleAdminAccess}

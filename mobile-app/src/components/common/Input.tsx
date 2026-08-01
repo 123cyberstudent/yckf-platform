@@ -5,6 +5,8 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { InputProps } from '../../types';
@@ -30,7 +32,7 @@ const Input: React.FC<InputProps> = ({
   const [showPassword, setShowPassword] = useState(false);
 
   const getInputContainerStyle = () => {
-    const baseStyle = [styles.inputContainer];
+    const baseStyle: StyleProp<ViewStyle>[] = [styles.inputContainer];
     
     if (isFocused) {
       baseStyle.push(styles.focused);

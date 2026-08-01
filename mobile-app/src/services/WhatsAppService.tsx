@@ -123,7 +123,7 @@ class WhatsAppService {
    */
   async shareCurrentLocation(location?: LocationData): Promise<ServiceResponse<boolean>> {
     try {
-      let currentLocation = location;
+      let currentLocation: LocationData | null | undefined = location;
       
       if (!currentLocation) {
         currentLocation = await LocationService.getCurrentLocation();

@@ -3,7 +3,7 @@
 // Admin Login - Uses Same Auth System
 // ============================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,23 @@ const AdminLoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // OTP (verification code) states
+  const [otpState, setOtpState] = useState<{
+    challengeId: number;
+    maskedEmail?: string;
+    maskedPhone?: string | null;
+    devCode?: string;
+  } | null>(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [isOtpLoading, setIsOtpLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setInterval(() => setResendIn((s) => (s <= 1 ? 0 : s - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [resendIn]);
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please enter email and password');
@@ -37,11 +54,29 @@ const AdminLoginScreen: React.FC = () => {
     setIsLoading(true);
     try {
       const result = await AuthService.login(email.trim(), password);
+
+      if (result.requiresOtp && result.challengeId) {
+        setOtpState({
+          challengeId: result.challengeId,
+          maskedEmail: result.maskedEmail,
+          maskedPhone: result.maskedPhone,
+          devCode: result.devCode,
+        });
+        setOtpCode('');
+        setResendIn(result.resendAfter || 60);
+        Alert.alert(
+          'Verification Code Sent',
+          `We've sent a 6-digit code to ${result.maskedEmail || 'your email'}. Enter it to complete login.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
       
       if (result.success) {
-        // Check if user is admin
-        const isAdmin = result.user?.role === 'admin';
-        
+        // Check if user is admin (backend roles: ADMIN, SUPER_ADMIN)
+        const isAdmin =
+          result.user?.role === 'ADMIN' || result.user?.role === 'SUPER_ADMIN';
+
         if (isAdmin) {
           Alert.alert('Success', 'Logged in as Admin!', [
             {
@@ -63,6 +98,66 @@ const AdminLoginScreen: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpState) return;
+    if (!otpCode.trim()) {
+      Alert.alert('Error', 'Please enter the 6-digit code');
+      return;
+    }
+
+    setIsOtpLoading(true);
+    try {
+      const result = await AuthService.verifyOtp(otpState.challengeId, otpCode);
+      if (result.success) {
+        const isAdmin =
+          result.user?.role === 'ADMIN' || result.user?.role === 'SUPER_ADMIN';
+        if (isAdmin) {
+          setOtpState(null);
+          Alert.alert('Success', 'Logged in as Admin!', [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('AdminDashboard' as never),
+            },
+          ]);
+        } else {
+          await AuthService.logout();
+          setOtpState(null);
+          Alert.alert('Error', 'Admin access required. This account does not have admin privileges.');
+        }
+      } else {
+        Alert.alert('Error', result.error || 'Invalid code. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!otpState || resendIn > 0) return;
+    setIsOtpLoading(true);
+    try {
+      const result = await AuthService.resendOtp(otpState.challengeId);
+      if (result.success) {
+        if (result.devCode) setOtpCode(result.devCode);
+        setResendIn(result.resendAfter || 60);
+        Alert.alert('Code Resent', 'A new verification code has been sent.');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to resend code.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsOtpLoading(false);
+    }
+  };
+
+  const cancelOtp = () => {
+    setOtpState(null);
+    setOtpCode('');
   };
 
   return (
@@ -143,14 +238,62 @@ const AdminLoginScreen: React.FC = () => {
                 </>
               )}
             </TouchableOpacity>
+
+            {otpState && (
+              <View style={styles.otpCard}>
+                <Text style={styles.otpTitle}>Enter Verification Code</Text>
+                <Text style={styles.otpSubtitle}>
+                  Enter the 6-digit code sent to {otpState.maskedEmail || otpState.maskedPhone || 'your email'}.
+                </Text>
+                <View style={styles.inputContainer}>
+                  <Ionicons name="key" size={20} color={COLORS.text.secondary} />
+                  <TextInput
+                    style={[styles.input, styles.otpInput]}
+                    placeholder="6-digit code"
+                    placeholderTextColor={COLORS.text.secondary}
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={!isOtpLoading}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.loginButton, isOtpLoading && styles.loginButtonDisabled]}
+                  onPress={handleVerifyOtp}
+                  disabled={isOtpLoading}
+                >
+                  {isOtpLoading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="shield-checkmark" size={20} color="#fff" />
+                      <Text style={styles.loginButtonText}>Verify & Login</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                <View style={styles.otpRow}>
+                  <TouchableOpacity onPress={handleResendOtp} disabled={resendIn > 0 || isOtpLoading}>
+                    <Text style={styles.otpResend}>
+                      {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={cancelOtp} disabled={isOtpLoading}>
+                    <Text style={styles.otpCancel}>Back</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
 
+          {!otpState && (
           <View style={styles.infoBox}>
             <Ionicons name="information-circle" size={20} color={COLORS.primary} />
             <Text style={styles.infoText}>
               Only authorized administrators can access this area
             </Text>
           </View>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -273,6 +416,51 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.text.secondary,
     lineHeight: 18,
+  },
+  otpCard: {
+    marginTop: SPACING.md,
+    padding: SPACING.lg,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  otpTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+    marginBottom: SPACING.xs,
+  },
+  otpSubtitle: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+    lineHeight: 18,
+  },
+  otpInput: {
+    letterSpacing: 6,
+    fontWeight: '700',
+    textAlign: 'center',
+    fontSize: 20,
+  },
+  otpRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: SPACING.md,
+  },
+  otpResend: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  otpCancel: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    fontWeight: '600',
   },
 });
 

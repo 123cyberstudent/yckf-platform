@@ -15,6 +15,7 @@
     "build:dashboard": "npm run build --workspace=dashboard",
     "lint:dashboard": "npm run lint --workspace=dashboard",
     "typecheck:backend": "npm run typecheck --workspace=backend",
-    "typecheck:dashboard": "npx tsc --noEmit --workspace=dashboard"
+    "typecheck:dashboard": "npm run typecheck --workspace=dashboard",
+    "typecheck:mobile": "npm run typecheck --workspace=mobile-app"
   }
 }
