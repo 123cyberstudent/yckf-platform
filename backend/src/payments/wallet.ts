@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { AuthRequest, isAdmin, verifyToken } from '../auth/middleware.js';
 import { generalRateLimiter } from '../shared/rateLimiter.js';
 import { prisma } from '../shared/db.js';
-import { getWalletWithLedger, recordCreditTransaction } from './walletService.js';
+import { getWallet, getWalletWithLedger, recordCreditTransaction } from './walletService.js';
 import { WalletTransactionType } from './constants.js';
 import { PaymentError, PaymentErrorCode } from './errors.js';
 import { randomUUID } from 'crypto';
@@ -14,7 +14,7 @@ router.use(verifyToken, generalRateLimiter);
 /** GET /api/wallet — current balance + lifetime stats */
 router.get('/', async (req: AuthRequest, res) => {
   try {
-    const { wallet } = await getWalletWithLedger(req.user!.id, 1);
+    const wallet = await getWallet(req.user!.id);
     res.json({
       success: true,
       wallet: {

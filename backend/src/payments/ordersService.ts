@@ -15,7 +15,7 @@ import {
   WalletTransactionType,
 } from './constants.js';
 import { PaymentError, PaymentErrorCode } from './errors.js';
-import { getWallet } from './walletService.js';
+import { getWallet, recordCreditTransaction } from './walletService.js';
 import { emptyDiscount, resolveDiscountForQuote, DiscountResult } from './promotionService.js';
 import { initializeTransaction, verifyTransaction } from './paystack.js';
 
@@ -189,6 +189,12 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderSummary
     include: { items: true, appliedPromoCode: true, appliedPromotion: true },
   });
 
+  // Free orders (GHS 0) are granted immediately; no payment step required.
+  if (total === 0) {
+    const fulfilled = await fulfilOrder(order.id, null);
+    return toSummary(fulfilled.order);
+  }
+
   return toSummary(order);
 }
 
@@ -220,6 +226,15 @@ export async function payOrderWithCredits(orderNumber: string, userId: number): 
   assertPayable(order);
   if (order.orderType !== OrderType.COURSE) {
     throw new PaymentError(PaymentErrorCode.INVALID_REQUEST, 'Credits can only pay for course orders');
+  }
+  // Only orders priced in credits (payWithCredits=true at creation) may be
+  // paid with credits. Otherwise the GHS price could be spent as credits.
+  const metadata = (order.metadata ?? {}) as { payWithCredits?: boolean };
+  if (!metadata.payWithCredits) {
+    throw new PaymentError(
+      PaymentErrorCode.INVALID_REQUEST,
+      'This order is priced in Ghana cedis and cannot be paid with credits. Create the order with "Pay with credits" selected.'
+    );
   }
 
   const wallet = await getWallet(userId);
@@ -279,15 +294,40 @@ export async function payOrderWithCredits(orderNumber: string, userId: number): 
         provider: 'credits',
         providerReference: order.orderNumber,
         idempotencyKey: `credit-pay-attempt-${order.id}`,
-        status: PaymentStatus.SUCCESSFUL,
+        status: PaymentStatus.PENDING,
         amount: order.totalAmount,
-        paidAt: new Date(),
       },
     });
   });
 
-  const fulfilled = await fulfilOrder(order.id, payment.id);
-  return toSummary({ ...(fulfilled.order), items: fulfilled.order.items, appliedPromoCode: fulfilled.order.appliedPromoCode, appliedPromotion: fulfilled.order.appliedPromotion });
+  try {
+    const fulfilled = await fulfilOrder(order.id, payment.id);
+    await prisma.paymentAttempt.update({
+      where: { id: payment.id },
+      data: { status: PaymentStatus.SUCCESSFUL, paidAt: new Date() },
+    });
+    return toSummary(fulfilled.order);
+  } catch (err) {
+    // Compensate the debit so a failed fulfilment never costs the user credits.
+    await recordCreditTransaction({
+      userId,
+      type: WalletTransactionType.REVERSAL,
+      amount: order.totalAmount,
+      idempotencyKey: `credit-pay-reverse-${order.id}`,
+      description: `Reversal for failed credit purchase (${order.orderNumber})`,
+      sourceType: 'ORDER',
+      sourceId: order.id,
+    }).catch(() => undefined);
+    await prisma.paymentAttempt.update({
+      where: { id: payment.id },
+      data: {
+        status: PaymentStatus.FAILED,
+        failureMessage: err instanceof Error ? err.message : 'Fulfilment failed',
+        failedAt: new Date(),
+      },
+    }).catch(() => undefined);
+    throw err;
+  }
 }
 
 export async function initializePaystackOrder(orderNumber: string, userId: number): Promise<{
@@ -596,6 +636,29 @@ export async function handleChargeSuccess(reference: string): Promise<{ status: 
       },
     });
     return { status: 'failed' };
+  }
+
+  // The customer has paid; make sure the order is open so fulfilment can run.
+  // An order that expired or was cancelled before the payment settled must be
+  // re-activated rather than silently skipped.
+  const orderState = await prisma.order.findUnique({
+    where: { id: payment.orderId },
+    select: { status: true },
+  });
+  if (
+    orderState &&
+    orderState.status !== OrderStatus.PENDING_PAYMENT &&
+    orderState.status !== OrderStatus.CREATED &&
+    orderState.status !== OrderStatus.PAID
+  ) {
+    await prisma.order.update({
+      where: { id: payment.orderId },
+      data: {
+        status: OrderStatus.PENDING_PAYMENT,
+        cancelledAt: null,
+        expiresAt: new Date(Date.now() + PAYMENT_EXPIRY_MINUTES * 60 * 1000),
+      },
+    });
   }
 
   await prisma.paymentAttempt.update({

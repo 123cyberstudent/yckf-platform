@@ -108,8 +108,10 @@ export async function listActivePackages(now: Date = new Date()) {
   return prisma.creditPackage.findMany({
     where: {
       active: true,
-      OR: [{ startAt: null }, { startAt: { lte: now } }],
-      AND: [{ OR: [{ endAt: null }, { endAt: { gte: now } }] }],
+      AND: [
+        { OR: [{ startAt: null }, { startAt: { lte: now } }] },
+        { OR: [{ endAt: null }, { endAt: { gte: now } }] },
+      ],
     },
     orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }],
   });

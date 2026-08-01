@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../src/shared/db.js';
 import { recordCreditTransaction, getWallet } from '../src/payments/walletService.js';
 import { createOrder, fulfilOrder, payOrderWithCredits } from '../src/payments/ordersService.js';
+import { PaymentError, PaymentErrorCode } from '../src/payments/errors.js';
 import { getOrCreateReferralCode, registerReferral, resolveDiscountForQuote } from '../src/payments/promotionService.js';
 import { OrderType, WalletTransactionType, PromotionStatus, PromotionType, PromoCodeType, DiscountType } from '../src/payments/constants.js';
 import { toMinorUnits } from '../src/payments/money.js';
@@ -147,6 +148,22 @@ describe.skipIf(!hasDb)('Payments integration (live dev DB)', () => {
     });
     expect(enrolment).not.toBeNull();
     expect(enrolment!.source).toBe('CREDITS');
+  });
+
+  it('rejects paying with credits for a cedi-priced order', async () => {
+    const order = await createOrder({
+      userId: buyerId,
+      orderType: OrderType.COURSE,
+      productId: courseId,
+    });
+    expect(order.totalAmount).toBe(toMinorUnits(100));
+
+    await expect(payOrderWithCredits(order.orderNumber, buyerId)).rejects.toMatchObject({
+      code: PaymentErrorCode.INVALID_REQUEST,
+    });
+    await expect(
+      prisma.paymentAttempt.findUnique({ where: { idempotencyKey: `credit-pay-attempt-${order.id}` } })
+    ).resolves.toBeNull();
   });
 
   it('applies a discount promo code and grants bonus credits on fulfilment', async () => {

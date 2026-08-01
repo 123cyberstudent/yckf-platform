@@ -10,8 +10,12 @@ const router = Router();
 /**
  * POST /api/paystack/webhook
  * Mounted BEFORE express.json() in app.ts so the raw body is available for
- * HMAC signature verification. The route acks quickly (200) and processes
- * idempotently; every grant is keyed so re-processing is safe.
+ * HMAC signature verification.
+ *
+ * Processing happens before we acknowledge. On a transient failure we respond
+ * 5xx so Paystack retries; the event row is kept as FAILED and re-processed on
+ * the next identical delivery (instead of being treated as a duplicate).
+ * Fulfilment grants are idempotent, so double-processing is always safe.
  */
 router.post('/', express.raw({ type: 'application/json', limit: '1mb' }), async (req: Request, res: Response) => {
   const signature = req.headers['x-paystack-signature'] as string | undefined;
@@ -35,58 +39,65 @@ router.post('/', express.raw({ type: 'application/json', limit: '1mb' }), async 
   const event = payload?.event ?? 'unknown';
   const reference = payload?.data?.reference ?? null;
   const payloadHash = crypto.createHash('sha256').update(rawBody).digest('hex');
-
-  // Dedupe identical deliveries (providerEventId is intentionally non-unique).
   const dedupeKey = `${event}:${reference ?? ''}:${payloadHash.slice(0, 20)}`;
-  const existingEvent = await prisma.webhookEvent.findFirst({ where: { providerEventId: dedupeKey } });
-  if (existingEvent) {
-    return res.json({ status: 'duplicate' });
+
+  // Find an existing delivery. PROCESSED/IGNORED deliveries are deduplicated;
+  // FAILED deliveries are retried (Paystack will re-send after a 5xx).
+  let webhookEvent = await prisma.webhookEvent.findFirst({ where: { providerEventId: dedupeKey } });
+  if (webhookEvent) {
+    if (webhookEvent.processingStatus === WebhookProcessingStatus.PROCESSED || webhookEvent.processingStatus === WebhookProcessingStatus.IGNORED) {
+      return res.json({ status: 'duplicate' });
+    }
   }
 
-  const webhookEvent = await prisma.webhookEvent.create({
-    data: {
-      provider: 'paystack',
-      providerEventId: dedupeKey,
-      eventType: event,
-      payloadHash,
-      paymentReference: reference,
-      processingStatus: WebhookProcessingStatus.RECEIVED,
-    },
-  });
+  const paymentAttempt = reference
+    ? await prisma.paymentAttempt.findUnique({ where: { providerReference: String(reference) }, select: { id: true } })
+    : null;
 
-  res.json({ status: 'received' });
-
-  if (event === 'charge.success' && reference) {
-    try {
-      await prisma.webhookEvent.update({
+  webhookEvent = webhookEvent
+    ? await prisma.webhookEvent.update({
         where: { id: webhookEvent.id },
-        data: { processingStatus: WebhookProcessingStatus.PROCESSING },
+        data: { processingStatus: WebhookProcessingStatus.PROCESSING, attemptCount: { increment: 1 }, paymentAttemptId: paymentAttempt?.id ?? webhookEvent.paymentAttemptId },
+      })
+    : await prisma.webhookEvent.create({
+        data: {
+          provider: 'paystack',
+          providerEventId: dedupeKey,
+          eventType: event,
+          payloadHash,
+          paymentReference: reference,
+          paymentAttemptId: paymentAttempt?.id,
+          processingStatus: WebhookProcessingStatus.PROCESSING,
+        },
       });
+
+  try {
+    if (event === 'charge.success' && reference) {
       const result = await handleChargeSuccess(String(reference));
       await prisma.webhookEvent.update({
         where: { id: webhookEvent.id },
         data: {
           processingStatus: result.status === 'ignored' ? WebhookProcessingStatus.IGNORED : WebhookProcessingStatus.PROCESSED,
           processedAt: new Date(),
-          attemptCount: { increment: 1 },
         },
       });
-    } catch (err) {
-      console.error('Webhook processing failed:', err);
+    } else {
       await prisma.webhookEvent.update({
         where: { id: webhookEvent.id },
-        data: {
-          processingStatus: WebhookProcessingStatus.FAILED,
-          lastError: err instanceof Error ? err.message : 'Unknown error',
-          attemptCount: { increment: 1 },
-        },
+        data: { processingStatus: WebhookProcessingStatus.IGNORED, processedAt: new Date() },
       });
     }
-  } else {
+    res.json({ status: 'received' });
+  } catch (err) {
+    console.error('Webhook processing failed:', err);
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },
-      data: { processingStatus: WebhookProcessingStatus.IGNORED, processedAt: new Date() },
+      data: {
+        processingStatus: WebhookProcessingStatus.FAILED,
+        lastError: err instanceof Error ? err.message : 'Unknown error',
+      },
     });
+    res.status(500).json({ status: 'processing_failed' });
   }
 });
 
