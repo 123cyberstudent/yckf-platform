@@ -34,6 +34,12 @@ import specialistsRouter from './specialists/routes.js';
 import { siteStatsPublicRouter } from './admin/siteStats.js';
 import { generalRateLimiter } from './shared/rateLimiter.js';
 import { requestAuditLogger } from './audit/middleware.js';
+import { verifyToken } from './auth/middleware.js';
+import walletRouter from './payments/wallet.js';
+import catalogRouter from './payments/catalog.js';
+import ordersRouter from './payments/orders.js';
+import promotionsRouter from './payments/promotions.js';
+import paystackWebhookRouter from './payments/webhook.js';
 
 dotenv.config();
 
@@ -69,6 +75,7 @@ app.use(cors({
   optionsSuccessStatus: 200,
 }));
 app.use(cookieParser());
+app.use('/api/paystack/webhook', paystackWebhookRouter);
 app.use(express.json({ limit: '10mb' }));
 
 const csrfProtection = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -96,14 +103,7 @@ app.use((req, res, next) => {
 app.use(requestAuditLogger);
 app.use(generalRateLimiter);
 
-const uploadsAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required to access files' });
-  }
-  next();
-};
-app.use('/uploads', uploadsAuth, express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', verifyToken, express.static(path.join(process.cwd(), 'uploads')));
 
 app.get('/api/health', (_req, res) => res.json({
   status: 'ok',
@@ -138,6 +138,10 @@ app.use('/api/bookings', bookingsRouter);
 app.use('/api/enquiries', enquiriesRouter);
 app.use('/api/siem', siemRouter);
 app.use('/api/specialists', specialistsRouter);
+app.use('/api/wallet', walletRouter);
+app.use('/api/catalog', catalogRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/promotions', promotionsRouter);
 
 app.get('/', (_req, res) => {
   res.json({
