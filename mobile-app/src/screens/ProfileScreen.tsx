@@ -284,6 +284,44 @@ const handleEmailSupport = async () => {
           </TouchableOpacity>
         </View>
 
+        {/* Wallet & Courses */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Wallet & Learning</Text>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate(SCREEN_NAMES.WALLET as never)}
+          >
+            <View style={styles.menuIconContainer}>
+              <Ionicons name="wallet" size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.menuText}>My Wallet</Text>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate(SCREEN_NAMES.COURSE_CATALOG as never)}
+          >
+            <View style={styles.menuIconContainer}>
+              <Ionicons name="school" size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.menuText}>Browse Courses</Text>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate(SCREEN_NAMES.CREDIT_PACKAGES as never)}
+          >
+            <View style={styles.menuIconContainer}>
+              <Ionicons name="add-circle" size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.menuText}>Buy Credits</Text>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* Menu Options */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>

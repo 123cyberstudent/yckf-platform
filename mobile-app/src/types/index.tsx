@@ -11,6 +11,28 @@ export type RootStackParamList = {
   About: undefined;
   Settings: undefined;
   MyReports: undefined;
+  // Commerce / Wallet screens
+  Wallet: undefined;
+  CreditPackages: undefined;
+  CourseCatalog: undefined;
+  Checkout: {
+    orderType: 'COURSE' | 'CREDIT_PACKAGE';
+    productId: number;
+    productName: string;
+    price: number;
+    creditsPrice?: number;
+    totalCredits?: number;
+  };
+  PaystackWebView: {
+    orderNumber: string;
+    authorizationUrl: string;
+  };
+  OrderResult: {
+    success: boolean;
+    orderNumber: string;
+    message: string;
+  };
+  MyOrders: undefined;
 };
 
 // Report from backend

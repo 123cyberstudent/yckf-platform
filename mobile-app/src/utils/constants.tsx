@@ -113,7 +113,7 @@ export const TYPOGRAPHY = {
     medium: '500',
     semibold: '600',
     bold: '700',
-  },
+  } as const,
 };
 
 /**
@@ -346,6 +346,14 @@ export const SCREEN_NAMES = {
   COURSES: 'Courses',
   RESOURCES: 'Resources',
   MY_REPORTS: 'MyReports',
+  // Commerce / Wallet screens
+  WALLET: 'Wallet',
+  CREDIT_PACKAGES: 'CreditPackages',
+  COURSE_CATALOG: 'CourseCatalog',
+  CHECKOUT: 'Checkout',
+  PAYSTACK_WEBVIEW: 'PaystackWebView',
+  ORDER_RESULT: 'OrderResult',
+  MY_ORDERS: 'MyOrders',
 };
 
 /**

@@ -51,6 +51,15 @@ import EventsScreen from '../screens/EventsScreen';
 import CoursesScreen from '../screens/CoursesScreen';
 import ResourcesScreen from '../screens/ResourcesScreen';
 
+// Commerce / Wallet Screens
+import WalletScreen from '../screens/Wallet/WalletScreen';
+import CreditPackagesScreen from '../screens/Wallet/CreditPackagesScreen';
+import CourseCatalogScreen from '../screens/Wallet/CourseCatalogScreen';
+import CheckoutScreen from '../screens/Wallet/CheckoutScreen';
+import PaystackWebViewScreen from '../screens/Wallet/PaystackWebViewScreen';
+import OrderResultScreen from '../screens/Wallet/OrderResultScreen';
+import MyOrdersScreen from '../screens/Wallet/MyOrdersScreen';
+
 // Placeholder for missing screens
 const MissingScreenPlaceholder: React.FC<{ name: string }> = ({ name }) => (
   <View style={styles.placeholder}>
@@ -373,6 +382,43 @@ const AppNavigator: React.FC = () => {
         name="Resources"
         component={ensureScreen(ResourcesScreen, 'ResourcesScreen')}
         options={{ title: 'Resources' }}
+      />
+
+      {/* Commerce / Wallet Screens */}
+      <Stack.Screen
+        name={SCREEN_NAMES.WALLET}
+        component={ensureScreen(WalletScreen, 'WalletScreen')}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={SCREEN_NAMES.CREDIT_PACKAGES}
+        component={ensureScreen(CreditPackagesScreen, 'CreditPackagesScreen')}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={SCREEN_NAMES.COURSE_CATALOG}
+        component={ensureScreen(CourseCatalogScreen, 'CourseCatalogScreen')}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={SCREEN_NAMES.CHECKOUT}
+        component={ensureScreen(CheckoutScreen, 'CheckoutScreen')}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={SCREEN_NAMES.PAYSTACK_WEBVIEW}
+        component={ensureScreen(PaystackWebViewScreen, 'PaystackWebViewScreen')}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={SCREEN_NAMES.ORDER_RESULT}
+        component={ensureScreen(OrderResultScreen, 'OrderResultScreen')}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={SCREEN_NAMES.MY_ORDERS}
+        component={ensureScreen(MyOrdersScreen, 'MyOrdersScreen')}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
