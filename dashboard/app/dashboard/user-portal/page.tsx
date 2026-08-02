@@ -164,6 +164,10 @@ export default function UserPortalPage() {
     const checkRole = async () => {
       const r = await getRoleFromCookie();
       setRole(r);
+      if (r === null) {
+        router.replace('/login');
+        return;
+      }
       if (r !== 'admin' && r !== 'volunteer' && r !== 'user') {
         router.replace('/dashboard');
         return;

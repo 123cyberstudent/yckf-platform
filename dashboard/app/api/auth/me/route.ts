@@ -12,7 +12,7 @@ export async function GET() {
       )
     }
 
-    const response = await backendFetch('/api/auth/me', { method: 'GET' }, token)
+    const response = await backendFetch('/api/auth/me', { method: 'GET' }, token, { autoRefresh: true })
     const data = await response.json().catch(() => null)
 
     if (!response.ok) {

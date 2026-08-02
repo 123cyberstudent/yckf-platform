@@ -47,7 +47,7 @@ export async function setBackendRefreshCookie(token: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * 30,
     path: '/',
   })
 }
@@ -57,7 +57,12 @@ export async function clearBackendRefreshCookie() {
   cookieStore.delete(REFRESH_COOKIE_NAME)
 }
 
-export async function backendFetch(path: string, init: RequestInit = {}, authToken?: string | null) {
+export async function backendFetch(
+  path: string,
+  init: RequestInit = {},
+  authToken?: string | null,
+  options: { autoRefresh?: boolean } = {}
+) {
   const headers = new Headers(init.headers)
 
   if (authToken) {
@@ -68,10 +73,63 @@ export async function backendFetch(path: string, init: RequestInit = {}, authTok
     headers.set('Content-Type', 'application/json')
   }
 
-  return fetch(getBackendUrl(path), {
+  const response = await fetch(getBackendUrl(path), {
     ...init,
     headers,
   })
+
+  if (options.autoRefresh && response.status === 401 && authToken) {
+    const newToken = await refreshAccessToken()
+    if (newToken) {
+      const retryHeaders = new Headers(init.headers)
+      retryHeaders.set('Authorization', `Bearer ${newToken}`)
+
+      if (init.body && typeof init.body === 'string' && !retryHeaders.has('Content-Type')) {
+        retryHeaders.set('Content-Type', 'application/json')
+      }
+
+      return fetch(getBackendUrl(path), {
+        ...init,
+        headers: retryHeaders,
+      })
+    }
+  }
+
+  return response
+}
+
+export async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = await getBackendRefreshToken()
+  if (!refreshToken) return null
+
+  let response: Response
+  try {
+    response = await backendFetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    })
+  } catch {
+    return null
+  }
+
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      await clearBackendAuthCookie()
+      await clearBackendRefreshCookie()
+    }
+    return null
+  }
+
+  if (!payload?.accessToken) return null
+
+  await setBackendAuthCookie(payload.accessToken)
+  if (payload.refreshToken) {
+    await setBackendRefreshCookie(payload.refreshToken)
+  }
+  return payload.accessToken
 }
 
 export function normalizeRole(role?: string) {

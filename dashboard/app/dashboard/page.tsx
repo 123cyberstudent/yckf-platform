@@ -15,6 +15,8 @@ export default function DashboardPage() {
         router.replace('/dashboard/admin');
       } else if (role === 'volunteer' || role === 'investigator') {
         router.replace('/dashboard/volunteer');
+      } else if (role === null) {
+        router.replace('/login');
       } else {
         router.replace('/dashboard/user-portal');
       }

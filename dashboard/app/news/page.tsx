@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import BackToDashboard from '@/components/dashboard/back-to-dashboard';
 
 export default function NewsPage() {
   const [page, setPage] = useState<any>(null);
@@ -27,6 +28,7 @@ export default function NewsPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-6xl space-y-12">
+        <BackToDashboard />
         {banners.length > 0 && (
           <div className="overflow-hidden rounded-3xl border border-border/70">
             {banners.map((b: { url?: string; alt?: string; caption?: string }, i: number) => (

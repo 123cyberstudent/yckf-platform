@@ -8,7 +8,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const response = await backendFetch('/api/reports/my', { method: 'GET' }, token)
+    const response = await backendFetch('/api/reports/my', { method: 'GET' }, token, { autoRefresh: true })
 
     if (!response.ok) {
       const payload = await response.json().catch(() => null)

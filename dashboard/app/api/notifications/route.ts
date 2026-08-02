@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     try {
-      const response = await backendFetch('/api/notifications', { method: 'GET' }, token)
+      const response = await backendFetch('/api/notifications', { method: 'GET' }, token, { autoRefresh: true })
       
       // If backend returns 401 or any error, use mock data
       if (response.status === 401) {

@@ -57,7 +57,7 @@ if (isProd && (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET)) {
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-do-not-use-in-production';
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev-refresh-secret-do-not-use-in-production';
 const ACCESS_TOKEN_EXPIRES = process.env.ACCESS_TOKEN_EXPIRES || '1h';
-const REFRESH_TOKEN_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES || '7d';
+const REFRESH_TOKEN_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES || '30d';
 const MAX_LOGIN_ATTEMPTS = 5;
 const SUSPEND_LOGIN_ATTEMPTS = 10;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;

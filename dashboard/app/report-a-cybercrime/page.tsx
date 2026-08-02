@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import BackToDashboard from '@/components/dashboard/back-to-dashboard'
 
 type LocationSource = 'gps' | 'ip' | 'manual'
 
@@ -301,6 +302,7 @@ export default function ReportCybercrimePage() {
   if (submitted) {
     return (
       <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-10">
+        <BackToDashboard />
         <div className="mx-auto max-w-2xl space-y-8 text-center py-20">
           <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="size-8 text-green-600" />
@@ -329,6 +331,7 @@ export default function ReportCybercrimePage() {
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-10">
+      <BackToDashboard />
       <div className="mx-auto max-w-6xl space-y-10">
         <section className="rounded-3xl border border-border/70 bg-card/80 p-8 shadow-lg shadow-black/5">
           <div className="space-y-4 text-center">

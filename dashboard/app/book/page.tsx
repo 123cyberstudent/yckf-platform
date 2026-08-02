@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import BackToDashboard from '@/components/dashboard/back-to-dashboard'
 
 const services = [
   { title: 'Public Speaking & Keynotes', description: 'Expert speakers for conferences, corporate events, and awareness campaigns.' },
@@ -30,6 +31,7 @@ export default function BookPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl space-y-10">
+        <BackToDashboard />
         <section className="rounded-3xl border border-border/70 bg-card/80 p-8 shadow-lg shadow-black/5">
           <div className="space-y-4 text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary">Book a Cybersecurity Expert</p>
