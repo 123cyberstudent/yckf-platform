@@ -8,7 +8,8 @@ import { hashPassword, verifyPassword } from './password.js';
 import { normalizePhone } from '../shared/phone.js';
 import { createLoginChallenge, resendLoginOtp, verifyLoginOtp, OtpDeliveryError } from './otpService.js';
 import { createEmailVerificationToken } from './emailVerification.js';
-import { sendVerificationEmail } from '../email/service.js';
+import { sendVerificationEmail, sendPasswordResetCodeEmail } from '../email/service.js';
+import { sendSms } from '../shared/sms.js';
 import {
   disableTwoFactor,
   enableTwoFactor,
@@ -416,20 +417,27 @@ function generateResetCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-export async function requestPasswordReset(email: string): Promise<{ message: string; code?: string }> {
+export async function requestPasswordReset(email: string): Promise<{ message: string; delivered: boolean; code?: string }> {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    return { message: 'If an account exists with that email, a reset code has been sent.' };
+    return { message: 'If an account exists with that email, a reset code has been sent.', delivered: true };
   }
 
   const code = generateResetCode();
   passwordResetCodes.set(email, { code, expiresAt: Date.now() + 15 * 60 * 1000 });
 
+  const smsSent = user.phone
+    ? (await sendSms({ to: user.phone, message: `Your YCKF password reset code is ${code}. It expires in 15 minutes. Never share it with anyone.` })).sent
+    : false;
+
+  const emailResult = await sendPasswordResetCodeEmail(user.email, user.fullName || 'there', code);
+  const delivered = emailResult.success || smsSent;
+
   if (process.env.NODE_ENV !== 'production') {
-    return { message: 'Reset code generated.', code };
+    return { message: 'Reset code generated.', code, delivered };
   }
 
-  return { message: 'If an account exists with that email, a reset code has been sent.' };
+  return { message: 'If an account exists with that email, a reset code has been sent.', delivered };
 }
 
 export async function verifyResetCode(email: string, code: string): Promise<boolean> {

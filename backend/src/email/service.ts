@@ -243,4 +243,33 @@ export async function sendVerificationEmail(recipientEmail: string, recipientNam
   return result;
 }
 
+export async function sendPasswordResetCodeEmail(recipientEmail: string, recipientName: string, code: string): Promise<{ success: boolean }> {
+  const result = await sendEmail({
+    ticketNumber: `reset-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    reportType: 'password_reset',
+    recipientEmail,
+    subject: 'Your YCKF password reset code',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #2563EB; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 20px;">Young Cyber Knights Foundation</h1>
+          <p style="margin: 8px 0 0 0; opacity: 0.9;">Password reset</p>
+        </div>
+        <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
+          <p>Hi ${recipientName},</p>
+          <p>We received a request to reset the password for your YCKF account. Use the code below to choose a new password:</p>
+          <div style="background: white; padding: 18px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 15px 0; text-align: center;">
+            <span style="font-size: 30px; font-weight: bold; letter-spacing: 6px; color: #2563EB;">${code}</span>
+          </div>
+          <p>This code expires in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email.</p>
+          <p style="font-size: 12px; color: #94a3b8;">Never share this code with anyone. YCKF will never ask for your password or codes by phone or email.</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #94a3b8;">Young Cyber Knights Foundation | Cybersecurity & Digital Safety</p>
+        </div>
+      </div>
+    `,
+  });
+  return result;
+}
+
 export { ADMIN_EMAIL, DEV_EMAIL };
