@@ -9,8 +9,13 @@ const router = Router();
 router.use(emailRateLimiter);
 
 router.get('/status', (_req: Request, res: Response) => {
-  const configured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
-  res.json({ configured, smtpHost: process.env.SMTP_HOST || null });
+  const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const resendConfigured = !!process.env.RESEND_API_KEY;
+  res.json({
+    configured: smtpConfigured || resendConfigured,
+    provider: resendConfigured ? 'resend-api' : smtpConfigured ? 'smtp' : null,
+    smtpHost: process.env.SMTP_HOST || null,
+  });
 });
 
 router.post('/send', async (req: Request, res: Response) => {

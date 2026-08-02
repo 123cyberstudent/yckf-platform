@@ -28,6 +28,38 @@ export async function sendEmail(payload: EmailPayload): Promise<{ success: boole
   const logId = await logEmail(payload);
 
   try {
+    // Preferred: Resend REST API over HTTPS (no SMTP egress needed).
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || 'YCKF <onboarding@resend.dev>';
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from,
+          to: [payload.recipientEmail],
+          subject: payload.subject,
+          html: payload.html,
+        }),
+      });
+
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`Resend API error ${resp.status}: ${text.slice(0, 200)}`);
+      }
+
+      const data = await resp.json().catch(() => null);
+      await prisma.emailLog.update({
+        where: { id: logId },
+        data: { status: 'sent', sentAt: new Date() },
+      });
+
+      return { success: true, messageId: data?.id };
+    }
+
     let transporter: any = null;
 
     const smtpHost = process.env.SMTP_HOST;
