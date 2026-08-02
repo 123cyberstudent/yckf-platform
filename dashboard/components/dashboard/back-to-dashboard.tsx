@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function BackToDashboard() {
-  const [href, setHref] = useState('/dashboard');
+  const [href, setHref] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -20,16 +20,20 @@ export default function BackToDashboard() {
         else if (role === 'admin') setHref('/dashboard/admin');
         else if (role === 'volunteer' || role === 'investigator') setHref('/dashboard/volunteer');
         else if (role) setHref('/dashboard/user-portal');
-        else setHref('/login');
+        else setHref(null);
       })
       .catch(() => {
-        if (!cancelled) setHref('/login');
+        if (!cancelled) setHref(null);
       });
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  if (!href) {
+    return null;
+  }
 
   return (
     <div className="mb-6">

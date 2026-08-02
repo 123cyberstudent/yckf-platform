@@ -10,6 +10,7 @@ export function PublicNav({ children }: { children: React.ReactNode }) {
   const isDashboard = pathname.startsWith('/dashboard');
   const isApi = pathname.startsWith('/api');
   const isPublic = !isDashboard && !isApi;
+  const isReportPage = pathname === '/report-a-cybercrime';
 
   if (!isPublic) {
     return <>{children}</>;
@@ -18,7 +19,7 @@ export function PublicNav({ children }: { children: React.ReactNode }) {
   return (
     <>
       <SiteNav />
-      {pathname !== '/' && (
+      {pathname !== '/' && !isReportPage && (
         <div className="mx-auto w-full max-w-7xl px-6 py-3 sm:px-10">
           <Link
             href="/"

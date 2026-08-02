@@ -107,6 +107,23 @@ router.get('/', verifyToken, isStaff, async (req: AuthRequest, res: Response) =>
   }
 });
 
+router.get('/my', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const bookings = await prisma.booking.findMany({
+      where: { email: user.email },
+      orderBy: { createdAt: 'desc' },
+      include: { assignedSpecialist: true },
+    });
+    res.json({ bookings });
+  } catch (err) {
+    console.error('Failed to list my bookings', err);
+    res.status(500).json({ error: 'Failed to list bookings' });
+  }
+});
+
 router.get('/:ticketNumber', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({ where: { ticketNumber: req.params.ticketNumber } });

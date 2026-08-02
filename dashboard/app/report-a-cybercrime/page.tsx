@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { useState, useEffect, useCallback } from 'react'
-import { CalendarIcon, AlertCircle, CheckCircle, MapPin, Loader2, Navigation, ExternalLink, Copy, Check } from 'lucide-react'
+import { CalendarIcon, AlertCircle, CheckCircle, MapPin, Loader2, Navigation, ExternalLink, Copy, Check, ShieldCheck } from 'lucide-react'
 import { format } from 'date-fns'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -332,7 +332,7 @@ export default function ReportCybercrimePage() {
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-10">
       <BackToDashboard />
-      <div className="mx-auto max-w-6xl space-y-10">
+      <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-3xl border border-border/70 bg-card/80 p-8 shadow-lg shadow-black/5">
           <div className="space-y-4 text-center">
             <p className="text-base font-semibold uppercase tracking-[0.35em] text-primary">Report a Cybercrime</p>
@@ -343,8 +343,9 @@ export default function ReportCybercrimePage() {
           </div>
         </section>
 
+        <div className="grid items-start gap-6 lg:grid-cols-5">
         {/* Location Detection Card */}
-        <section className="rounded-3xl border border-border/70 bg-card/80 p-6">
+        <section className="rounded-3xl border border-border/70 bg-card/80 p-6 lg:col-span-2 lg:order-2 lg:sticky lg:top-6">
           <div className="flex items-start gap-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#2563EB]/10">
               <MapPin className="h-5 w-5 text-[#2563EB]" />
@@ -506,8 +507,11 @@ export default function ReportCybercrimePage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-border/70 bg-card/80 p-8">
+        <section className="rounded-3xl border border-border/70 bg-card/80 p-8 lg:col-span-3 lg:order-1">
           <h2 className="text-3xl font-semibold text-white">Reporting Form</h2>
+          <p className="mt-1 text-base text-muted-foreground">
+            Fill in as much detail as you can. Every report is reviewed by our team.
+          </p>
 
           {error && (
             <div className="mt-4 rounded-lg p-4 flex items-center gap-3 bg-red-50 border border-red-200">
@@ -615,6 +619,23 @@ export default function ReportCybercrimePage() {
             </Button>
           </form>
         </section>
+
+        {/* Privacy note */}
+        <div className="rounded-3xl border border-border/70 bg-card/80 p-6 lg:col-span-2 lg:order-3">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-500/10">
+              <ShieldCheck className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Your privacy is protected</h3>
+              <p className="text-sm text-muted-foreground mt-1 leading-6">
+                Location details are shared only with our investigators and are never published. You can submit a report
+                without enabling location access.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
       </div>
     </main>
   )

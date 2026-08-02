@@ -98,6 +98,22 @@ router.get('/', verifyToken, isStaff, async (req: AuthRequest, res: Response) =>
   }
 });
 
+router.get('/my', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const enquiries = await prisma.enquiry.findMany({
+      where: { email: user.email },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ enquiries });
+  } catch (err) {
+    console.error('Failed to list my enquiries', err);
+    res.status(500).json({ error: 'Failed to list enquiries' });
+  }
+});
+
 router.get('/:ticketNumber', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
     const enquiry = await prisma.enquiry.findUnique({ where: { ticketNumber: req.params.ticketNumber } });
