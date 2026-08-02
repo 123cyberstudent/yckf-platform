@@ -16,6 +16,7 @@ import {
   Mail,
   Lock,
   AlertCircle,
+  AlertTriangle,
   Eye,
   EyeOff,
   ChevronRight,
@@ -203,7 +204,7 @@ function BrandingPanel() {
 export function LoginForm() {
   const router = useRouter()
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
-  const [showManagementMenu, setShowManagementMenu] = useState(false)
+  const [mgmtStage, setMgmtStage] = useState<'idle' | 'warning' | 'menu'>('idle')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -254,7 +255,7 @@ export function LoginForm() {
 
   function openRoleForm(role: Role) {
     setSelectedRole(role)
-    setShowManagementMenu(false)
+    setMgmtStage('idle')
     setError(null)
     reset()
     setShowPassword(false)
@@ -455,8 +456,10 @@ export function LoginForm() {
                     {/* Management Login */}
                     <button
                       type="button"
-                      onClick={() => setShowManagementMenu(!showManagementMenu)}
-                      aria-expanded={showManagementMenu}
+                      onClick={() =>
+                        setMgmtStage((s) => (s === 'idle' ? 'warning' : 'idle'))
+                      }
+                      aria-expanded={mgmtStage !== 'idle'}
                       className="group flex w-full items-center gap-4 rounded-xl border border-l-4 border-border/50 border-l-[#7C3AED] bg-card/80 p-5 text-left backdrop-blur transition-all duration-200 hover:shadow-lg hover:shadow-black/5 hover:backdrop-blur-md active:scale-[0.98]"
                       style={{ animation: 'fadeIn 0.4s ease-out both' }}
                     >
@@ -471,11 +474,51 @@ export function LoginForm() {
                           Super Admin, Admin &amp; Volunteer / Investigator portals
                         </p>
                       </div>
-                      <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${showManagementMenu ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${mgmtStage !== 'idle' ? 'rotate-180' : ''}`} />
                     </button>
 
+                    {/* Restricted area warning */}
+                    {mgmtStage === 'warning' && (
+                      <div
+                        className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"
+                        style={{ animation: 'fadeIn 0.2s ease-out' }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-500" />
+                          <div>
+                            <h4 className="text-base font-bold text-foreground">
+                              Restricted Area
+                            </h4>
+                            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                              This portal is for authorized YCKF staff only (Super Admin,
+                              Admin &amp; Volunteer / Investigator). Unauthorized access
+                              attempts are monitored, logged and may be reported to law
+                              enforcement. Do not proceed unless you are a staff member.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex gap-3">
+                          <Button
+                            type="button"
+                            onClick={() => setMgmtStage('menu')}
+                            className="flex-1 bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] font-medium shadow-lg shadow-[#7C3AED]/25 transition-all duration-200 hover:from-[#7C3AED]/90 hover:to-[#8B5CF6]/90"
+                          >
+                            I&apos;m authorized staff &mdash; Continue
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setMgmtStage('idle')}
+                            className="flex-1 text-muted-foreground"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Management role dropdown */}
-                    {showManagementMenu && (
+                    {mgmtStage === 'menu' && (
                       <div
                         className="overflow-hidden rounded-xl border border-border/50 bg-card/60 backdrop-blur"
                         style={{ animation: 'fadeIn 0.2s ease-out' }}
