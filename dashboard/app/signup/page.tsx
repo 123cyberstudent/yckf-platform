@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, MailCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 
@@ -19,6 +19,7 @@ export default function SignUpPage() {
   
   // Submission state
   const [submitted, setSubmitted] = useState(false)
+  const [confirmationSent, setConfirmationSent] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -63,9 +64,10 @@ export default function SignUpPage() {
 
       // 4. Only show the success message if the API worked
       setSubmitted(true)
+      setConfirmationSent(data.confirmationSent !== false)
       
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
       setIsLoading(false)
     }
@@ -77,7 +79,7 @@ export default function SignUpPage() {
         <section className="rounded-3xl border border-border/70 bg-card/80 p-8 shadow-lg shadow-black/5">
           <div className="space-y-4 text-center">
             <p className="text-base font-semibold uppercase tracking-[0.35em] text-primary">Join the YCKF Community</p>
-            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Create an account </h1>
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">Create an account </h1>
             <p className="text-base text-muted-foreground">Sign up to access exclusive features and stay connected with the YCKF community.</p>
           </div>
 
@@ -171,8 +173,23 @@ export default function SignUpPage() {
             </form>
           ) : (
             <div className="rounded-3xl border border-border/70 bg-background/80 p-8 text-center">
-              <p className="text-2xl font-semibold text-white">Thank you for signing up.</p>
-              <p className="mt-3 text-base leading-8 text-muted-foreground">We have sent a confirmation link to your email address. Please check your inbox to activate your account.</p>
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-500/10 ring-2 ring-emerald-500/20">
+                <MailCheck className="size-8 text-emerald-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">
+                Thank you for signing up.
+              </h2>
+              {confirmationSent ? (
+                <p className="mt-3 text-base leading-8 text-muted-foreground">
+                  We have sent a confirmation link to your email address. Please check
+                  your inbox (including spam) to activate your account.
+                </p>
+              ) : (
+                <p className="mx-auto mt-3 max-w-md rounded-2xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-base leading-7 text-amber-600">
+                  Your account was created, but we could not send the confirmation email
+                  right now. Please try again shortly or contact support.
+                </p>
+              )}
               <Link href="/login" className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition hover:bg-primary/90">
                 Go to Login
               </Link>

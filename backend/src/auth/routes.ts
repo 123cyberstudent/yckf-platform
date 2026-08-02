@@ -22,6 +22,7 @@ import {
 import { validateRequest } from '../utils/validators.js';
 import { OtpDeliveryError } from './otpService.js';
 import { staffCodeGateEnabled, verifyStaffCode } from './staffCode.js';
+import { verifyUserEmail } from './emailVerification.js';
 import { loginRateLimiter, generalRateLimiter, otpVerifyLimiter, otpResendLimiter, staffCodeLimiter } from '../shared/rateLimiter.js';
 import { verifyToken, AuthRequest } from './middleware.js';
 import type { LoginResult } from './service.js';
@@ -53,8 +54,8 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { email, password, fullName, phone, platform } = req.body;
-      const user = await registerUser({ email, password, fullName, phone, platform });
-      res.status(201).json({ id: user.id, email: user.email, phone: user.phone, fullName: user.fullName, role: user.role, createdAt: user.createdAt });
+      const { user, emailDelivered } = await registerUser({ email, password, fullName, phone, platform });
+      res.status(201).json({ id: user.id, email: user.email, phone: user.phone, fullName: user.fullName, role: user.role, createdAt: user.createdAt, confirmationSent: emailDelivered });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Registration failed' });
     }
@@ -76,6 +77,24 @@ router.post(
 router.get('/staff/status', generalRateLimiter, (_req: Request, res: Response) => {
   res.json({ enabled: staffCodeGateEnabled() });
 });
+
+router.get(
+  '/verify-email',
+  generalRateLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const token = String(req.query.token || '');
+      if (!token) {
+        res.status(400).json({ error: 'Missing confirmation token' });
+        return;
+      }
+      await verifyUserEmail(token);
+      res.json({ success: true, message: 'Email verified successfully. You can now log in.' });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid or expired confirmation link' });
+    }
+  }
+);
 
 router.post(
   '/login',

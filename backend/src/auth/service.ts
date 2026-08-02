@@ -7,6 +7,8 @@ import { createNotification } from '../notifications/service.js';
 import { hashPassword, verifyPassword } from './password.js';
 import { normalizePhone } from '../shared/phone.js';
 import { createLoginChallenge, resendLoginOtp, verifyLoginOtp, OtpDeliveryError } from './otpService.js';
+import { createEmailVerificationToken } from './emailVerification.js';
+import { sendVerificationEmail } from '../email/service.js';
 import {
   disableTwoFactor,
   enableTwoFactor,
@@ -124,7 +126,7 @@ export async function registerUser({
   }
 
   const passwordHash = await hashPassword(password);
-  return prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       email,
       phone: normalizedPhone,
@@ -137,6 +139,19 @@ export async function registerUser({
       fcmTokens: [],
     },
   });
+
+  let emailDelivered = false;
+  try {
+    const token = createEmailVerificationToken(user.id, user.email);
+    const appUrl = process.env.APP_URL || 'https://yckf-admin-dashboard-production.up.railway.app';
+    const link = `${appUrl.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(token)}`;
+    const result = await sendVerificationEmail(user.email, user.fullName || 'there', link);
+    emailDelivered = result.success;
+  } catch (error) {
+    console.error('[auth] Failed to queue confirmation email:', error);
+  }
+
+  return { user, emailDelivered };
 }
 
 async function resolveUserByIdentifier(identifier: string) {

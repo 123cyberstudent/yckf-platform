@@ -25,6 +25,7 @@ model User {
   email                   String         @unique
   phone                   String?        @unique
   phoneVerified           Boolean        @default(false)
+  emailVerified           Boolean        @default(false)
   passwordHash            String
   fullName                String
   role                    Role           @default(USER)

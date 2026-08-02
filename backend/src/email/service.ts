@@ -214,4 +214,33 @@ export async function sendOtpEmail(recipientEmail: string, code: string, purpose
   return result;
 }
 
+export async function sendVerificationEmail(recipientEmail: string, recipientName: string, link: string): Promise<{ success: boolean }> {
+  const result = await sendEmail({
+    ticketNumber: `verify-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    reportType: 'signup',
+    recipientEmail,
+    subject: 'Confirm your YCKF account',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #2563EB; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 20px;">Young Cyber Knights Foundation</h1>
+          <p style="margin: 8px 0 0 0; opacity: 0.9;">Confirm your account</p>
+        </div>
+        <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
+          <p>Hi ${recipientName},</p>
+          <p>Thanks for signing up with the Young Cyber Knights Foundation. Please confirm your email address to activate your account.</p>
+          <p style="text-align: center; margin: 24px 0;">
+            <a href="${link}" style="display: inline-block; background: #2563EB; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Confirm my email</a>
+          </p>
+          <p style="font-size: 12px; color: #64748b;">This confirmation link expires in 24 hours. If you did not create an account, you can safely ignore this email.</p>
+          <p style="font-size: 12px; color: #94a3b8;">If the button does not work, copy and paste this link into your browser: ${link}</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #94a3b8;">Young Cyber Knights Foundation | Cybersecurity & Digital Safety</p>
+        </div>
+      </div>
+    `,
+  });
+  return result;
+}
+
 export { ADMIN_EMAIL, DEV_EMAIL };

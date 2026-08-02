@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: payload?.message || 'User registered. Please check your email.',
+      confirmationSent: payload?.confirmationSent !== false,
     })
 
   } catch (error) {
