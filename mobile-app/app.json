@@ -30,7 +30,6 @@
         "backgroundColor": "#1e3a8a"
       },
       "package": "com.yckf.mobile",
-      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
