@@ -33,7 +33,6 @@ const AdminLoginScreen: React.FC = () => {
     challengeId: number;
     maskedEmail?: string;
     maskedPhone?: string | null;
-    devCode?: string;
   } | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [isOtpLoading, setIsOtpLoading] = useState(false);
@@ -60,7 +59,6 @@ const AdminLoginScreen: React.FC = () => {
           challengeId: result.challengeId,
           maskedEmail: result.maskedEmail,
           maskedPhone: result.maskedPhone,
-          devCode: result.devCode,
         });
         setOtpCode('');
         setResendIn(result.resendAfter || 60);
@@ -142,7 +140,6 @@ const AdminLoginScreen: React.FC = () => {
     try {
       const result = await AuthService.resendOtp(otpState.challengeId);
       if (result.success) {
-        if (result.devCode) setOtpCode(result.devCode);
         setResendIn(result.resendAfter || 60);
         Alert.alert('Code Resent', 'A new verification code has been sent.');
       } else {

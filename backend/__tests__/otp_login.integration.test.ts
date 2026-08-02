@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '../src/shared/db.js';
 import { loginUser, verifyOtpLogin, resendOtpCode } from '../src/auth/service.js';
+import { OtpDeliveryError } from '../src/auth/otpService.js';
 import { hashPassword } from '../src/auth/password.js';
 
 const hasDb = Boolean(process.env.DATABASE_URL);
@@ -115,7 +116,7 @@ describe.skipIf(!hasDb)('OTP login (live dev DB)', () => {
     expect(existing).toBe('Invalid credentials');
   });
 
-  it('keeps a usable challenge with an inline fallback code when the code cannot be delivered', async () => {
+  it('fails safely and leaves no challenge when the code cannot be delivered', async () => {
     const prev: Record<string, string | undefined> = {
       SMTP_HOST: process.env.SMTP_HOST,
       SMTP_PORT: process.env.SMTP_PORT,
@@ -130,15 +131,9 @@ describe.skipIf(!hasDb)('OTP login (live dev DB)', () => {
     process.env.SMS_PROVIDER = 'africastalking';
 
     try {
-      const result = await loginUser({ identifier: emails.emailUser, password: 'TestPass123!' });
-      expect(result.requiresOtp).toBe(true);
-      if (result.requiresOtp) {
-        expect(result.fallback).toBe(true);
-        expect(result.devCode).toBeDefined();
-      }
-
-      const verified = await verifyOtpLogin({ challengeId: result.challengeId, code: result.devCode! });
-      expect(verified.user.id).toBe(emailUserId);
+      await expect(
+        loginUser({ identifier: emails.emailUser, password: 'TestPass123!' })
+      ).rejects.toThrow(OtpDeliveryError);
 
       const pending = await prisma.loginChallenge.count({
         where: { userId: emailUserId, usedAt: null, expiresAt: { gt: new Date() } },

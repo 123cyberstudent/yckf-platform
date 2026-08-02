@@ -40,7 +40,6 @@ export interface AuthResponse {
   maskedEmail?: string;
   maskedPhone?: string | null;
   resendAfter?: number;
-  devCode?: string;
 }
 
 // ============================================
@@ -256,7 +255,6 @@ class AuthService {
           maskedEmail: data.maskedEmail,
           maskedPhone: data.maskedPhone,
           resendAfter: data.resendAfter,
-          devCode: data.devCode,
           message: data.message || 'A verification code has been sent.',
         };
       }
@@ -360,7 +358,6 @@ class AuthService {
       if (response.ok) {
         return {
           success: true,
-          devCode: data.devCode,
           resendAfter: data.resendAfter,
           message: data.message || 'A new code has been sent.',
         };

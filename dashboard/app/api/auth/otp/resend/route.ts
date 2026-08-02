@@ -25,7 +25,6 @@ export async function POST(request: Request) {
       data: payload,
       challengeId: payload?.challengeId,
       resendAfter: payload?.resendAfter,
-      devCode: payload?.devCode,
     })
   } catch (error) {
     console.error('OTP resend error:', error)

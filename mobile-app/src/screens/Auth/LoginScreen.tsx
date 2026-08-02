@@ -52,7 +52,6 @@ const LoginScreen: React.FC = () => {
     delivery: string[];
     maskedEmail?: string;
     maskedPhone?: string | null;
-    devCode?: string;
   } | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [isOtpLoading, setIsOtpLoading] = useState(false);
@@ -105,7 +104,6 @@ const handleLogin = async () => {
           delivery: result.delivery || [],
           maskedEmail: result.maskedEmail,
           maskedPhone: result.maskedPhone,
-          devCode: result.devCode,
         });
         setOtpCode('');
         setResendIn(result.resendAfter || 60);
@@ -208,7 +206,6 @@ const handleLogin = async () => {
     try {
       const result = await AuthService.resendOtp(otpState.challengeId);
       if (result.success) {
-        if (result.devCode) setOtpCode(result.devCode);
         setResendIn(result.resendAfter || 60);
         Alert.alert('Code Resent', 'A new verification code has been sent.');
       } else {

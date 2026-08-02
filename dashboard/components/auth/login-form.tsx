@@ -209,7 +209,6 @@ export function LoginForm() {
     challengeId: number
     maskedEmail?: string
     maskedPhone?: string | null
-    devCode?: string
     message?: string
     resendAfter?: number
   } | null>(null)
@@ -282,11 +281,10 @@ export function LoginForm() {
           challengeId: result.challengeId,
           maskedEmail: result.maskedEmail,
           maskedPhone: result.maskedPhone,
-          devCode: result.devCode,
           message: result.message,
           resendAfter: result.resendAfter,
         })
-        setOtpCode(result.devCode || '')
+        setOtpCode('')
         setOtpError(null)
         setResendIn(result.resendAfter || 60)
         return
@@ -361,7 +359,6 @@ export function LoginForm() {
         return
       }
 
-      if (result.devCode) setOtpCode(result.devCode)
       setResendIn(result.resendAfter || 60)
     } catch {
       setOtpError('An unexpected error occurred. Please try again.')

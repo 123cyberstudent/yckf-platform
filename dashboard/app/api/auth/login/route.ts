@@ -38,7 +38,6 @@ export async function POST(request: Request) {
       maskedEmail: payload?.maskedEmail,
       maskedPhone: payload?.maskedPhone,
       resendAfter: payload?.resendAfter,
-      devCode: payload?.devCode,
     })
   } catch (error) {
     console.error('Login error:', error)
