@@ -21,7 +21,8 @@ import {
 } from './service.js';
 import { validateRequest } from '../utils/validators.js';
 import { OtpDeliveryError } from './otpService.js';
-import { loginRateLimiter, generalRateLimiter, otpVerifyLimiter, otpResendLimiter } from '../shared/rateLimiter.js';
+import { staffCodeGateEnabled, verifyStaffCode } from './staffCode.js';
+import { loginRateLimiter, generalRateLimiter, otpVerifyLimiter, otpResendLimiter, staffCodeLimiter } from '../shared/rateLimiter.js';
 import { verifyToken, AuthRequest } from './middleware.js';
 import type { LoginResult } from './service.js';
 
@@ -59,6 +60,22 @@ router.post(
     }
   }
 );
+
+router.post(
+  '/staff/verify',
+  staffCodeLimiter,
+  [body('code').trim().notEmpty().withMessage('Staff access code is required')],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const disabled = !staffCodeGateEnabled();
+    const valid = disabled || verifyStaffCode(String(req.body.code || '').trim());
+    res.json({ valid, disabled });
+  }
+);
+
+router.get('/staff/status', generalRateLimiter, (_req: Request, res: Response) => {
+  res.json({ enabled: staffCodeGateEnabled() });
+});
 
 router.post(
   '/login',

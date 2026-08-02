@@ -74,3 +74,12 @@ export const emailRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many email requests, please try again later.' },
 });
+
+export const staffCodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req: Request) => req.ip ?? 'unknown',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many staff code attempts, please try again later.' },
+});

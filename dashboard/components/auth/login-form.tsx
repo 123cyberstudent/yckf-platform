@@ -99,6 +99,9 @@ const roles: RoleCard[] = [
 
 const managementRoles = roles.filter((role) => role.id !== 'user')
 
+const MGMT_LOCK_THRESHOLD = 5
+const MGMT_LOCK_SECONDS = 60
+
 const loginSchema = z.object({
   identifier: z.string().trim().min(1, 'Please enter your email or phone number'),
   password: z.string().min(1, 'Password is required'),
@@ -204,10 +207,18 @@ function BrandingPanel() {
 export function LoginForm() {
   const router = useRouter()
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
-  const [mgmtStage, setMgmtStage] = useState<'idle' | 'warning' | 'menu'>('idle')
+  const [mgmtStage, setMgmtStage] = useState<'idle' | 'warning' | 'code' | 'menu'>('idle')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+
+  // Management gate (staff access code + auto-lockout) states
+  const [staffCode, setStaffCode] = useState('')
+  const [isStaffCodeLoading, setIsStaffCodeLoading] = useState(false)
+  const [staffCodeError, setStaffCodeError] = useState<string | null>(null)
+  const [mgmtFailures, setMgmtFailures] = useState(0)
+  const [mgmtLockUntil, setMgmtLockUntil] = useState<number | null>(null)
+  const [mgmtLockRemaining, setMgmtLockRemaining] = useState(0)
 
   // OTP (verification code) states
   const [otpState, setOtpState] = useState<{
@@ -230,6 +241,22 @@ export function LoginForm() {
     )
     return () => clearInterval(timer)
   }, [resendIn])
+
+  useEffect(() => {
+    if (!mgmtLockUntil) return
+    const update = () => {
+      const remaining = Math.ceil((mgmtLockUntil - Date.now()) / 1000)
+      if (remaining <= 0) {
+        setMgmtLockUntil(null)
+        setMgmtLockRemaining(0)
+      } else {
+        setMgmtLockRemaining(remaining)
+      }
+    }
+    update()
+    const timer = setInterval(update, 1000)
+    return () => clearInterval(timer)
+  }, [mgmtLockUntil])
 
   const {
     register,
@@ -271,6 +298,71 @@ export function LoginForm() {
     setShowPassword(false)
   }
 
+  function isManagementRole(role: Role | null) {
+    return role === 'super_admin' || role === 'admin' || role === 'volunteer'
+  }
+
+  function recordMgmtFailure() {
+    setMgmtFailures((f) => {
+      const next = f + 1
+      if (next >= MGMT_LOCK_THRESHOLD) {
+        setMgmtLockUntil(Date.now() + MGMT_LOCK_SECONDS * 1000)
+        setMgmtStage('idle')
+        setStaffCode('')
+        setStaffCodeError(null)
+        return 0
+      }
+      return next
+    })
+  }
+
+  async function handleStaffContinue() {
+    setStaffCodeError(null)
+    try {
+      const response = await fetch('/api/auth/staff/status')
+      const result = await response.json()
+      setMgmtStage(result.enabled ? 'code' : 'menu')
+    } catch {
+      setMgmtStage('code')
+    }
+  }
+
+  async function handleStaffCodeVerify() {
+    if (!staffCode.trim()) {
+      setStaffCodeError('Please enter your staff access code')
+      return
+    }
+    setIsStaffCodeLoading(true)
+    setStaffCodeError(null)
+    try {
+      const response = await fetch('/api/auth/staff/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: staffCode.trim() }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        setStaffCodeError(result.error || 'Verification failed')
+        return
+      }
+
+      if (result.valid) {
+        setMgmtStage('menu')
+        setStaffCode('')
+        return
+      }
+
+      setStaffCodeError('Incorrect staff access code.')
+      recordMgmtFailure()
+    } catch {
+      setStaffCodeError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsStaffCodeLoading(false)
+    }
+  }
+
   async function onSubmit(data: LoginFormData) {
     setIsLoading(true)
     setError(null)
@@ -286,6 +378,7 @@ export function LoginForm() {
 
       if (!result.success) {
         setError(result.error || 'Login failed')
+        if (isManagementRole(selectedRole)) recordMgmtFailure()
         return
       }
 
@@ -454,28 +547,55 @@ export function LoginForm() {
 
                   <div className="space-y-3">
                     {/* Management Login */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setMgmtStage((s) => (s === 'idle' ? 'warning' : 'idle'))
-                      }
-                      aria-expanded={mgmtStage !== 'idle'}
-                      className="group flex w-full items-center gap-4 rounded-xl border border-l-4 border-border/50 border-l-[#7C3AED] bg-card/80 p-5 text-left backdrop-blur transition-all duration-200 hover:shadow-lg hover:shadow-black/5 hover:backdrop-blur-md active:scale-[0.98]"
-                      style={{ animation: 'fadeIn 0.4s ease-out both' }}
-                    >
-                      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#7C3AED]/10 ring-2 ring-[#7C3AED]/20 transition-all duration-200 group-hover:scale-105">
-                        <Shield className="size-5 text-[#7C3AED]" />
+                    {mgmtLockRemaining > 0 ? (
+                      <div
+                        className="flex w-full items-center gap-4 rounded-xl border border-l-4 border-red-500/40 border-l-red-500 bg-red-500/5 p-5 text-left backdrop-blur"
+                        style={{ animation: 'fadeIn 0.4s ease-out both' }}
+                      >
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-red-500/10 ring-2 ring-red-500/20">
+                          <Lock className="size-5 text-red-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-foreground">
+                            Management Login Locked
+                          </h3>
+                          <p className="mt-0.5 text-base text-muted-foreground">
+                            Too many failed attempts. Try again in {mgmtLockRemaining}s.
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-bold text-foreground">
-                          Management Login
-                        </h3>
-                        <p className="mt-0.5 text-base text-muted-foreground">
-                          Super Admin, Admin &amp; Volunteer / Investigator portals
-                        </p>
-                      </div>
-                      <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${mgmtStage !== 'idle' ? 'rotate-180' : ''}`} />
-                    </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMgmtStage((s) => (s === 'idle' ? 'warning' : 'idle'))
+                        }
+                        aria-expanded={mgmtStage !== 'idle'}
+                        className="group flex w-full items-center gap-4 rounded-xl border border-l-4 border-border/50 border-l-[#7C3AED] bg-card/80 p-5 text-left backdrop-blur transition-all duration-200 hover:shadow-lg hover:shadow-black/5 hover:backdrop-blur-md active:scale-[0.98]"
+                        style={{ animation: 'fadeIn 0.4s ease-out both' }}
+                      >
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#7C3AED]/10 ring-2 ring-[#7C3AED]/20 transition-all duration-200 group-hover:scale-105">
+                          <Shield className="size-5 text-[#7C3AED]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-foreground">
+                            Management Login
+                          </h3>
+                          <p className="mt-0.5 text-base text-muted-foreground">
+                            Super Admin, Admin &amp; Volunteer / Investigator portals
+                          </p>
+                        </div>
+                        <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${mgmtStage !== 'idle' ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+
+                    {mgmtFailures > 0 && mgmtLockRemaining === 0 && (
+                      <p className="text-sm text-amber-500">
+                        Failed management attempts: {mgmtFailures} / {MGMT_LOCK_THRESHOLD}. The
+                        management login will lock temporarily after {MGMT_LOCK_THRESHOLD} failed
+                        attempts.
+                      </p>
+                    )}
 
                     {/* Restricted area warning */}
                     {mgmtStage === 'warning' && (
@@ -500,7 +620,7 @@ export function LoginForm() {
                         <div className="mt-4 flex gap-3">
                           <Button
                             type="button"
-                            onClick={() => setMgmtStage('menu')}
+                            onClick={handleStaffContinue}
                             className="flex-1 bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] font-medium shadow-lg shadow-[#7C3AED]/25 transition-all duration-200 hover:from-[#7C3AED]/90 hover:to-[#8B5CF6]/90"
                           >
                             I&apos;m authorized staff &mdash; Continue
@@ -512,6 +632,64 @@ export function LoginForm() {
                             className="flex-1 text-muted-foreground"
                           >
                             Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Staff access code */}
+                    {mgmtStage === 'code' && (
+                      <div
+                        className="rounded-xl border border-border/50 bg-card/60 p-4 backdrop-blur"
+                        style={{ animation: 'fadeIn 0.2s ease-out' }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <KeyRound className="mt-0.5 size-5 shrink-0 text-[#7C3AED]" />
+                          <div>
+                            <h4 className="text-base font-bold text-foreground">
+                              Staff Access Code
+                            </h4>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              Enter your staff access code to unlock the management login
+                              portals.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <Input
+                            type="password"
+                            inputMode="numeric"
+                            placeholder="Staff access code"
+                            value={staffCode}
+                            onChange={(e) => setStaffCode(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleStaffCodeVerify()
+                            }}
+                            disabled={isStaffCodeLoading}
+                            autoComplete="off"
+                            autoCapitalize="none"
+                            spellCheck={false}
+                          />
+                        </div>
+                        {staffCodeError && (
+                          <p className="mt-2 text-sm text-red-500">{staffCodeError}</p>
+                        )}
+                        <div className="mt-4 flex gap-3">
+                          <Button
+                            type="button"
+                            onClick={handleStaffCodeVerify}
+                            disabled={isStaffCodeLoading}
+                            className="flex-1 bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] font-medium shadow-lg shadow-[#7C3AED]/25 transition-all duration-200 hover:from-[#7C3AED]/90 hover:to-[#8B5CF6]/90"
+                          >
+                            {isStaffCodeLoading ? 'Verifying...' : 'Unlock'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setMgmtStage('warning')}
+                            className="flex-1 text-muted-foreground"
+                          >
+                            Back
                           </Button>
                         </div>
                       </div>
