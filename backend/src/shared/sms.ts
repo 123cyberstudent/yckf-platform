@@ -45,7 +45,11 @@ export async function sendSms(options: { to: string; message: string }): Promise
   const provider = (process.env.SMS_PROVIDER || '').toLowerCase();
 
   if (!provider) {
-    console.log(`[sms] No SMS provider configured. (Would send to ${options.to}: ${options.message})`);
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`[sms] No SMS provider configured. SMS delivery skipped for ${options.to}`);
+    } else {
+      console.log(`[sms] No SMS provider configured. (Would send to ${options.to}: ${options.message})`);
+    }
     return { sent: false, error: 'SMS_PROVIDER not configured' };
   }
 
