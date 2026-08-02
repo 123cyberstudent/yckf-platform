@@ -399,7 +399,7 @@ export function LoginForm() {
       const actualRole = result.data?.role || result.role || '';
       const isStaff = ['SUPER_ADMIN', 'ADMIN', 'VOLUNTEER'].includes(actualRole);
       resetCachedRole();
-      router.push(isStaff ? '/dashboard' : '/')
+      router.push(isStaff ? '/dashboard' : '/dashboard/user-portal')
       router.refresh()
     } catch {
       setError('An unexpected error occurred. Please try again.')
@@ -438,7 +438,7 @@ export function LoginForm() {
       const isStaff = ['SUPER_ADMIN', 'ADMIN', 'VOLUNTEER'].includes(actualRole);
       setOtpState(null)
       resetCachedRole();
-      router.push(isStaff ? '/dashboard' : '/')
+      router.push(isStaff ? '/dashboard' : '/dashboard/user-portal')
       router.refresh()
     } catch {
       setOtpError('An unexpected error occurred. Please try again.')

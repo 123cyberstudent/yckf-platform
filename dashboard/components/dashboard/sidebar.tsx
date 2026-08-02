@@ -62,11 +62,12 @@ export function DashboardSidebar() {
 
   const menuItems = [
     { icon: Home, label: dashboardLabel, href: dashboardHref, roles: ['super_admin', 'admin', 'volunteer'] },
+    { icon: BookOpen, label: 'My Portal', href: '/dashboard/user-portal', roles: ['user'] },
+    { icon: AlertTriangle, label: 'Report an Incident', href: '/report-a-cybercrime', roles: ['user'] },
     { icon: AlertTriangle, label: 'Incidents', href: '/dashboard/incidents', roles: ['super_admin', 'admin', 'volunteer'] },
     { icon: FileText, label: 'Evidence Vault', href: '/dashboard/evidence', roles: ['super_admin', 'admin', 'volunteer'] },
     { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', roles: ['super_admin', 'admin', 'volunteer'] },
     { icon: Bell, label: 'Notifications', href: '/dashboard/notifications', roles: ['super_admin', 'admin', 'volunteer', 'user'] },
-    { icon: BookOpen, label: 'My Portal', href: '/dashboard/user-portal', roles: ['user'] },
   ];
 
   const adminOnlyItems = [
