@@ -697,6 +697,7 @@ export function LoginForm() {
 
                     {/* Management role dropdown */}
                     {mgmtStage === 'menu' && (
+                      <>
                       <div
                         className="overflow-hidden rounded-xl border border-border/50 bg-card/60 backdrop-blur"
                         style={{ animation: 'fadeIn 0.2s ease-out' }}
@@ -729,6 +730,42 @@ export function LoginForm() {
                           )
                         })}
                       </div>
+
+                      <div className="mt-6">
+                        <div className="relative mb-3 flex items-center justify-center gap-3">
+                          <div className="h-px flex-1 bg-border/60" />
+                          <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                            Quick access
+                          </span>
+                          <div className="h-px flex-1 bg-border/60" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {quickLoginAccounts.map((account, index) => (
+                            <button
+                              key={account.role}
+                              type="button"
+                              onClick={() =>
+                                handleQuickLogin(account.role, account.identifier, account.password)
+                              }
+                              className="group flex flex-col items-center gap-1 rounded-xl border border-border/50 bg-card/80 p-3 text-center backdrop-blur transition-all duration-200 hover:border-[#2DD4BF]/40 hover:bg-card hover:shadow-lg hover:shadow-[#2DD4BF]/5 active:scale-[0.98]"
+                              style={{
+                                animation: `fadeIn 0.4s ease-out ${0.4 + index * 0.1}s both`,
+                              }}
+                            >
+                              <span className="text-sm font-semibold text-foreground transition-colors group-hover:text-[#2DD4BF]">
+                                {account.label}
+                              </span>
+                              <span className="max-w-full truncate text-xs text-muted-foreground">
+                                {account.description}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-2 text-center text-xs text-muted-foreground/70">
+                          One-tap demo sign in with the seeded demo accounts
+                        </p>
+                      </div>
+                      </>
                     )}
 
                     {/* User Login */}
@@ -751,41 +788,6 @@ export function LoginForm() {
                       </div>
                       <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
                     </button>
-                  </div>
-
-                  <div className="mt-6">
-                    <div className="relative mb-3 flex items-center justify-center gap-3">
-                      <div className="h-px flex-1 bg-border/60" />
-                      <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                        Quick access
-                      </span>
-                      <div className="h-px flex-1 bg-border/60" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {quickLoginAccounts.map((account, index) => (
-                        <button
-                          key={account.role}
-                          type="button"
-                          onClick={() =>
-                            handleQuickLogin(account.role, account.identifier, account.password)
-                          }
-                          className="group flex flex-col items-center gap-1 rounded-xl border border-border/50 bg-card/80 p-3 text-center backdrop-blur transition-all duration-200 hover:border-[#2DD4BF]/40 hover:bg-card hover:shadow-lg hover:shadow-[#2DD4BF]/5 active:scale-[0.98]"
-                          style={{
-                            animation: `fadeIn 0.4s ease-out ${0.4 + index * 0.1}s both`,
-                          }}
-                        >
-                          <span className="text-sm font-semibold text-foreground transition-colors group-hover:text-[#2DD4BF]">
-                            {account.label}
-                          </span>
-                          <span className="max-w-full truncate text-xs text-muted-foreground">
-                            {account.description}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="mt-2 text-center text-xs text-muted-foreground/70">
-                      One-tap demo sign in with the seeded demo accounts
-                    </p>
                   </div>
 
                   <div className="mt-5 pt-4 text-center">
