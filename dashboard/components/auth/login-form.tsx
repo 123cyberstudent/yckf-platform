@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   ChevronRight,
+  ChevronDown,
   Fingerprint,
   KeyRound,
   RefreshCw,
@@ -94,6 +95,8 @@ const roles: RoleCard[] = [
     iconRing: 'ring-muted-foreground/20',
   },
 ]
+
+const managementRoles = roles.filter((role) => role.id !== 'user')
 
 const loginSchema = z.object({
   identifier: z.string().trim().min(1, 'Please enter your email or phone number'),
@@ -200,6 +203,7 @@ function BrandingPanel() {
 export function LoginForm() {
   const router = useRouter()
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
+  const [showManagementMenu, setShowManagementMenu] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -243,6 +247,14 @@ export function LoginForm() {
 
   function handleBack() {
     setSelectedRole(null)
+    setError(null)
+    reset()
+    setShowPassword(false)
+  }
+
+  function openRoleForm(role: Role) {
+    setSelectedRole(role)
+    setShowManagementMenu(false)
     setError(null)
     reset()
     setShowPassword(false)
@@ -435,42 +447,89 @@ export function LoginForm() {
                       Welcome back
                     </h2>
                     <p className="mt-1 text-lg text-muted-foreground">
-                      Select your role to sign in
+                      Choose how you&apos;d like to sign in
                     </p>
                   </div>
 
-                  <div className="grid gap-3">
-                    {roles.map((role, index) => {
-                      const Icon = role.icon
-                      return (
-                        <button
-                          key={role.id}
-                          onClick={() => setSelectedRole(role.id)}
-                          className={`group flex items-center gap-4 rounded-xl border border-l-4 border-border/50 border-l-transparent bg-card/80 p-5 text-left backdrop-blur transition-all duration-200 hover:border-l-current ${role.borderColor} hover:shadow-lg hover:shadow-black/5 hover:shadow-[#2DD4BF]/5 hover:backdrop-blur-md active:scale-[0.98]`}
-                          style={{
-                            animation: `fadeIn 0.4s ease-out ${index * 0.1}s both`,
-                          }}
-                        >
-                          <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${role.iconBg} ring-2 ${role.iconRing} transition-all duration-200 group-hover:scale-105`}>
-                            <Icon className={`size-5 ${role.color}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-baseline gap-2">
-                              <h3 className="text-xl font-bold text-foreground">
-                                {role.title}
-                              </h3>
-                              <span className="text-base text-muted-foreground">
-                                {role.subtitle}
-                              </span>
-                            </div>
-                            <p className="mt-0.5 text-base text-muted-foreground">
-                              {role.description}
-                            </p>
-                          </div>
-                          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
-                        </button>
-                      )
-                    })}
+                  <div className="space-y-3">
+                    {/* Management Login */}
+                    <button
+                      type="button"
+                      onClick={() => setShowManagementMenu(!showManagementMenu)}
+                      aria-expanded={showManagementMenu}
+                      className="group flex w-full items-center gap-4 rounded-xl border border-l-4 border-border/50 border-l-[#7C3AED] bg-card/80 p-5 text-left backdrop-blur transition-all duration-200 hover:shadow-lg hover:shadow-black/5 hover:backdrop-blur-md active:scale-[0.98]"
+                      style={{ animation: 'fadeIn 0.4s ease-out both' }}
+                    >
+                      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#7C3AED]/10 ring-2 ring-[#7C3AED]/20 transition-all duration-200 group-hover:scale-105">
+                        <Shield className="size-5 text-[#7C3AED]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xl font-bold text-foreground">
+                          Management Login
+                        </h3>
+                        <p className="mt-0.5 text-base text-muted-foreground">
+                          Super Admin, Admin &amp; Volunteer / Investigator portals
+                        </p>
+                      </div>
+                      <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${showManagementMenu ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Management role dropdown */}
+                    {showManagementMenu && (
+                      <div
+                        className="overflow-hidden rounded-xl border border-border/50 bg-card/60 backdrop-blur"
+                        style={{ animation: 'fadeIn 0.2s ease-out' }}
+                      >
+                        {managementRoles.map((role, index) => {
+                          const Icon = role.icon
+                          return (
+                            <button
+                              key={role.id}
+                              type="button"
+                              onClick={() => openRoleForm(role.id)}
+                              className="group flex w-full items-center gap-3 border-b border-border/40 px-4 py-3.5 text-left transition-colors last:border-b-0 hover:bg-card"
+                              style={{
+                                animation: `fadeIn 0.25s ease-out ${index * 0.05}s both`,
+                              }}
+                            >
+                              <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${role.iconBg} ring-1 ${role.iconRing}`}>
+                                <Icon className={`size-4 ${role.color}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-base font-semibold text-foreground">
+                                  {role.title}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {role.subtitle}
+                                </p>
+                              </div>
+                              <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* User Login */}
+                    <button
+                      type="button"
+                      onClick={() => openRoleForm('user')}
+                      className="group flex w-full items-center gap-4 rounded-xl border border-l-4 border-border/50 border-l-muted-foreground bg-card/80 p-5 text-left backdrop-blur transition-all duration-200 hover:shadow-lg hover:shadow-black/5 hover:backdrop-blur-md active:scale-[0.98]"
+                      style={{ animation: 'fadeIn 0.4s ease-out 0.1s both' }}
+                    >
+                      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted/50 ring-2 ring-muted-foreground/20 transition-all duration-200 group-hover:scale-105">
+                        <User className="size-5 text-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xl font-bold text-foreground">
+                          User Login
+                        </h3>
+                        <p className="mt-0.5 text-base text-muted-foreground">
+                          Report incidents, track cases &amp; access courses
+                        </p>
+                      </div>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                    </button>
                   </div>
 
                   <div className="mt-6">
@@ -527,7 +586,7 @@ export function LoginForm() {
                     className="mb-4 flex items-center gap-1.5 text-base text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <ArrowLeft className="size-4" />
-                    Back to role selection
+                    Back to login options
                   </button>
 
                   <Card className="border-border/50 bg-card shadow-xl shadow-black/[0.03]">
