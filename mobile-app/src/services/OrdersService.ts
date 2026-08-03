@@ -1,6 +1,6 @@
 // ============================================
 // FILE: src/services/OrdersService.ts
-// Order lifecycle: create, pay (credits/paystack), fetch
+// Order lifecycle: create, pay (paystack), fetch
 // ============================================
 
 import AuthService, { API_BASE_URL } from './AuthService';
@@ -62,7 +62,6 @@ class OrdersService {
     orderType: OrderType;
     productId?: number;
     promoCode?: string;
-    payWithCredits?: boolean;
   }): Promise<OrderSummary> {
     const res = await fetch(`${API_BASE_URL}/api/orders`, {
       method: 'POST',
@@ -96,20 +95,6 @@ class OrdersService {
       throw this.errorFrom(data, 'Failed to load orders');
     }
     return data.orders as OrderSummary[];
-  }
-
-  /** Pay an order using wallet credits. Returns the updated order. */
-  async payWithCredits(orderNumber: string): Promise<OrderSummary> {
-    const res = await fetch(`${API_BASE_URL}/api/orders/${orderNumber}/pay`, {
-      method: 'POST',
-      headers: await this.headers(),
-      body: JSON.stringify({ method: 'credits' }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw this.errorFrom(data, 'Failed to pay with credits');
-    }
-    return data.order as OrderSummary;
   }
 
   /** Initialize a Paystack transaction. Returns the redirect authorization URL. */

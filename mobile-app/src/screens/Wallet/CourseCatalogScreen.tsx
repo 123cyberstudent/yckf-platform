@@ -20,7 +20,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, LAYOUT } from '../../utils/constants';
-import { formatMoney, formatCredits } from '../../utils/money';
+import { formatMoney } from '../../utils/money';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import CatalogService, { Course } from '../../services/CatalogService';
 import { RootStackParamList } from '../../types';
@@ -55,7 +55,6 @@ const CourseCatalogScreen: React.FC = () => {
       productId: course.id,
       productName: course.title,
       price: course.price,
-      creditsPrice: course.creditsPrice,
     });
   };
 
@@ -109,9 +108,6 @@ const CourseCatalogScreen: React.FC = () => {
               ) : null}
               <View style={styles.priceRow}>
                 <Text style={styles.priceText}>{formatMoney(item.price)}</Text>
-                {item.creditsPrice > 0 ? (
-                  <Text style={styles.creditsText}>or {formatCredits(item.creditsPrice)}</Text>
-                ) : null}
               </View>
             </View>
           </TouchableOpacity>
@@ -211,11 +207,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     color: COLORS.primary,
-  },
-  creditsText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.secondary,
   },
 });
 

@@ -15,12 +15,10 @@ export type RootStackParamList = {
   Plans: undefined;
   CourseCatalog: undefined;
   Checkout: {
-    orderType: 'COURSE' | 'CREDIT_PACKAGE';
+    orderType: 'COURSE';
     productId: number;
     productName: string;
     price: number;
-    creditsPrice?: number;
-    totalCredits?: number;
   };
   PaystackWebView: {
     orderNumber: string;

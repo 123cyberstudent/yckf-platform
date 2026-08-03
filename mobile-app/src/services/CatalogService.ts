@@ -15,7 +15,6 @@ export interface Course {
   category: string | null;
   imageUrl: string | null;
   price: number;
-  creditsPrice: number;
 }
 
 class CatalogService {

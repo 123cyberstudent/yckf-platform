@@ -1,6 +1,6 @@
 // ============================================
 // FILE: src/screens/Wallet/CheckoutScreen.tsx
-// Order creation + payment (credits or Paystack)
+// Order creation + Paystack payment
 // ============================================
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -25,42 +25,35 @@ import { formatMoney, formatCredits } from '../../utils/money';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import Button from '../../components/common/Button';
 import OrdersService, { OrderSummary } from '../../services/OrdersService';
-import WalletService from '../../services/WalletService';
 import { RootStackParamList } from '../../types';
 
 type CheckoutParams = {
-  orderType: 'COURSE' | 'CREDIT_PACKAGE';
+  orderType: 'COURSE';
   productId: number;
   productName: string;
   price: number;
-  creditsPrice?: number;
-  totalCredits?: number;
 };
 
 const CheckoutScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<Record<string, CheckoutParams>, string>>();
-  const { orderType, productId, productName, price, creditsPrice, totalCredits } = route.params ?? ({} as CheckoutParams);
+  const { orderType, productId, productName, price } = route.params ?? ({} as CheckoutParams);
 
-  const supportsCredits = orderType === 'COURSE' && (creditsPrice ?? 0) > 0;
-  const [method, setMethod] = useState<'paystack' | 'credits'>('paystack');
   const [order, setOrder] = useState<OrderSummary | null>(null);
   const [promoInput, setPromoInput] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [creating, setCreating] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   const createOrderFor = useCallback(
-    async (payWithCredits: boolean, promoCode?: string) => {
+    async (promoCode?: string) => {
       setCreating(true);
       setError(null);
       try {
         const created = await OrdersService.createOrder({
           orderType,
           productId,
-          payWithCredits,
           promoCode: promoCode || undefined,
         });
         setOrder(created);
@@ -77,33 +70,19 @@ const CheckoutScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    createOrderFor(method === 'credits');
+    createOrderFor();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (method === 'credits') {
-      WalletService.getWallet()
-        .then((w) => setWalletBalance(w.availableBalance))
-        .catch(() => setWalletBalance(null));
-    }
-  }, [method]);
-
-  const changeMethod = (next: 'paystack' | 'credits') => {
-    if (next === method) return;
-    setMethod(next);
-    createOrderFor(next === 'credits');
-  };
 
   const applyPromo = () => {
     const code = promoInput.trim();
     if (!code) return;
-    createOrderFor(method === 'credits', code);
+    createOrderFor(code);
   };
 
   const removePromo = () => {
     setPromoInput('');
     setPromoApplied(false);
-    createOrderFor(method === 'credits');
+    createOrderFor();
   };
 
   const handlePay = async () => {
@@ -111,23 +90,11 @@ const CheckoutScreen: React.FC = () => {
     setPaying(true);
     setError(null);
     try {
-      if (method === 'credits') {
-        const paid = await OrdersService.payWithCredits(order.orderNumber);
-        navigation.navigate('OrderResult', {
-          success: paid.status === 'FULFILLED' || paid.status === 'PAID',
-          orderNumber: paid.orderNumber,
-          message:
-            paid.status === 'FULFILLED' || paid.status === 'PAID'
-              ? 'Your purchase was successful'
-              : `Order is ${paid.status}`,
-        });
-      } else {
-        const { payment } = await OrdersService.payWithPaystack(order.orderNumber);
-        navigation.navigate('PaystackWebView', {
-          orderNumber: order.orderNumber,
-          authorizationUrl: payment.authorizationUrl,
-        });
-      }
+      const { payment } = await OrdersService.payWithPaystack(order.orderNumber);
+      navigation.navigate('PaystackWebView', {
+        orderNumber: order.orderNumber,
+        authorizationUrl: payment.authorizationUrl,
+      });
     } catch (err: any) {
       setError(err?.message || 'Payment failed. Please try again.');
     } finally {
@@ -135,8 +102,7 @@ const CheckoutScreen: React.FC = () => {
     }
   };
 
-  const totalDisplay =
-    method === 'credits' ? formatCredits(order?.totalAmount ?? 0) : formatMoney(order?.totalAmount ?? 0);
+  const totalDisplay = formatMoney(order?.totalAmount ?? 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -151,23 +117,13 @@ const CheckoutScreen: React.FC = () => {
             <Text style={styles.cardLabel}>Order Summary</Text>
             <View style={styles.productRow}>
               <View style={styles.productIcon}>
-                <Ionicons
-                  name={orderType === 'COURSE' ? 'school' : 'wallet'}
-                  size={22}
-                  color={COLORS.primary}
-                />
+                <Ionicons name="school" size={22} color={COLORS.primary} />
               </View>
               <View style={styles.productInfo}>
                 <Text style={styles.productName}>{productName}</Text>
-                <Text style={styles.productType}>
-                  {orderType === 'COURSE' ? 'Course' : 'Credit package'}
-                </Text>
+                <Text style={styles.productType}>Course</Text>
               </View>
-              {orderType === 'CREDIT_PACKAGE' && totalCredits ? (
-                <Text style={styles.productCredits}>{formatCredits(totalCredits)}</Text>
-              ) : (
-                <Text style={styles.productPrice}>{formatMoney(price)}</Text>
-              )}
+              <Text style={styles.productPrice}>{formatMoney(price)}</Text>
             </View>
 
             {creating ? (
@@ -180,9 +136,7 @@ const CheckoutScreen: React.FC = () => {
                 <View style={styles.totals}>
                   <View style={styles.totalRow}>
                     <Text style={styles.totalLabel}>Subtotal</Text>
-                    <Text style={styles.totalValue}>
-                      {method === 'credits' ? formatCredits(order.subtotalAmount) : formatMoney(order.subtotalAmount)}
-                    </Text>
+                    <Text style={styles.totalValue}>{formatMoney(order.subtotalAmount)}</Text>
                   </View>
                   {order.discountAmount > 0 ? (
                     <View style={styles.totalRow}>
@@ -230,10 +184,7 @@ const CheckoutScreen: React.FC = () => {
 
                 {/* Payment method */}
                 <Text style={styles.cardLabel}>Payment Method</Text>
-                <TouchableOpacity
-                  style={[styles.methodRow, method === 'paystack' && styles.methodRowSelected]}
-                  onPress={() => changeMethod('paystack')}
-                >
+                <TouchableOpacity style={[styles.methodRow, styles.methodRowSelected]}>
                   <View style={styles.methodIcon}>
                     <Ionicons name="card" size={20} color="#00C3F7" />
                   </View>
@@ -241,36 +192,8 @@ const CheckoutScreen: React.FC = () => {
                     <Text style={styles.methodTitle}>Paystack</Text>
                     <Text style={styles.methodSubtitle}>Mobile money (MTN, Telcel, AirtelTigo), card & bank</Text>
                   </View>
-                  <Ionicons
-                    name={method === 'paystack' ? 'radio-button-on' : 'radio-button-off'}
-                    size={22}
-                    color={method === 'paystack' ? COLORS.primary : COLORS.text.light}
-                  />
+                  <Ionicons name="radio-button-on" size={22} color={COLORS.primary} />
                 </TouchableOpacity>
-
-                {supportsCredits ? (
-                  <TouchableOpacity
-                    style={[styles.methodRow, method === 'credits' && styles.methodRowSelected]}
-                    onPress={() => changeMethod('credits')}
-                  >
-                    <View style={styles.methodIcon}>
-                      <Ionicons name="wallet" size={20} color={COLORS.secondary} />
-                    </View>
-                    <View style={styles.methodInfo}>
-                      <Text style={styles.methodTitle}>Pay with credits</Text>
-                      <Text style={styles.methodSubtitle}>
-                        {walletBalance !== null
-                          ? `Balance: ${formatCredits(walletBalance)}`
-                          : 'Wallet balance'}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name={method === 'credits' ? 'radio-button-on' : 'radio-button-off'}
-                      size={22}
-                      color={method === 'credits' ? COLORS.primary : COLORS.text.light}
-                    />
-                  </TouchableOpacity>
-                ) : null}
               </>
             ) : null}
           </View>
@@ -283,13 +206,13 @@ const CheckoutScreen: React.FC = () => {
           ) : null}
 
           <Button
-            title={method === 'credits' ? `Pay ${formatCredits(order?.totalAmount ?? 0)}` : `Pay ${formatMoney(order?.totalAmount ?? 0)}`}
+            title={`Pay ${formatMoney(order?.totalAmount ?? 0)}`}
             onPress={handlePay}
             loading={paying}
             disabled={!order || creating || paying}
             size="large"
             fullWidth
-            icon={method === 'credits' ? 'wallet' : 'lock-closed'}
+            icon="lock-closed"
             style={styles.payButton}
           />
 
@@ -357,11 +280,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: COLORS.primary,
-  },
-  productCredits: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.secondary,
   },
   loadingRow: {
     flexDirection: 'row',

@@ -103,16 +103,3 @@ export async function listActiveCourses() {
 export async function getCourseBySlug(slug: string) {
   return prisma.course.findUnique({ where: { slug } });
 }
-
-export async function listActivePackages(now: Date = new Date()) {
-  return prisma.creditPackage.findMany({
-    where: {
-      active: true,
-      AND: [
-        { OR: [{ startAt: null }, { startAt: { lte: now } }] },
-        { OR: [{ endAt: null }, { endAt: { gte: now } }] },
-      ],
-    },
-    orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }],
-  });
-}
