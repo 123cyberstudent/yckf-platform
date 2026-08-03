@@ -265,6 +265,31 @@ const AboutScreen: React.FC = () => {
             />
           </View>
 
+          {/* Project Team Section */}
+          <View style={styles.section} pointerEvents="box-none">
+            <Text style={styles.sectionTitle}>Project Team</Text>
+
+            <View style={styles.featureItem} pointerEvents="box-none">
+              <View style={styles.teamAvatar}>
+                <Ionicons name="person" size={24} color={COLORS.primary} />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={styles.featureTitle}>Bright Peter Kwaku Boateng</Text>
+                <Text style={styles.featureText}>Founder & Design and Technical Lead</Text>
+              </View>
+            </View>
+
+            <View style={styles.featureItem} pointerEvents="box-none">
+              <View style={styles.teamAvatar}>
+                <Ionicons name="person" size={24} color={COLORS.primary} />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={styles.featureTitle}>Bienvenu Gbeti</Text>
+                <Text style={styles.featureText}>Frontend Mobile Developer</Text>
+              </View>
+            </View>
+          </View>
+
           {/* Legal Section */}
           <View style={styles.legalSection} pointerEvents="box-none">
             <Text style={styles.legalText}>© 2026 Young Cyber Knights Foundation</Text>
@@ -384,6 +409,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: SPACING.lg,
+  },
+  teamAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: `${COLORS.primary}10`,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   featureContent: {
     flex: 1,
