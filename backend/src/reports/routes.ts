@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { prisma } from '../shared/db.js';
 import { verifyToken, isAdmin, isInvestigator } from '../auth/middleware.js';
 import { generateTicketNumber } from '../shared/tickets.js';
@@ -22,7 +23,6 @@ router.post('/', async (req: Request, res: Response) => {
 
     let systemUser = await prisma.user.findFirst({ where: { email: 'system@yckf.internal' } });
     if (!systemUser) {
-      const bcrypt = await import('bcryptjs');
       systemUser = await prisma.user.create({
         data: {
           email: 'system@yckf.internal',
@@ -154,7 +154,7 @@ router.post('/', async (req: Request, res: Response) => {
       emailQueued: true,
     });
   } catch (err) {
-    console.error('Failed to submit report');
+    console.error('Failed to submit report', err);
     res.status(500).json({ error: 'Failed to submit report' });
   }
 });

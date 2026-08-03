@@ -49,6 +49,7 @@ const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) ?? [
   'http://localhost:3000',
   'http://localhost:4001',
+  'https://yckf-admin-dashboard-production.up.railway.app',
 ];
 const isProduction = process.env.NODE_ENV === 'production';
 

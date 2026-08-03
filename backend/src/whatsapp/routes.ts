@@ -6,6 +6,7 @@ const router = Router();
 const WHATSAPP_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'yckf-whatsapp-verify';
 const WHATSAPP_API_TOKEN = process.env.WHATSAPP_API_TOKEN || '';
 const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+const PUBLIC_SITE_URL = process.env.PUBLIC_SITE_URL || 'https://yckf-admin-dashboard-production.up.railway.app';
 
 const TIPS = [
   'Use strong, unique passwords for every account. Enable two-factor authentication wherever possible.',
@@ -23,16 +24,16 @@ function getRandomTip(): string {
 }
 
 const AUTO_REPLIES: Record<string, string> = {
-  'report': `To report a cybercrime, please visit our secure reporting portal:\nhttp://localhost:3000/report-a-cybercrime\n\nYou can also call our hotline or visit any YCKF office.`,
-  'crime': `To report a cybercrime, please visit our secure reporting portal:\nhttp://localhost:3000/report-a-cybercrime\n\nAll reports are confidential and handled by trained volunteers.`,
-  'volunteer': `Interested in volunteering with YCKF? We'd love to have you!\n\nFill out our volunteer application:\nhttp://localhost:3000/volunteers\n\nOr email us at: yckfadmin@youngcyberknightsfoundation.org`,
-  'course': `We offer free and paid cybersecurity courses for all levels:\n\nBrowse our courses:\nhttp://localhost:3000/courses\n\nCertifications available: CEH, CompTIA Security+, and more.`,
-  'event': `Check out our upcoming cybersecurity events:\nhttp://localhost:3000/events\n\nJoin our community for workshops, seminars, and conferences.`,
-  'news': `Stay updated with the latest cybersecurity news:\nhttp://localhost:3000/news`,
+  'report': `To report a cybercrime, please visit our secure reporting portal:\n${PUBLIC_SITE_URL}/report-a-cybercrime\n\nYou can also call our hotline or visit any YCKF office.`,
+  'crime': `To report a cybercrime, please visit our secure reporting portal:\n${PUBLIC_SITE_URL}/report-a-cybercrime\n\nAll reports are confidential and handled by trained volunteers.`,
+  'volunteer': `Interested in volunteering with YCKF? We'd love to have you!\n\nFill out our volunteer application:\n${PUBLIC_SITE_URL}/volunteers\n\nOr email us at: yckfadmin@youngcyberknightsfoundation.org`,
+  'course': `We offer free and paid cybersecurity courses for all levels:\n\nBrowse our courses:\n${PUBLIC_SITE_URL}/courses\n\nCertifications available: CEH, CompTIA Security+, and more.`,
+  'event': `Check out our upcoming cybersecurity events:\n${PUBLIC_SITE_URL}/events\n\nJoin our community for workshops, seminars, and conferences.`,
+  'news': `Stay updated with the latest cybersecurity news:\n${PUBLIC_SITE_URL}/news`,
   'help': `How can we help you? Reply with:\n\n1 - Report a cybercrime\n2 - Volunteer with us\n3 - Browse courses\n4 - View events\n5 - General inquiry`,
-  'status': `To check the status of your report, please provide your report ID or visit:\nhttp://localhost:3000/report-a-cybercrime\n\nOur team will get back to you.`,
-  'contact': `Reach us at:\n\nEmail: yckfadmin@youngcyberknightsfoundation.org\nWhatsApp: +233505313578\nWebsite: http://localhost:3000\n\nOr visit our office during business hours.`,
-  'location': `YCKF offices are located in Accra, Ghana.\n\nVisit our website for directions:\nhttp://localhost:3000/about`,
+  'status': `To check the status of your report, please provide your report ID or visit:\n${PUBLIC_SITE_URL}/report-a-cybercrime\n\nOur team will get back to you.`,
+  'contact': `Reach us at:\n\nEmail: yckfadmin@youngcyberknightsfoundation.org\nWhatsApp: +233505313578\nWebsite: ${PUBLIC_SITE_URL}\n\nOr visit our office during business hours.`,
+  'location': `YCKF offices are located in Accra, Ghana.\n\nVisit our website for directions:\n${PUBLIC_SITE_URL}/about`,
 };
 
 function findReply(message: string): string {

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { emailRateLimiter } from '../shared/rateLimiter.js';
 import { prisma } from '../shared/db.js';
 import { generateTicketNumber } from '../shared/tickets.js';
@@ -102,7 +103,6 @@ router.post('/cybercrime-report', async (req: Request, res: Response) => {
 
     let systemUser = await prisma.user.findFirst({ where: { email: 'system@yckf.internal' } });
     if (!systemUser) {
-      const bcrypt = await import('bcryptjs');
       systemUser = await prisma.user.create({
         data: {
           email: 'system@yckf.internal',

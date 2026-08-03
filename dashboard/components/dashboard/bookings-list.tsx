@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, ChevronLeft, ChevronRight, Download, FileDown, Filter, Search, Ticket, Users, XCircle, Clock, UserCheck, X } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Download, FileDown, Filter, Search, Ticket, Users, XCircle, Clock, UserCheck, X, Mail, MessageCircle } from 'lucide-react';
 import { generatePDFReport } from '@/lib/pdf-utils';
 import { getRoleFromCookie } from '@/lib/permissions';
 import { logExport } from '@/lib/export-logger';
@@ -28,6 +28,15 @@ const statusOptions = [
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
+
+const bookingMessage = (b: Booking) =>
+  `Dear ${b.fullName},\n\nThank you for booking a consultation with Young Cyber Knights Foundation (Ticket ${b.ticketNumber}).\n\nBooking details:\n- Service: ${b.specialist || 'General consultation'}\n- Preferred date: ${b.preferredDate}\n- Preferred time: ${b.preferredTime || 'To be confirmed'}\n\nWe will reach out to confirm your appointment shortly.\n\nBest regards,\nYoung Cyber Knights Foundation`;
+
+const emailHref = (b: Booking) =>
+  `mailto:${b.email}?subject=${encodeURIComponent(`Booking ${b.ticketNumber} - Young Cyber Knights Foundation`)}&body=${encodeURIComponent(bookingMessage(b))}`;
+
+const whatsappHref = (b: Booking) =>
+  `https://wa.me/${String(b.phone).replace(/\D/g, '')}?text=${encodeURIComponent(bookingMessage(b))}`;
 
 interface Specialist {
   id: number;
@@ -424,6 +433,20 @@ export function BookingsList() {
                             <Button variant="ghost" size="sm" className="text-[#2563EB] hover:text-[#2563EB]/80" onClick={() => openAssign(booking)}>
                               <UserCheck className="size-3.5 mr-1" /> Assign
                             </Button>
+                          )}
+                          {currentRole === 'admin' && (
+                            <>
+                              <a href={emailHref(booking)} target="_blank" rel="noreferrer">
+                                <Button variant="ghost" size="sm" className="text-[#16A34A] hover:text-[#16A34A]/80">
+                                  <Mail className="size-3.5 mr-1" /> Email
+                                </Button>
+                              </a>
+                              <a href={whatsappHref(booking)} target="_blank" rel="noreferrer">
+                                <Button variant="ghost" size="sm" className="text-[#25D366] hover:text-[#25D366]/80">
+                                  <MessageCircle className="size-3.5 mr-1" /> WhatsApp
+                                </Button>
+                              </a>
+                            </>
                           )}
                         </div>
                       </td>

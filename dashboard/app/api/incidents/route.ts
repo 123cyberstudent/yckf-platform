@@ -51,10 +51,24 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const token = await getBackendAuthToken()
+
+    let reporterName = body.fullName
+    let reporterEmail = body.email
+    if (!reporterName || !reporterEmail) {
+      const meRes = await backendFetch('/api/auth/me', { method: 'GET' }, token)
+      if (meRes.ok) {
+        const me = await meRes.json().catch(() => null)
+        reporterName = reporterName || me?.fullName || me?.name || 'Admin'
+        reporterEmail = reporterEmail || me?.email || 'admin@yckf.org'
+      }
+    }
+
     const response = await backendFetch('/api/reports', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        fullName: reporterName ?? 'Admin',
+        email: reporterEmail ?? 'admin@yckf.org',
         title: body.title,
         description: body.description,
         incidentType: body.type ?? body.incidentType ?? 'other',

@@ -46,7 +46,16 @@ router.get(
   async (req: AuthRequest, res: Response) => {
     try {
       const { status } = req.query;
-      const where: any = req.user!.role === 'VOLUNTEER' ? {} : { assignedInvestigatorId: req.user!.id };
+      const role = req.user!.role;
+      let where: any = {};
+      if (role === 'VOLUNTEER') {
+        where = {
+          OR: [
+            { assignedInvestigatorId: req.user!.id },
+            { assignedInvestigatorId: null, status: 'open' },
+          ],
+        };
+      }
       if (status) where.status = status;
       const cases = await prisma.case.findMany({
         where,

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://yckf-admin-dashboard-production.up.railway.app'
+
 const YCKF_KNOWLEDGE = `You are YCKF AI Assistant for Young Cyber Knights Foundation.
 You help users with cybersecurity questions, YCKF services, courses, events, volunteering, and reporting cybercrime.
 Be helpful, concise, and professional. If you don't know something, direct them to contact YCKF.
 YCKF phone: +233505313578
 YCKF email: yckfadmin@youngcyberknightsfoundation.org
-YCKF website: http://localhost:3000
+YCKF website: ${SITE_URL}
 Available pages: About, Courses, Events, News, Resources, Volunteers, Report Cybercrime, Contact.
 Cybersecurity tips: Use strong passwords, enable 2FA, avoid public Wi-Fi for banking, keep software updated, back up data regularly.`
 
@@ -18,35 +20,35 @@ function generateLocalResponse(message: string): string {
   const lower = message.toLowerCase()
 
   if (lower.match(/\b(report|crime|cybercrime|scam|fraud|phishing|hack)\b/)) {
-    return `To report a cybercrime to YCKF:\n\n1. Visit our reporting portal: http://localhost:3000/report-a-cybercrime\n2. Fill in the form with incident details\n3. You'll receive a report ID for tracking\n\nFor urgent matters, call +233505313578 or email yckfadmin@youngcyberknightsfoundation.org`
+    return `To report a cybercrime to YCKF:\n\n1. Visit our reporting portal: ${SITE_URL}/report-a-cybercrime\n2. Fill in the form with incident details\n3. You'll receive a report ID for tracking\n\nFor urgent matters, call +233505313578 or email yckfadmin@youngcyberknightsfoundation.org`
   }
 
   if (lower.match(/\b(course|certification|learn|training|study)\b/)) {
-    return `YCKF offers cybersecurity courses for all levels:\n\n- Beginner: Cyber Safety Fundamentals\n- Intermediate: Ethical Hacking Basics\n- Advanced: Digital Forensics\n- Certifications: CompTIA Security+, CEH prep\n\nBrowse courses at: http://localhost:3000/courses`
+    return `YCKF offers cybersecurity courses for all levels:\n\n- Beginner: Cyber Safety Fundamentals\n- Intermediate: Ethical Hacking Basics\n- Advanced: Digital Forensics\n- Certifications: CompTIA Security+, CEH prep\n\nBrowse courses at: ${SITE_URL}/courses`
   }
 
   if (lower.match(/\b(volunteer|join|help|contribute|team)\b/)) {
-    return `Want to volunteer with YCKF?\n\nWe need volunteers for:\n- Cyber awareness education\n- Community outreach\n- Technical support\n- Event coordination\n\nApply at: http://localhost:3000/volunteers\nOr email: yckfadmin@youngcyberknightsfoundation.org`
+    return `Want to volunteer with YCKF?\n\nWe need volunteers for:\n- Cyber awareness education\n- Community outreach\n- Technical support\n- Event coordination\n\nApply at: ${SITE_URL}/volunteers\nOr email: yckfadmin@youngcyberknightsfoundation.org`
   }
 
   if (lower.match(/\b(event|workshop|seminar|conference|meetup)\b/)) {
-    return `Check our upcoming events at: http://localhost:3000/events\n\nWe regularly host:\n- Cybersecurity workshops\n- Community awareness sessions\n- Capture The Flag (CTF) competitions\n- Expert speaker events`
+    return `Check our upcoming events at: ${SITE_URL}/events\n\nWe regularly host:\n- Cybersecurity workshops\n- Community awareness sessions\n- Capture The Flag (CTF) competitions\n- Expert speaker events`
   }
 
   if (lower.match(/\b(password|secure|safety|protect|tip|advice)\b/)) {
-    return `Here are essential cybersecurity tips:\n\n1. Use unique passwords for every account (12+ characters)\n2. Enable two-factor authentication (2FA)\n3. Never click suspicious links in emails or messages\n4. Keep your devices and software updated\n5. Avoid public Wi-Fi for banking or sensitive tasks\n6. Back up your data regularly\n\nNeed more help? Visit http://localhost:3000/resources`
+    return `Here are essential cybersecurity tips:\n\n1. Use unique passwords for every account (12+ characters)\n2. Enable two-factor authentication (2FA)\n3. Never click suspicious links in emails or messages\n4. Keep your devices and software updated\n5. Avoid public Wi-Fi for banking or sensitive tasks\n6. Back up your data regularly\n\nNeed more help? Visit ${SITE_URL}/resources`
   }
 
   if (lower.match(/\b(contact|reach|email|phone|call|location|address)\b/)) {
-    return `Contact YCKF:\n\nPhone: +233505313578\nEmail: yckfadmin@youngcyberknightsfoundation.org\nWebsite: http://localhost:3000\nWhatsApp: +233505313578`
+    return `Contact YCKF:\n\nPhone: +233505313578\nEmail: yckfadmin@youngcyberknightsfoundation.org\nWebsite: ${SITE_URL}\nWhatsApp: +233505313578`
   }
 
   if (lower.match(/\b(about|mission|vision|who|what|yckf)\b/)) {
-    return `Young Cyber Knights Foundation (YCKF) is dedicated to:\n\nMission: Building the next generation of cybersecurity professionals in Ghana and Africa.\nVision: A digitally safe Africa empowered by youth.\n\nWe provide education, awareness, and hands-on cybersecurity experiences.\n\nLearn more: http://localhost:3000/about`
+    return `Young Cyber Knights Foundation (YCKF) is dedicated to:\n\nMission: Building the next generation of cybersecurity professionals in Ghana and Africa.\nVision: A digitally safe Africa empowered by youth.\n\nWe provide education, awareness, and hands-on cybersecurity experiences.\n\nLearn more: ${SITE_URL}/about`
   }
 
   if (lower.match(/\b(news|update|latest|article)\b/)) {
-    return `Stay updated with YCKF news at: http://localhost:3000/news\n\nWe regularly publish articles on:\n- Latest cyber threats\n- Security best practices\n- YCKF achievements\n- Community stories`
+    return `Stay updated with YCKF news at: ${SITE_URL}/news\n\nWe regularly publish articles on:\n- Latest cyber threats\n- Security best practices\n- YCKF achievements\n- Community stories`
   }
 
   if (lower.match(/\b(hello|hi|hey|greetings)\b/)) {

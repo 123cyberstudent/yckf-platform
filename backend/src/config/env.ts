@@ -34,7 +34,7 @@ export const env = {
   allowedOrigins:
     process.env.ALLOWED_ORIGINS?.split(',')
       .map((origin) => origin.trim())
-      .filter(Boolean) ?? ['http://localhost:3000'],
+      .filter(Boolean) ?? ['http://localhost:3000', 'https://yckf-admin-dashboard-production.up.railway.app'],
   paystack: {
     secretKey: process.env.PAYSTACK_SECRET_KEY,
     baseUrl: process.env.PAYSTACK_BASE_URL ?? 'https://api.paystack.co',

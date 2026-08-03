@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isSuperAdmin } from '@/lib/permissions';
+import { Settings } from '@/components/dashboard/settings';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -14,4 +15,6 @@ export default function SettingsPage() {
       }
     });
   }, [router]);
+
+  return <Settings />;
 }

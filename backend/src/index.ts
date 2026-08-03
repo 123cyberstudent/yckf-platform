@@ -8,7 +8,9 @@ import { scheduleEvidenceRetention } from './evidence/retention.js';
 
 const PORT = env.port;
 const server = http.createServer(app);
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) ?? ['http://localhost:3000'];
+const allowedOrigins =
+  process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) ??
+  ['http://localhost:3000', 'http://localhost:3001', 'https://yckf-admin-dashboard-production.up.railway.app'];
 
 process.on('unhandledRejection', (reason) => {
   console.error('[process] Unhandled promise rejection (server kept alive):', reason);
