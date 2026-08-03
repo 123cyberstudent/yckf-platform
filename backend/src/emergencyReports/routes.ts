@@ -1,11 +1,11 @@
 import fs from 'fs';
 import multer from 'multer';
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { prisma } from '../shared/db.js';
 import { generateTicketNumber } from '../shared/tickets.js';
 import { sendAdminNotification, sendSenderAcknowledgement } from '../email/service.js';
 import { computeHash, generateFilename, saveFile, getUploadPath } from '../shared/file.js';
-import { verifyToken, isStaff, AuthRequest } from '../auth/middleware.js';
+import { verifyToken, isStaff, optionalAuth, AuthRequest } from '../auth/middleware.js';
 import { notifyAdmins } from '../notifications/service.js';
 
 const router = Router();
@@ -14,7 +14,7 @@ const upload = multer({
   limits: { fileSize: 25 * 1024 * 1024 },
 });
 
-router.post('/', upload.single('audio'), async (req: Request, res: Response) => {
+router.post('/', upload.single('audio'), optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const {
       reporterName, reporterPhone, reporterEmail, description,
@@ -44,6 +44,7 @@ router.post('/', upload.single('audio'), async (req: Request, res: Response) => 
     const report = await prisma.emergencyReport.create({
       data: {
         ticketNumber,
+        userId: req.user?.id ?? null,
         reporterName: reporterName || null,
         reporterPhone: reporterPhone || null,
         reporterEmail: reporterEmail || null,
@@ -139,6 +140,23 @@ router.get('/', verifyToken, isStaff, async (req: AuthRequest, res: Response) =>
   } catch (err) {
     console.error('Failed to list emergency reports:', err);
     res.status(500).json({ error: 'Failed to list emergency reports' });
+  }
+});
+
+// User: Get own emergency reports
+router.get('/my', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const reports = await prisma.emergencyReport.findMany({
+      where: { OR: [{ userId: user.id }, { reporterEmail: user.email }] },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ reports });
+  } catch (err) {
+    console.error('Failed to get user emergency reports:', err);
+    res.status(500).json({ error: 'Failed to get user emergency reports' });
   }
 });
 

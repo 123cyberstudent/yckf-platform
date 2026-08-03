@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../shared/db.js';
-import { verifyToken, isAdmin, isInvestigator } from '../auth/middleware.js';
+import { verifyToken, isAdmin, isInvestigator, optionalAuth, AuthRequest } from '../auth/middleware.js';
 import { generateTicketNumber } from '../shared/tickets.js';
 import { sendAdminNotification, sendSenderAcknowledgement, sendEmail } from '../email/service.js';
 import { logAudit } from '../audit/service.js';
@@ -9,8 +9,8 @@ import { notifyAdmins } from '../notifications/service.js';
 
 const router = Router();
 
-// Public: Submit a new cybercrime report (no auth required)
-router.post('/', async (req: Request, res: Response) => {
+// Public: Submit a new cybercrime report (auth optional; ties to account when logged in)
+router.post('/', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { fullName, email, phone, address, incidentDate, incidentTime, incidentType, description, location, reporterLocation } = req.body;
 
@@ -22,16 +22,20 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Description too long (max 5000 characters)' });
     }
 
-    let systemUser = await prisma.user.findFirst({ where: { email: 'system@yckf.internal' } });
-    if (!systemUser) {
-      systemUser = await prisma.user.create({
-        data: {
-          email: 'system@yckf.internal',
-          fullName: 'System',
-          passwordHash: await bcrypt.hash('system-' + Date.now(), 10),
-          role: 'USER',
-        },
-      });
+    let ownerUserId = req.user?.id;
+    if (!ownerUserId) {
+      let systemUser = await prisma.user.findFirst({ where: { email: 'system@yckf.internal' } });
+      if (!systemUser) {
+        systemUser = await prisma.user.create({
+          data: {
+            email: 'system@yckf.internal',
+            fullName: 'System',
+            passwordHash: await bcrypt.hash('system-' + Date.now(), 10),
+            role: 'USER',
+          },
+        });
+      }
+      ownerUserId = systemUser.id;
     }
 
     const gpsAddress = reporterLocation?.gpsAddress || '';
@@ -41,7 +45,7 @@ router.post('/', async (req: Request, res: Response) => {
     const report = await prisma.report.create({
       data: {
         ticketNumber,
-        userId: systemUser.id,
+        userId: ownerUserId,
         title: `[Public Report] ${incidentType}`,
         description: JSON.stringify({
           fullName,
@@ -191,14 +195,14 @@ router.get('/', verifyToken, isInvestigator, async (req: Request, res: Response)
   }
 });
 
-// User: Get own reports by email
-router.get('/my', verifyToken, async (req: Request, res: Response) => {
+// User: Get own reports (cybercrime)
+router.get('/my', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: (req as any).user.id } });
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const reports = await prisma.report.findMany({
-      where: { reporterEmail: user.email },
+      where: { OR: [{ userId: user.id }, { reporterEmail: user.email }] },
       orderBy: { createdAt: 'desc' },
       include: {
         cases: {

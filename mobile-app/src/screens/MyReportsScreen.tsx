@@ -1,23 +1,31 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, RefreshControl,
+  View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AuthService, { API_BASE_URL } from '../services/AuthService';
 import { COLORS, SPACING } from '../utils/constants';
 
-interface Report {
+interface ReportResponse {
+  id: number;
+  message: string;
+  responderName: string;
+  createdAt: string;
+}
+
+interface DisplayReport {
   id: number;
   ticketNumber: string;
   incidentType: string;
   status: string;
   description: string;
-  reporterName: string;
-  reporterEmail: string;
+  reporterName: string | null;
+  reporterEmail: string | null;
   createdAt: string;
   updatedAt: string;
-  responses?: { id: number; message: string; responderName: string; createdAt: string }[];
+  responses?: ReportResponse[];
+  kind: 'cybercrime' | 'emergency';
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -26,11 +34,14 @@ const STATUS_COLORS: Record<string, string> = {
   in_progress: '#8b5cf6',
   resolved: '#10b981',
   closed: '#6b7280',
+  new: '#f59e0b',
+  under_review: '#3b82f6',
+  rejected: '#ef4444',
 };
 
 const MyReportsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<DisplayReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -39,13 +50,66 @@ const MyReportsScreen: React.FC = () => {
     try {
       const token = await AuthService.getToken();
       if (!token) return;
-      const res = await fetch(`${API_BASE_URL}/api/reports/my`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setReports(Array.isArray(data) ? data : data.reports || []);
+      const [reportsRes, emergenciesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/reports/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE_URL}/api/emergency-reports/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const normalized: DisplayReport[] = [];
+
+      if (reportsRes.ok) {
+        const data = await reportsRes.json();
+        const cybercrime = Array.isArray(data) ? data : data.reports || [];
+        for (const c of cybercrime) {
+          normalized.push({
+            id: c.id,
+            ticketNumber: c.ticketNumber,
+            incidentType: c.incidentType || 'Cybercrime',
+            status: c.status || 'new',
+            description: c.description || '',
+            reporterName: c.reporterName || null,
+            reporterEmail: c.reporterEmail || null,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+            responses: c.responses,
+            kind: 'cybercrime',
+          });
+        }
       }
+
+      if (emergenciesRes.ok) {
+        const data = await emergenciesRes.json();
+        const emergencies = Array.isArray(data) ? data : data.reports || [];
+        for (const e of emergencies) {
+          normalized.push({
+            id: e.id,
+            ticketNumber: e.ticketNumber,
+            incidentType: 'Emergency',
+            status: e.status || 'new',
+            description: e.description || '',
+            reporterName: e.reporterName || null,
+            reporterEmail: e.reporterEmail || null,
+            createdAt: e.createdAt,
+            updatedAt: e.updatedAt,
+            kind: 'emergency',
+          });
+        }
+      }
+
+      const deduped: DisplayReport[] = [];
+      const seen = new Set<string>();
+      for (const r of normalized) {
+        if (seen.has(r.ticketNumber)) continue;
+        seen.add(r.ticketNumber);
+        deduped.push(r);
+      }
+
+      deduped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setReports(deduped);
     } catch { /* ignore */ }
     setLoading(false);
     setRefreshing(false);
@@ -64,6 +128,21 @@ const MyReportsScreen: React.FC = () => {
   const getStatusLabel = (status: string) => {
     return (status || 'pending').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
+
+  const getDisplayDescription = (r: DisplayReport) => {
+    const raw = r.description ?? '';
+    if (r.kind === 'emergency') return raw;
+    if (!raw.trim()) return '';
+    try {
+      const parsed = JSON.parse(raw);
+      return typeof parsed.description === 'string' ? parsed.description : raw;
+    } catch {
+      return raw;
+    }
+  };
+
+  const hasResponses = (r: DisplayReport) => r.kind === 'cybercrime' && !!r.responses && r.responses.length > 0;
+  const latestResponse = (r: DisplayReport) => r.responses![r.responses!.length - 1];
 
   if (loading) {
     return (
@@ -131,43 +210,50 @@ const MyReportsScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       ) : (
-        filtered.map((report) => (
-          <View key={report.id} style={styles.reportCard}>
-            <View style={styles.reportHeader}>
-              <Text style={styles.ticketNumber}>{report.ticketNumber}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[report.status] || '#f59e0b') + '20' }]}>
-                <Text style={[styles.statusText, { color: STATUS_COLORS[report.status] || '#f59e0b' }]}>
-                  {getStatusLabel(report.status)}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.reportType}>{report.incidentType}</Text>
-            <Text style={styles.reportDesc} numberOfLines={2}>{report.description}</Text>
-            <View style={styles.reportFooter}>
-              <Text style={styles.reportDate}>
-                {new Date(report.createdAt).toLocaleDateString()}
-              </Text>
-              {report.responses && report.responses.length > 0 && (
-                <View style={styles.responseBadge}>
-                  <Ionicons name="chatbubble" size={12} color={COLORS.primary} />
-                  <Text style={styles.responseText}>{report.responses.length} response{report.responses.length !== 1 ? 's' : ''}</Text>
+        filtered.map((report) => {
+          const description = getDisplayDescription(report);
+          const withResponses = hasResponses(report);
+          const lastResponse = withResponses ? latestResponse(report) : null;
+          return (
+            <View key={`${report.kind}-${report.id}`} style={styles.reportCard}>
+              <View style={styles.reportHeader}>
+                <Text style={styles.ticketNumber}>{report.ticketNumber}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[report.status] || '#f59e0b') + '20' }]}>
+                  <Text style={[styles.statusText, { color: STATUS_COLORS[report.status] || '#f59e0b' }]}>
+                    {getStatusLabel(report.status)}
+                  </Text>
                 </View>
-              )}
-            </View>
-
-            {/* Show latest response */}
-            {report.responses && report.responses.length > 0 && (
-              <View style={styles.responseCard}>
-                <Text style={styles.responseAuthor}>
-                  {report.responses[report.responses.length - 1].responderName}
-                </Text>
-                <Text style={styles.responseMessage} numberOfLines={3}>
-                  {report.responses[report.responses.length - 1].message}
-                </Text>
               </View>
-            )}
-          </View>
-        ))
+              <Text style={styles.reportType}>{report.incidentType}</Text>
+              {description ? (
+                <Text style={styles.reportDesc} numberOfLines={2}>{description}</Text>
+              ) : null}
+              <View style={styles.reportFooter}>
+                <Text style={styles.reportDate}>
+                  {new Date(report.createdAt).toLocaleDateString()}
+                </Text>
+                {withResponses ? (
+                  <View style={styles.responseBadge}>
+                    <Ionicons name="chatbubble" size={12} color={COLORS.primary} />
+                    <Text style={styles.responseText}>{report.responses!.length} response{report.responses!.length !== 1 ? 's' : ''}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Show latest response */}
+              {lastResponse ? (
+                <View style={styles.responseCard}>
+                  <Text style={styles.responseAuthor}>
+                    {lastResponse.responderName}
+                  </Text>
+                  <Text style={styles.responseMessage} numberOfLines={3}>
+                    {lastResponse.message}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          );
+        })
       )}
     </ScrollView>
   );

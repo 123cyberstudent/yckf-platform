@@ -64,6 +64,38 @@ export function isAuthenticated(req: AuthRequest, res: Response, next: NextFunct
   next();
 }
 
+/**
+ * Best-effort auth: populates req.user when a valid access token is present,
+ * otherwise proceeds without it. Useful for endpoints that work for both
+ * anonymous and logged-in callers.
+ */
+export async function optionalAuth(req: AuthRequest, _res: Response, next: NextFunction) {
+  const authorization = req.headers.authorization;
+  if (authorization && authorization.startsWith('Bearer ')) {
+    try {
+      const payload = jwt.verify(authorization.replace('Bearer ', ''), JWT_SECRET) as unknown as {
+        sub: number;
+        role: string;
+        email?: string;
+        type?: string;
+      };
+      if (payload.type === 'access' && payload.sub) {
+        const user = await prisma.user.findUnique({ where: { id: Number(payload.sub) } });
+        if (user && user.isActive) {
+          req.user = {
+            id: user.id,
+            role: user.role,
+            email: user.email,
+          };
+        }
+      }
+    } catch {
+      /* invalid token — treated as unauthenticated */
+    }
+  }
+  next();
+}
+
 export function isSuperAdmin(req: AuthRequest, res: Response, next: NextFunction) {
   if (!req.user || req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({ error: 'Super admin access required' });

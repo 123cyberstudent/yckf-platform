@@ -51,6 +51,7 @@ model User {
   subscriptionStatus      String         @default("inactive")
   currentSubscriptionPlanId Int?
   reports                 Report[]
+  emergencyReports        EmergencyReport[]
   casesAssigned           Case[]         @relation("InvestigatorCases")
   uploadedEvidence        Evidence[]
   auditLogs               AuditLog[]
@@ -319,6 +320,8 @@ model VolunteerRequest {
 model EmergencyReport {
   id                Int      @id @default(autoincrement())
   ticketNumber      String   @unique
+  user              User?    @relation(fields: [userId], references: [id])
+  userId            Int?
   reporterName      String?
   reporterPhone     String?
   reporterEmail     String?
@@ -347,6 +350,7 @@ model EmergencyReport {
   @@index([ticketNumber])
   @@index([status])
   @@index([createdAt])
+  @@index([userId])
 }
 
 model Specialist {
