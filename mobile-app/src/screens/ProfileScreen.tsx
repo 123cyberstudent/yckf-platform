@@ -17,6 +17,7 @@ import {
   Modal,
   Dimensions,
   Linking,
+  Share,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,7 +48,7 @@ const ProfileScreen: React.FC = () => {
   const loadUserData = async () => {
     setIsLoading(true);
     try {
-      const currentUser = await AuthService.getCurrentUser();
+      const currentUser = await AuthService.getCurrentUser(true);
       setUser(currentUser);
 
       if (currentUser) {
@@ -132,6 +133,31 @@ const ProfileScreen: React.FC = () => {
   // ⭐ NEW - Handle Help & Support Click
   const handleHelpAndSupport = () => {
     setShowSupportModal(true);
+  };
+
+  // ⭐ NEW - Handle Referral Code Copy
+  const handleCopyReferralCode = () => {
+    if (!user?.referralCode) return;
+    Alert.alert(
+      'Referral Code',
+      `Your referral code is ${user.referralCode}.\n\nShare it with friends so they get 1 hour of free Premium when they sign up.`,
+      [{ text: 'OK' }]
+    );
+  };
+
+  // ⭐ NEW - Handle Referral Code Share
+  const handleShareReferralCode = async () => {
+    if (!user?.referralCode) {
+      Alert.alert('No Referral Code', 'Your referral code is not available right now. Please try again later.');
+      return;
+    }
+    try {
+      await Share.share({
+        message: `Join me on YCKF — Your Cyber Knights Foundation! 🛡️\n\nUse my referral code ${user.referralCode} when you sign up to get 1 hour of FREE Premium access.\n\nDownload the app and stay protected today!`,
+      });
+    } catch (error) {
+      console.error('Share referral code error:', error);
+    }
   };
 
   
@@ -283,6 +309,42 @@ const handleEmailSupport = async () => {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* Refer & Earn */}
+        {user.referralCode ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Refer & Earn</Text>
+            <View style={styles.referralCard}>
+              <View style={styles.referralHeader}>
+                <View style={styles.referralIconContainer}>
+                  <Ionicons name="gift" size={22} color="#fff" />
+                </View>
+                <View style={styles.referralTextContainer}>
+                  <Text style={styles.referralTitle}>Invite friends, get rewards</Text>
+                  <Text style={styles.referralSubtitle}>
+                    Friends get 1 hour of free Premium when they sign up with your code.
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.referralCodeBox}
+                onPress={handleCopyReferralCode}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.referralCodeText}>{user.referralCode}</Text>
+                <Ionicons name="copy-outline" size={18} color={COLORS.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.shareButton}
+                onPress={handleShareReferralCode}
+                activeOpacity={0.9}
+              >
+                <Ionicons name="share-social" size={18} color="#fff" style={styles.shareButtonIcon} />
+                <Text style={styles.shareButtonText}>Share Referral Code</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
 
         {/* Wallet & Courses */}
         <View style={styles.section}>
@@ -661,6 +723,79 @@ const styles = StyleSheet.create({
   premiumSubtitle: {
     fontSize: 13,
     color: COLORS.text.secondary,
+  },
+  referralCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: SPACING.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  referralHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  referralIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFB300',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.sm,
+  },
+  referralTextContainer: {
+    flex: 1,
+  },
+  referralTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+  },
+  referralSubtitle: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    lineHeight: 16,
+  },
+  referralCodeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F7FA',
+    borderRadius: 10,
+    paddingVertical: SPACING.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#FFB300',
+    marginBottom: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  referralCodeText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.text.primary,
+    letterSpacing: 1,
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: SPACING.md,
+  },
+  shareButtonIcon: {
+    marginRight: SPACING.xs,
+  },
+  shareButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
   menuItem: {
     flexDirection: 'row',

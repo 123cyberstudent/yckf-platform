@@ -3,7 +3,7 @@
 // Welcome/Onboarding Screen 
 // ============================================
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,16 +17,24 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import AuthService from '../../services/AuthService';
+import AuthService, { API_BASE_URL } from '../../services/AuthService';
 import { COLORS, SPACING } from '../../utils/constants';
 
 const { width, height } = Dimensions.get('window');
 
+interface PromoBanner {
+  title: string;
+  message: string;
+  ctaLabel: string;
+}
+
 const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation();
+  const [promo, setPromo] = useState<PromoBanner | null>(null);
 
   useEffect(() => {
     checkAuthStatus();
+    loadEligiblePromo();
   }, []);
 
   const checkAuthStatus = async () => {
@@ -38,6 +46,28 @@ const WelcomeScreen: React.FC = () => {
         index: 0,
         routes: [{ name: 'Root' as never }],
       });
+    }
+  };
+
+  const loadEligiblePromo = async () => {
+    try {
+      const token = await AuthService.getToken();
+      const response = await fetch(
+        `${API_BASE_URL}/api/promotions/eligible?placement=signup&platform=MOBILE`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        }
+      );
+      const data = await response.json();
+      if (data.success && data.show && data.promo) {
+        setPromo({
+          title: data.promo.title,
+          message: data.promo.message,
+          ctaLabel: data.promo.ctaLabel || 'Sign up free',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load signup promo:', error);
     }
   };
 
@@ -63,6 +93,34 @@ const WelcomeScreen: React.FC = () => {
             <Text style={styles.appName}>YCKF Mobile</Text>
             <Text style={styles.tagline}>Your Cyber Knights Foundation</Text>
           </View>
+
+          {/* Promo Flyer - appears immediately on app open */}
+          {promo && (
+            <View style={styles.promoSection}>
+              <LinearGradient
+                colors={['#FFD54F', '#FFB300']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.promoCard}
+              >
+                <View style={styles.promoIconContainer}>
+                  <Ionicons name="gift" size={22} color="#fff" />
+                </View>
+                <View style={styles.promoContent}>
+                  <Text style={styles.promoTitle}>{promo.title}</Text>
+                  <Text style={styles.promoMessage}>{promo.message}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.promoButton}
+                  onPress={() => navigation.navigate('Register' as never)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.promoButtonText}>{promo.ctaLabel}</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#7A4F00" />
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          )}
 
           {/* Features Section */}
           <View style={styles.featuresSection}>
@@ -200,6 +258,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '500',
+  },
+  promoSection: {
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+  },
+  promoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    padding: SPACING.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  promoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.sm,
+  },
+  promoContent: {
+    flex: 1,
+  },
+  promoTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#4A3000',
+  },
+  promoMessage: {
+    fontSize: 11,
+    color: '#4A3000',
+    lineHeight: 15,
+    marginTop: 2,
+  },
+  promoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 8,
+    marginLeft: SPACING.xs,
+  },
+  promoButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7A4F00',
+    marginRight: 2,
   },
   featuresSection: {
     paddingHorizontal: SPACING.lg,

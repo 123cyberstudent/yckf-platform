@@ -49,12 +49,13 @@ router.post(
       .withMessage('Password must contain at least one number and one special character'),
     body('fullName').trim().notEmpty().withMessage('Full name is required'),
     body('phone').optional().isString().withMessage('Phone must be a string'),
+    body('referralCode').optional().isString().withMessage('Referral code must be a string'),
   ],
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const { email, password, fullName, phone, platform } = req.body;
-      const { user, emailDelivered } = await registerUser({ email, password, fullName, phone, platform });
+      const { email, password, fullName, phone, platform, referralCode } = req.body;
+      const { user, emailDelivered } = await registerUser({ email, password, fullName, phone, platform, referralCode });
       res.status(201).json({ id: user.id, email: user.email, phone: user.phone, fullName: user.fullName, role: user.role, createdAt: user.createdAt, confirmationSent: emailDelivered });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Registration failed' });

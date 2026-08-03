@@ -60,6 +60,7 @@ export const PremiumBenefitType = {
   SIGNUP_TRIAL: 'signup_trial',
   FIRST_SUBSCRIPTION_BONUS: 'first_subscription_bonus',
   REFERRAL_REWARD: 'referral_reward',
+  REFERRAL_SIGNUP: 'referral_signup',
   ADMIN_ADJUSTMENT: 'admin_adjustment',
   SUBSCRIPTION_PURCHASE: 'subscription_purchase',
 } as const;
@@ -69,6 +70,9 @@ export const TRIAL_DURATION_HOURS = 12;
 export const FIRST_SUBSCRIPTION_BONUS_HOURS = 12;
 export const REFERRAL_REWARD_HOURS = 1;
 export const REFERRAL_REWARD_VALIDITY_YEARS = 1;
+
+/** Free premium hours granted to a new account that signs up with a referral code. */
+export const REFERRAL_SIGNUP_HOURS = 1;
 
 /** Roles that are exempt from one-time benefits (trial + bonus). */
 export const BENEFIT_EXEMPT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'INVESTIGATOR', 'VOLUNTEER'];

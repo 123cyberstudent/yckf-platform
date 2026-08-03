@@ -9,7 +9,7 @@ import { normalizePhone } from '../shared/phone.js';
 import { createLoginChallenge, resendLoginOtp, verifyLoginOtp, OtpDeliveryError } from './otpService.js';
 import { createEmailVerificationToken } from './emailVerification.js';
 import { sendVerificationEmail, sendPasswordResetCodeEmail } from '../email/service.js';
-import { assignReferralCodeToUser } from '../subscriptions/service.js';
+import { assignReferralCodeToUser, grantSignupTrial, grantReferralSignupBonus } from '../subscriptions/service.js';
 import { sendSms } from '../shared/sms.js';
 import {
   disableTwoFactor,
@@ -103,12 +103,14 @@ export async function registerUser({
   fullName,
   phone,
   platform = 'WEB',
+  referralCode,
 }: {
   email: string;
   password: string;
   fullName: string;
   phone?: string;
   platform?: string;
+  referralCode?: string;
 }) {
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -127,6 +129,19 @@ export async function registerUser({
     }
   }
 
+  // Resolve the referrer from the supplied referral code before creating the
+  // account so the relationship can be stored on first insert.
+  let referredByUserId: number | null = null;
+  let referralCodeNormalized: string | null = null;
+  if (referralCode) {
+    referralCodeNormalized = String(referralCode).trim().toUpperCase();
+    const referrer = await prisma.user.findUnique({ where: { referralCode: referralCodeNormalized } });
+    if (!referrer) {
+      throw new Error('Invalid referral code');
+    }
+    referredByUserId = referrer.id;
+  }
+
   const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({
     data: {
@@ -139,11 +154,22 @@ export async function registerUser({
       twoFactorEnabled: false,
       twoFactorBackupCodes: [],
       fcmTokens: [],
+      referredByUserId,
     },
   });
 
   // Every successful registration receives a unique, non-predictive referral code.
   await assignReferralCodeToUser(user.id);
+
+  // The 12-hour free Premium trial starts the moment the account is created.
+  // Safe to call here and again on email verification: the ledger makes it
+  // idempotent.
+  await grantSignupTrial(user.id);
+
+  // Referred users get 1 hour of free Premium access immediately.
+  if (referredByUserId && referralCodeNormalized) {
+    await grantReferralSignupBonus(user.id, referredByUserId);
+  }
 
   let emailDelivered = false;
   try {
@@ -156,7 +182,7 @@ export async function registerUser({
     console.error('[auth] Failed to queue confirmation email:', error);
   }
 
-  return { user, emailDelivered };
+  return { user, emailDelivered, referredByUserId };
 }
 
 async function resolveUserByIdentifier(identifier: string) {
@@ -556,6 +582,8 @@ export async function getCurrentUser(userId: number) {
       createdAt: true,
       lastLogin: true,
       twoFactorEnabled: true,
+      referralCode: true,
+      referredByUserId: true,
     },
   });
 }

@@ -31,6 +31,7 @@ const RegisterScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -139,10 +140,10 @@ if (phoneNumber.replace(/[^0-9]/g, '').length < 10) {
   setIsLoading(true);
 
   try {
-const result = await AuthService.register(normalizedEmail, password, name.trim(), phoneNumber.trim(), profileImage);    if (result.success) {
+const result = await AuthService.register(normalizedEmail, password, name.trim(), phoneNumber.trim(), profileImage, referralCode.trim() || undefined);    if (result.success) {
       Alert.alert(
         'Account Created! 🎉',
-        `Welcome ${name}!\n\nYour account has been created successfully.\n\n📧 A confirmation email has been sent to ${email}.\n\nPlease login to continue.`,
+        `Welcome ${name}!\n\nYour account has been created successfully.\n\n🎁 You've unlocked 12 hours of YCKF Premium free.\n\n📧 A confirmation email has been sent to ${email}.\n\nPlease login to continue.`,
         [
           {
             text: 'Login Now',
@@ -302,6 +303,32 @@ const result = await AuthService.register(normalizedEmail, password, name.trim()
       editable={!isLoading}
     />
   </View>
+</View>
+
+              {/* Referral Code Input (Optional) */}
+<View style={styles.inputGroup}>
+  <Text style={styles.inputLabel}>Referral Code (Optional)</Text>
+  <View style={styles.inputWrapper}>
+    <Ionicons
+      name="gift"
+      size={18}
+      color="rgba(255, 255, 255, 0.7)"
+      style={styles.inputIcon}
+    />
+    <TextInput
+      style={styles.input}
+      placeholder="e.g., YCKF-A1B2C3"
+      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+      value={referralCode}
+      onChangeText={setReferralCode}
+      autoCapitalize="characters"
+      autoCorrect={false}
+      editable={!isLoading}
+    />
+  </View>
+  <Text style={styles.referralHint}>
+    Enter a friend's code to get 1 hour of free Premium access
+  </Text>
 </View>
 
               {/* Password Input */}
@@ -548,6 +575,12 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: SPACING.xs,
+  },
+  referralHint: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 4,
+    fontWeight: '500',
   },
   termsContainer: {
     flexDirection: 'row',

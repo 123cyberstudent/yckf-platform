@@ -19,7 +19,7 @@ export const PROMOS: PromoDefinition[] = [
   {
     key: 'signup_trial',
     title: 'Try Premium free for 12 hours',
-    message: 'Create your account, verify your email, and unlock 12 hours of YCKF Premium at no cost.',
+    message: 'Create your account and instantly unlock 12 hours of YCKF Premium at no cost.',
     ctaLabel: 'Sign up free',
     placement: 'signup',
     kind: 'signup_trial',

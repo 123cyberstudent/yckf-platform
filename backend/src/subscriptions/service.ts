@@ -11,6 +11,7 @@ import {
   FIRST_SUBSCRIPTION_BONUS_HOURS,
   REFERRAL_REWARD_HOURS,
   REFERRAL_REWARD_VALIDITY_YEARS,
+  REFERRAL_SIGNUP_HOURS,
   BENEFIT_EXEMPT_ROLES,
   SUBSCRIPTION_CHANNELS,
   PremiumBenefitType,
@@ -216,7 +217,9 @@ function promoInWindow(endEnv: string | undefined): boolean {
   return Date.now() <= end.getTime();
 }
 
-/** Grant the 12-hour signup trial after account verification (once). */
+/** Grant the 12-hour signup trial when an account is created (once). The
+ *  benefit ledger makes it idempotent, so it is also safe to re-apply on
+ *  email verification. */
 export async function grantSignupTrial(userId: number): Promise<{ granted: boolean; reason?: string }> {
   if (!isSignupPromoEnabled()) return { granted: false, reason: 'promo_disabled' };
   if (!promoInWindow(process.env.PROMO_SIGNUP_TRIAL_END)) return { granted: false, reason: 'promo_expired' };
@@ -237,6 +240,17 @@ export async function grantFirstSubscriptionBonus(userId: number, paymentId: num
     benefitType: PremiumBenefitType.FIRST_SUBSCRIPTION_BONUS,
     durationMinutes: FIRST_SUBSCRIPTION_BONUS_HOURS * 60,
     sourceId: `first-subscription:${paymentId}`,
+  });
+}
+
+/** Grant 1 hour of free Premium to a new account that signed up using a
+ *  referral code. Idempotent per referrer via the benefit ledger. */
+export async function grantReferralSignupBonus(userId: number, referrerId: number): Promise<{ granted: boolean; reason?: string }> {
+  return grantPremiumBenefit(prisma, {
+    userId,
+    benefitType: PremiumBenefitType.REFERRAL_SIGNUP,
+    durationMinutes: REFERRAL_SIGNUP_HOURS * 60,
+    sourceId: `referral-signup:${referrerId}`,
   });
 }
 

@@ -26,6 +26,8 @@ export interface User {
   phoneNumber?: string;
   role: 'SUPER_ADMIN' | 'ADMIN' | 'INVESTIGATOR' | 'VOLUNTEER' | 'USER';
   profileImage?: string;
+  referralCode?: string;
+  referredByUserId?: number | null;
 }
 
 export interface AuthResponse {
@@ -167,7 +169,8 @@ class AuthService {
   password: string,
   name?: string,
   phoneNumber?: string,
-  profileImage?: string | null
+  profileImage?: string | null,
+  referralCode?: string
 ): Promise<AuthResponse> {
     try {
     const normalizedEmail = email.trim().toLowerCase();
@@ -177,8 +180,8 @@ class AuthService {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phone: phoneNumber, platform: 'MOBILE' }),   
- 
+      body: JSON.stringify({ email: normalizedEmail, password, fullName: name, phone: phoneNumber, platform: 'MOBILE', referralCode: referralCode || undefined }),   
+  
  });
 
       const data = await response.json();
@@ -578,18 +581,20 @@ class AuthService {
   /**
    * Get current user
    */
-  async getCurrentUser(): Promise<User | null> {
-    if (this.currentUser) {
+  async getCurrentUser(forceRefresh: boolean = false): Promise<User | null> {
+    if (!forceRefresh && this.currentUser) {
       this.updateActivity();
       return this.currentUser;
     }
 
     // Try to load from storage
-    const userData = await AsyncStorage.getItem('user_data');
-    if (userData) {
-      this.currentUser = JSON.parse(userData);
-      this.updateActivity();
-      return this.currentUser;
+    if (!forceRefresh) {
+      const userData = await AsyncStorage.getItem('user_data');
+      if (userData) {
+        this.currentUser = JSON.parse(userData);
+        this.updateActivity();
+        return this.currentUser;
+      }
     }
 
     // Try to fetch from backend
