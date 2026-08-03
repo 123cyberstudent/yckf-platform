@@ -5,6 +5,7 @@ import { verifyToken, isAdmin, isInvestigator } from '../auth/middleware.js';
 import { generateTicketNumber } from '../shared/tickets.js';
 import { sendAdminNotification, sendSenderAcknowledgement, sendEmail } from '../email/service.js';
 import { logAudit } from '../audit/service.js';
+import { notifyAdmins } from '../notifications/service.js';
 
 const router = Router();
 
@@ -68,12 +69,21 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     // Create the linked Case
-    await prisma.case.create({
+    const caseRecord = await prisma.case.create({
       data: {
         reportId: report.id,
         status: 'new',
       },
     });
+
+    // In-app notification for all admins
+    await notifyAdmins({
+      type: 'warning',
+      title: 'New cybercrime report',
+      body: `${fullName} submitted a ${incidentType} report (${ticketNumber})`,
+      link: `${process.env.DASHBOARD_URL || 'https://yckf-admin-dashboard-production.up.railway.app'}/dashboard/reports`,
+      caseId: caseRecord.id,
+    }).catch(() => {});
 
     const adminHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

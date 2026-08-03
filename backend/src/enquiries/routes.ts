@@ -3,6 +3,7 @@ import { prisma } from '../shared/db.js';
 import { generateTicketNumber } from '../shared/tickets.js';
 import { sendAdminNotification, sendSenderAcknowledgement } from '../email/service.js';
 import { verifyToken, isStaff, AuthRequest } from '../auth/middleware.js';
+import { notifyAdmins } from '../notifications/service.js';
 
 const router = Router();
 
@@ -31,6 +32,14 @@ router.post('/', async (req: Request, res: Response) => {
         channel: channel || 'form',
       },
     });
+
+    // In-app notification for all admins
+    await notifyAdmins({
+      type: 'info',
+      title: 'New enquiry',
+      body: `${name} sent an enquiry (${ticketNumber})${subject ? `: ${subject}` : ''}`,
+      link: `${process.env.DASHBOARD_URL || 'https://yckf-admin-dashboard-production.up.railway.app'}/dashboard/enquiries`,
+    }).catch(() => {});
 
     const adminHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

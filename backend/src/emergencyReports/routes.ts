@@ -6,6 +6,7 @@ import { generateTicketNumber } from '../shared/tickets.js';
 import { sendAdminNotification, sendSenderAcknowledgement } from '../email/service.js';
 import { computeHash, generateFilename, saveFile, getUploadPath } from '../shared/file.js';
 import { verifyToken, isStaff, AuthRequest } from '../auth/middleware.js';
+import { notifyAdmins } from '../notifications/service.js';
 
 const router = Router();
 const upload = multer({
@@ -61,6 +62,14 @@ router.post('/', upload.single('audio'), async (req: Request, res: Response) => 
         gpsAddress: gpsAddress || null,
       },
     });
+
+    // In-app notification for all admins
+    await notifyAdmins({
+      type: 'alert',
+      title: 'Emergency report',
+      body: `${reporterName || 'Someone'} reported an emergency (${ticketNumber})`,
+      link: `${process.env.DASHBOARD_URL || 'https://yckf-admin-dashboard-production.up.railway.app'}/dashboard/emergencies`,
+    }).catch(() => {});
 
     const adminHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

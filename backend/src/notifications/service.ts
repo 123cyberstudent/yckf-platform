@@ -30,6 +30,20 @@ export async function createNotification(payload: NotificationPayload) {
   return notification;
 }
 
+export async function notifyAdmins(
+  payload: Omit<NotificationPayload, 'recipientId' | 'senderId'>,
+  senderId: number | null = null
+) {
+  const admins = await prisma.user.findMany({
+    where: { isActive: true, role: { in: ['SUPER_ADMIN', 'ADMIN'] } },
+    select: { id: true },
+  });
+  for (const admin of admins) {
+    await createNotification({ ...payload, senderId, recipientId: admin.id });
+  }
+  return admins.length;
+}
+
 export async function createBroadcastNotification(senderId: number, title: string, body: string, link?: string) {
   const users = await prisma.user.findMany({ where: { isActive: true }, select: { id: true } });
   const notifications = users.map((user: { id: any; }) => ({
