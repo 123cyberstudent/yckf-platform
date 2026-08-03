@@ -25,33 +25,47 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Paid premium subscription (latest fulfilled PREMIUM_SUBSCRIPTION order)
+    // Source of truth: the User premium window (granted via the subscription
+    // module — signup trial, first-subscription bonus, referral reward, or a
+    // verified plan purchase).
     if (userId) {
+      const account = await prisma.user.findUnique({ where: { id: userId } });
       const now = new Date();
-      const subscription = await prisma.order.findFirst({
-        where: {
-          userId,
-          orderType: OrderType.PREMIUM_SUBSCRIPTION,
-          status: OrderStatus.FULFILLED,
-          fulfilledAt: { not: null },
-        },
-        orderBy: { fulfilledAt: 'desc' },
-        select: { metadata: true, fulfilledAt: true },
-      });
+      if (account?.premiumExpiresAt && account.premiumExpiresAt > now) {
+        return res.json({
+          premium: true,
+          reason: 'subscription',
+          expiresAt: account.premiumExpiresAt,
+          demoSessionActive: false,
+          timeRemaining: Math.floor((account.premiumExpiresAt.getTime() - now.getTime()) / (1000 * 60)),
+        });
+      }
 
-      if (subscription?.fulfilledAt) {
-        const months = (subscription.metadata as { subscriptionMonths?: number } | null)?.subscriptionMonths ?? PREMIUM_SUBSCRIPTION_MONTHS;
-        const expiresAt = new Date(
-          subscription.fulfilledAt.getTime() + months * 30 * 24 * 60 * 60 * 1000
-        );
-        if (expiresAt > now) {
-          return res.json({
-            premium: true,
-            reason: 'subscription',
-            expiresAt,
-            demoSessionActive: false,
-            timeRemaining: Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60)),
-          });
+      // Grace fallback for pre-existing PREMIUM_SUBSCRIPTION orders that were
+      // fulfilled before the subscription module existed.
+      if (!account?.premiumExpiresAt) {
+        const legacy = await prisma.order.findFirst({
+          where: {
+            userId,
+            orderType: OrderType.PREMIUM_SUBSCRIPTION,
+            status: OrderStatus.FULFILLED,
+            fulfilledAt: { not: null },
+          },
+          orderBy: { fulfilledAt: 'desc' },
+          select: { metadata: true, fulfilledAt: true },
+        });
+        if (legacy?.fulfilledAt) {
+          const months = (legacy.metadata as { subscriptionMonths?: number } | null)?.subscriptionMonths ?? PREMIUM_SUBSCRIPTION_MONTHS;
+          const expiresAt = new Date(legacy.fulfilledAt.getTime() + months * 30 * 24 * 60 * 60 * 1000);
+          if (expiresAt > now) {
+            return res.json({
+              premium: true,
+              reason: 'subscription',
+              expiresAt,
+              demoSessionActive: false,
+              timeRemaining: Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60)),
+            });
+          }
         }
       }
     }

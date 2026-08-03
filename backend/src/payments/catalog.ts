@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { generalRateLimiter } from '../shared/rateLimiter.js';
-import { getCourseBySlug, listActiveCourses, listActivePackages } from './courseCatalog.js';
+import { getCourseBySlug, listActiveCourses } from './courseCatalog.js';
 
 const router = Router();
 
@@ -22,7 +22,6 @@ router.get('/courses', async (_req, res) => {
         category: c.category,
         imageUrl: c.imageUrl,
         price: c.price,
-        creditsPrice: c.creditsPrice,
       })),
     });
   } catch (err) {
@@ -42,30 +41,6 @@ router.get('/courses/:slug', async (req, res) => {
   } catch (err) {
     console.error('Failed to get course:', err);
     res.status(500).json({ success: false, error: 'Failed to get course' });
-  }
-});
-
-/** GET /api/catalog/packages — active credit packages */
-router.get('/packages', async (_req, res) => {
-  try {
-    const packages = await listActivePackages();
-    res.json({
-      success: true,
-      packages: packages.map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        baseCredits: p.baseCredits,
-        bonusCredits: p.bonusCredits,
-        totalCredits: p.totalCredits,
-        price: p.price,
-        featured: p.featured,
-        promotionLabel: p.promotionLabel,
-      })),
-    });
-  } catch (err) {
-    console.error('Failed to list packages:', err);
-    res.status(500).json({ success: false, error: 'Failed to list packages' });
   }
 });
 

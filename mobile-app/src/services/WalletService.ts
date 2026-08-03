@@ -1,6 +1,6 @@
 // ============================================
 // FILE: src/services/WalletService.ts
-// Credit wallet service (balance + ledger)
+// Credit wallet service (balance)
 // ============================================
 
 import AuthService, { API_BASE_URL } from './AuthService';
@@ -11,20 +11,6 @@ export interface WalletSummary {
   lifetimePurchased: number;
   lifetimeBonus: number;
   lifetimeSpent: number;
-}
-
-export interface LedgerEntry {
-  id: number;
-  type: string;
-  amount: number;
-  balanceAfter: number;
-  description: string | null;
-  createdAt: string;
-}
-
-export interface LedgerResponse {
-  entries: LedgerEntry[];
-  nextCursor: number | null;
 }
 
 class WalletService {
@@ -43,19 +29,6 @@ class WalletService {
       throw new Error(data.error || 'Failed to load wallet');
     }
     return data.wallet as WalletSummary;
-  }
-
-  async getLedger(limit = 50, cursor?: number): Promise<LedgerResponse> {
-    const params = new URLSearchParams({ limit: String(limit) });
-    if (cursor) params.set('cursor', String(cursor));
-    const res = await fetch(`${API_BASE_URL}/api/wallet/ledger?${params.toString()}`, {
-      headers: await this.headers(),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || 'Failed to load ledger');
-    }
-    return { entries: data.entries as LedgerEntry[], nextCursor: data.nextCursor ?? null };
   }
 }
 

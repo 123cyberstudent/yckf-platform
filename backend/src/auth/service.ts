@@ -9,6 +9,7 @@ import { normalizePhone } from '../shared/phone.js';
 import { createLoginChallenge, resendLoginOtp, verifyLoginOtp, OtpDeliveryError } from './otpService.js';
 import { createEmailVerificationToken } from './emailVerification.js';
 import { sendVerificationEmail, sendPasswordResetCodeEmail } from '../email/service.js';
+import { assignReferralCodeToUser } from '../subscriptions/service.js';
 import { sendSms } from '../shared/sms.js';
 import {
   disableTwoFactor,
@@ -140,6 +141,9 @@ export async function registerUser({
       fcmTokens: [],
     },
   });
+
+  // Every successful registration receives a unique, non-predictive referral code.
+  await assignReferralCodeToUser(user.id);
 
   let emailDelivered = false;
   try {

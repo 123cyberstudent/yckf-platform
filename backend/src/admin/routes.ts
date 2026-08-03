@@ -3,7 +3,6 @@ import { verifyToken, isAdmin, AuthRequest } from '../auth/middleware.js';
 import { generalRateLimiter } from '../shared/rateLimiter.js';
 import couponsRouter from './coupons.js';
 import ordersRouter from './orders.js';
-import packagesRouter from './packages.js';
 import promotionsRouter from './promotions.js';
 import redemptionsRouter from './redemptions.js';
 import demoRouter from './demo.js';
@@ -11,6 +10,9 @@ import { siteStatsAdminRouter } from './siteStats.js';
 import loginLogsRouter from './loginLogs.js';
 import volunteerStatsRouter from './volunteerStats.js';
 import testSendRouter from './testSend.js';
+import subscriptionPlansRouter from './subscriptionPlans.js';
+import subscriptionPaymentsRouter from './subscriptionPayments.js';
+import referralsRouter from './referrals.js';
 
 const router = Router();
 
@@ -30,12 +32,14 @@ router.get('/audit-logs', async (req: Request, res: Response) => {
 
 router.use('/coupons', couponsRouter);
 router.use('/orders', ordersRouter);
-router.use('/packages', packagesRouter);
 router.use('/promotions', promotionsRouter);
 router.use('/redemptions', redemptionsRouter);
 router.use('/demo', demoRouter);
 router.use('/login-logs', loginLogsRouter);
 router.use('/site-stats', siteStatsAdminRouter);
 router.use('/test-send', testSendRouter);
+router.use('/subscription-plans', subscriptionPlansRouter);
+router.use('/subscription-payments', subscriptionPaymentsRouter);
+router.use('/referrals', referralsRouter);
 
 export default router;

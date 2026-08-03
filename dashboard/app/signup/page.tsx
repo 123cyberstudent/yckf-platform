@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Eye, EyeOff, MailCheck } from 'lucide-react'
-import { useState } from 'react'
+import { Eye, EyeOff, MailCheck, Sparkles, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 
 export default function SignUpPage() {
@@ -22,6 +22,26 @@ export default function SignUpPage() {
   const [confirmationSent, setConfirmationSent] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Signup promo banner
+  const [promo, setPromo] = useState<{ show: boolean; title?: string; message?: string }>({ show: false })
+  const [promoDismissed, setPromoDismissed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/promotions/eligible?placement=signup&platform=WEB')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return
+        if (data.show && data.promo) {
+          setPromo({ show: true, title: data.promo.title, message: data.promo.message })
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,6 +102,28 @@ export default function SignUpPage() {
             <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">Create an account </h1>
             <p className="text-base text-muted-foreground">Sign up to access exclusive features and stay connected with the YCKF community.</p>
           </div>
+
+          {promo.show && !promoDismissed && (
+            <div className="flex items-start justify-between gap-3 rounded-3xl border border-[#2563EB]/30 bg-gradient-to-r from-[#2563EB]/10 to-emerald-500/10 px-5 py-4 text-left">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-[#2563EB]/10">
+                  <Sparkles className="size-4 text-[#2563EB]" />
+                </span>
+                <div>
+                  <p className="text-base font-semibold text-foreground">{promo.title}</p>
+                  {promo.message && <p className="mt-0.5 text-sm text-muted-foreground">{promo.message}</p>}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPromoDismissed(true)}
+                className="shrink-0 text-muted-foreground transition hover:text-foreground"
+                aria-label="Dismiss"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          )}
 
           {!submitted ? (
             <form onSubmit={handleSubmit} className="mt-8 grid gap-4" autoComplete="off">

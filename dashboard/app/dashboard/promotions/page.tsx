@@ -499,7 +499,7 @@ export default function PromotionsPage() {
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Promotion' : 'New Promotion'}</DialogTitle>
             <DialogDescription>
-              {editing ? 'Update the promotion settings' : 'Create a promotion for courses or credit packages'}
+              {editing ? 'Update the promotion settings' : 'Create a promotion for courses and premium subscriptions'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

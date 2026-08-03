@@ -42,6 +42,14 @@ model User {
   twoFactorBackupCodes    String[]       @default([])
   twoFactorTrustedDevices Json?
   fcmTokens               String[]       @default([])
+  referralCode            String?        @unique
+  referredByUserId        Int?
+  referredBy              User?          @relation("UserReferredBy", fields: [referredByUserId], references: [id])
+  referredUsers           User[]         @relation("UserReferredBy")
+  premiumStartsAt         DateTime?
+  premiumExpiresAt        DateTime?
+  subscriptionStatus      String         @default("inactive")
+  currentSubscriptionPlanId Int?
   reports                 Report[]
   casesAssigned           Case[]         @relation("InvestigatorCases")
   uploadedEvidence        Evidence[]
@@ -64,8 +72,17 @@ model User {
   ownedPromoCodes         PromoCode[]              @relation("PromoCodeOwner")
   referralsMade           ReferralRelationship[]   @relation("Referrer")
   referralsReceived       ReferralRelationship[]   @relation("Referred")
+  referredAccounts        Referral[]               @relation("ReferredBy")
+  referralRewards         Referral[]               @relation("ReferrerReferrals")
+  subscriptions           Subscription[]
+  subscriptionPayments    SubscriptionPayment[]
+  premiumBenefits         PremiumBenefitLedger[]
+  promoEngagements        PromotionEngagement[]
   requestedRefunds        Refund[]                 @relation("RefundRequestedBy")
   loginChallenges         LoginChallenge[]
+
+  @@index([referredByUserId])
+  @@index([premiumExpiresAt])
 }
 
 model Report {
@@ -800,4 +817,140 @@ model Refund {
   @@index([paymentId])
   @@index([orderId])
   @@index([status])
+}
+
+/// Fixed catalogue of premium plans. Prices are in GHS pesewas and are set
+/// server-side only; never derived from client input.
+model SubscriptionPlan {
+  id            Int              @id @default(autoincrement())
+  code          String           @unique // monthly | six_months | annual
+  name          String
+  description   String?
+  pricePesewas  Int
+  currency      String           @default("GHS")
+  durationUnit  String           @default("MONTH") // MONTH | YEAR
+  durationValue Int              @default(1)
+  active        Boolean          @default(true)
+  displayOrder  Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  subscriptions Subscription[]
+  payments      SubscriptionPayment[]
+
+  @@index([active])
+}
+
+model Subscription {
+  id        Int                @id @default(autoincrement())
+  userId    Int
+  planId    Int
+  paymentId Int?               @unique
+  startsAt  DateTime
+  expiresAt DateTime
+  status    String             @default("active") // active | expired | cancelled | refunded
+  autoRenew Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  user      User               @relation(fields: [userId], references: [id])
+  plan      SubscriptionPlan   @relation(fields: [planId], references: [id])
+  payment   SubscriptionPayment? @relation("SubscriptionPaymentSubscription", fields: [paymentId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+/// Paystack transaction record for a premium subscription purchase.
+model SubscriptionPayment {
+  id                  Int            @id @default(autoincrement())
+  userId              Int
+  planId              Int
+  provider            String         @default("paystack")
+  providerReference   String         @unique
+  idempotencyKey      String         @unique
+  amountPesewas       Int
+  currency            String         @default("GHS")
+  channel             String?
+  status              String         @default("PENDING") // PENDING | PAID | FAILED | CANCELLED | REFUNDED
+  referralCodeEntered String?
+  referredUserId      Int?
+  paidAt              DateTime?
+  verifiedAt          DateTime?
+  rawProviderStatus   String?
+  metadata            Json?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  user                User           @relation(fields: [userId], references: [id])
+  plan                SubscriptionPlan @relation(fields: [planId], references: [id])
+  subscription        Subscription?  @relation("SubscriptionPaymentSubscription")
+  referral            Referral?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Referral reward: exactly one hour of premium entitlement granted to the
+/// referrer after the referred account's FIRST verified subscription purchase.
+model Referral {
+  id                    Int                @id @default(autoincrement())
+  referrerUserId        Int
+  referredUserId        Int
+  referralCode          String
+  subscriptionPaymentId Int?               @unique
+  rewardHours           Int                @default(1)
+  status                String             @default("PENDING") // PENDING | REWARDED | REVERSED | EXPIRED
+  rewardGrantedAt       DateTime?
+  rewardExpiresAt       DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  referrer              User               @relation("ReferrerReferrals", fields: [referrerUserId], references: [id])
+  referred              User               @relation("ReferredBy", fields: [referredUserId], references: [id])
+  payment               SubscriptionPayment? @relation(fields: [subscriptionPaymentId], references: [id])
+
+  @@unique([referrerUserId, referredUserId])
+  @@index([referredUserId])
+  @@index([status])
+}
+
+/// Append-only audit of every premium entitlement grant, enabling idempotent
+/// one-time benefits and full reversal support.
+model PremiumBenefitLedger {
+  id               Int       @id @default(autoincrement())
+  userId           Int
+  benefitType      String    // signup_trial | first_subscription_bonus | referral_reward | admin_adjustment | subscription_purchase
+  durationMinutes  Int
+  sourceId         String?   // e.g. SubscriptionPayment id, referral id, admin action id
+  status           String    @default("granted") // granted | reversed | expired
+  grantedAt        DateTime  @default(now())
+  expiresAt        DateTime?
+  reversedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, benefitType, sourceId])
+  @@index([userId])
+  @@index([benefitType])
+}
+
+/// Impression/dismissal/click tracking for the fixed server-driven promotions
+/// (signup trial + first subscription bonus). Used to enforce display caps
+/// (max once/session, max once/day) and audit promotion engagement.
+model PromotionEngagement {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  promoKey      String   // signup_trial | first_subscription_bonus
+  placement     String   // signup | subscriptions
+  platform      String?
+  seenCount     Int      @default(1)
+  lastSeenAt    DateTime @default(now())
+  dismissedAt   DateTime?
+  dismissCount  Int      @default(0)
+  clickCount    Int      @default(0)
+  lastClickedAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, promoKey, placement])
 }

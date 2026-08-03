@@ -3,6 +3,7 @@ import express, { Router, Request, Response } from 'express';
 import { prisma } from '../shared/db.js';
 import { WebhookProcessingStatus } from './constants.js';
 import { handleChargeSuccess } from './ordersService.js';
+import { handleSubscriptionChargeSuccess } from '../subscriptions/service.js';
 import { verifyWebhookSignature } from './paystack.js';
 
 const router = Router();
@@ -73,7 +74,13 @@ router.post('/', express.raw({ type: 'application/json', limit: '1mb' }), async 
 
   try {
     if (event === 'charge.success' && reference) {
-      const result = await handleChargeSuccess(String(reference));
+      // Prefer the subscription flow; fall back to the legacy order flow when
+      // the reference does not belong to a subscription payment.
+      const subscriptionResult = await handleSubscriptionChargeSuccess(String(reference));
+      const result =
+        subscriptionResult.status === 'not_found'
+          ? await handleChargeSuccess(String(reference))
+          : subscriptionResult;
       await prisma.webhookEvent.update({
         where: { id: webhookEvent.id },
         data: {

@@ -290,12 +290,12 @@ const handleEmailSupport = async () => {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => navigation.navigate(SCREEN_NAMES.WALLET as never)}
+            onPress={() => navigation.navigate(SCREEN_NAMES.PLANS as never)}
           >
             <View style={styles.menuIconContainer}>
-              <Ionicons name="wallet" size={20} color={COLORS.primary} />
+              <Ionicons name="diamond" size={20} color={COLORS.primary} />
             </View>
-            <Text style={styles.menuText}>My Wallet</Text>
+            <Text style={styles.menuText}>Premium Plans</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
           </TouchableOpacity>
 
@@ -307,17 +307,6 @@ const handleEmailSupport = async () => {
               <Ionicons name="school" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.menuText}>Browse Courses</Text>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate(SCREEN_NAMES.CREDIT_PACKAGES as never)}
-          >
-            <View style={styles.menuIconContainer}>
-              <Ionicons name="add-circle" size={20} color={COLORS.primary} />
-            </View>
-            <Text style={styles.menuText}>Buy Credits</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
           </TouchableOpacity>
         </View>
@@ -447,7 +436,7 @@ const handleEmailSupport = async () => {
               style={styles.modalButton}
               onPress={() => {
                 setShowPremiumModal(false);
-                navigation.navigate('SubscriptionTerms' as never);
+                navigation.navigate(SCREEN_NAMES.PLANS as never);
               }}
             >
               <Text style={styles.modalButtonText}>Subscribe</Text>

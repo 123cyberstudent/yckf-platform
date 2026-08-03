@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { prisma } from '../shared/db.js';
+import { grantSignupTrial } from '../subscriptions/service.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-do-not-use-in-production';
 const VERIFY_EMAIL_EXPIRES = '1d';
@@ -24,4 +25,7 @@ export async function verifyUserEmail(token: string): Promise<void> {
   if (!user) throw new Error('Account not found');
   if (user.email !== email) throw new Error('Invalid or expired confirmation link');
   await prisma.user.update({ where: { id: userId }, data: { emailVerified: true } });
+  // Grant the 12-hour signup trial once, after successful account verification.
+  // Safe to call repeatedly: the benefit ledger makes it idempotent.
+  await grantSignupTrial(userId);
 }

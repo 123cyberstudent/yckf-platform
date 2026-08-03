@@ -82,7 +82,7 @@ const money = (minor: number, currency = 'GHS') =>
   `${currency} ${(minor / 100).toFixed(2)}`;
 
 const orderTypeLabel = (t: string) =>
-  t === 'COURSE' ? 'Course' : t === 'CREDIT_PACKAGE' ? 'Credit package' : 'Premium';
+  t === 'COURSE' ? 'Course' : t === 'PREMIUM_SUBSCRIPTION' ? 'Subscription' : t === 'CREDIT_PACKAGE' ? 'Legacy credit' : 'Premium';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -116,7 +116,7 @@ export default function OrdersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-          <p className="text-muted-foreground">Course purchases and credit top-ups</p>
+          <p className="text-muted-foreground">Course and premium subscription purchases</p>
         </div>
         <Button variant="outline" onClick={fetchOrders}>
           <RefreshCw className="mr-2 h-4 w-4" /> Refresh

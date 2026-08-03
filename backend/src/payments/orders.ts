@@ -9,7 +9,6 @@ import {
   getOrderForUser,
   initializePaystackOrder,
   listOrdersForUser,
-  payOrderWithCredits,
 } from './ordersService.js';
 
 const router = Router();
@@ -17,7 +16,7 @@ const router = Router();
 router.use(verifyToken, generalRateLimiter);
 
 function isOrderType(value: unknown): value is (typeof OrderType)[keyof typeof OrderType] {
-  return value === OrderType.COURSE || value === OrderType.CREDIT_PACKAGE || value === OrderType.PREMIUM_SUBSCRIPTION;
+  return value === OrderType.COURSE || value === OrderType.PREMIUM_SUBSCRIPTION;
 }
 
 /** POST /api/orders — server-priced order creation (quote + reserve). */
@@ -25,7 +24,10 @@ router.post('/', async (req: AuthRequest, res) => {
   try {
     const { orderType, productId, promoCode, payWithCredits } = req.body ?? {};
     if (!isOrderType(orderType)) {
-      return res.status(400).json({ success: false, error: 'orderType must be COURSE, CREDIT_PACKAGE or PREMIUM_SUBSCRIPTION' });
+      return res.status(400).json({ success: false, error: 'orderType must be COURSE or PREMIUM_SUBSCRIPTION' });
+    }
+    if (payWithCredits) {
+      return res.status(400).json({ success: false, error: 'Credits are no longer supported. Please use a subscription or course purchase.' });
     }
     if (orderType !== OrderType.PREMIUM_SUBSCRIPTION && !Number.isInteger(productId)) {
       return res.status(400).json({ success: false, error: 'productId is required' });
@@ -73,13 +75,12 @@ router.get('/:orderNumber', async (req: AuthRequest, res) => {
   }
 });
 
-/** POST /api/orders/:orderNumber/pay — { method: 'paystack' | 'credits' } */
+/** POST /api/orders/:orderNumber/pay — { method: 'paystack' } */
 router.post('/:orderNumber/pay', async (req: AuthRequest, res) => {
   try {
     const method = req.body?.method;
     if (method === 'credits') {
-      const order = await payOrderWithCredits(req.params.orderNumber, req.user!.id);
-      return res.json({ success: true, order, paidWith: 'credits' });
+      return res.status(400).json({ success: false, error: 'Credits are no longer supported. Please use a subscription or course purchase.' });
     }
     if (method === 'paystack') {
       const result = await initializePaystackOrder(req.params.orderNumber, req.user!.id);
@@ -89,7 +90,7 @@ router.post('/:orderNumber/pay', async (req: AuthRequest, res) => {
         payment: { provider: 'paystack', reference: result.reference, authorizationUrl: result.authorizationUrl, accessCode: result.accessCode },
       });
     }
-    res.status(400).json({ success: false, error: "method must be 'paystack' or 'credits'" });
+    res.status(400).json({ success: false, error: "method must be 'paystack'" });
   } catch (err) {
     if (err instanceof PaymentError) {
       return res.status(err.status).json({ success: false, code: err.code, error: err.message, details: err.details });

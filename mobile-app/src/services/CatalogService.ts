@@ -1,6 +1,6 @@
 // ============================================
 // FILE: src/services/CatalogService.ts
-// Course + credit package catalogue
+// Course catalogue
 // ============================================
 
 import { API_BASE_URL } from './AuthService';
@@ -16,18 +16,6 @@ export interface Course {
   imageUrl: string | null;
   price: number;
   creditsPrice: number;
-}
-
-export interface CreditPackage {
-  id: number;
-  name: string;
-  description: string | null;
-  baseCredits: number;
-  bonusCredits: number;
-  totalCredits: number;
-  price: number;
-  featured: boolean;
-  promotionLabel: string | null;
 }
 
 class CatalogService {
@@ -47,15 +35,6 @@ class CatalogService {
       throw new Error(data.error || 'Course not found');
     }
     return data.course as Course;
-  }
-
-  async listPackages(): Promise<CreditPackage[]> {
-    const res = await fetch(`${API_BASE_URL}/api/catalog/packages`);
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || 'Failed to load credit packages');
-    }
-    return data.packages as CreditPackage[];
   }
 }
 

@@ -48,7 +48,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const where: any = {};
     if (status && ORDER_STATUSES.includes(String(status))) where.status = String(status);
-    if (orderType && ['COURSE', 'CREDIT_PACKAGE'].includes(String(orderType).toUpperCase())) {
+    if (orderType && ['COURSE', 'PREMIUM_SUBSCRIPTION'].includes(String(orderType).toUpperCase())) {
       where.orderType = String(orderType).toUpperCase();
     }
     if (search) {

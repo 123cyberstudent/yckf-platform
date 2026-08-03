@@ -24,7 +24,7 @@ import {
   MessageSquare,
   BookOpen,
   Receipt,
-  Coins,
+  Crown,
   Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -76,7 +76,7 @@ export function DashboardSidebar() {
     { icon: Hash, label: 'Site Stats', href: '/dashboard/site-stats' },
     { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
     { icon: Receipt, label: 'Orders', href: '/dashboard/orders' },
-    { icon: Coins, label: 'Credit Packages', href: '/dashboard/credit-packages' },
+    { icon: Crown, label: 'Subscriptions', href: '/dashboard/subscriptions' },
     { icon: Megaphone, label: 'Promotions', href: '/dashboard/promotions' },
     { icon: AlertCircle, label: 'Emergency Reports', href: '/dashboard/emergencies' },
     { icon: Phone, label: 'Bookings', href: '/dashboard/bookings' },

@@ -12,8 +12,7 @@ export type RootStackParamList = {
   Settings: undefined;
   MyReports: undefined;
   // Commerce / Wallet screens
-  Wallet: undefined;
-  CreditPackages: undefined;
+  Plans: undefined;
   CourseCatalog: undefined;
   Checkout: {
     orderType: 'COURSE' | 'CREDIT_PACKAGE';
@@ -26,6 +25,8 @@ export type RootStackParamList = {
   PaystackWebView: {
     orderNumber: string;
     authorizationUrl: string;
+    mode?: 'order' | 'subscription';
+    reference?: string;
     continueTo?: OrderContinueTarget;
   };
   OrderResult: {
@@ -38,23 +39,13 @@ export type RootStackParamList = {
 };
 
 /**
- * Destination to hand off to after a successful payment. Used by the premium
- * subscription checkout so a booking (BookSession) or the home tab (Root) can
- * resume exactly where the user left off.
+ * Destination to hand off to after a successful premium subscription payment,
+ * so the user resumes exactly where they left off.
  */
-export type OrderContinueTarget =
-  | {
-      screen: 'BookSession';
-      params: {
-        specialist: Specialist;
-        paymentReference: string;
-        paymentMethod: string;
-      };
-    }
-  | {
-      screen: 'Root';
-      params?: undefined;
-    };
+export type OrderContinueTarget = {
+  screen: 'Root';
+  params?: undefined;
+};
 
 // Report from backend
 export interface Report {

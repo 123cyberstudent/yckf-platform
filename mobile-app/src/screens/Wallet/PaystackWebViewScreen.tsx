@@ -19,11 +19,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING } from '../../utils/constants';
 import OrdersService from '../../services/OrdersService';
+import SubscriptionService from '../../services/SubscriptionService';
 import { OrderContinueTarget, RootStackParamList } from '../../types';
 
 type Params = {
   orderNumber: string;
   authorizationUrl: string;
+  mode?: 'order' | 'subscription';
   continueTo?: OrderContinueTarget;
 };
 
@@ -35,7 +37,8 @@ const DONE_STATUSES = new Set(['FULFILLED', 'PAID', 'FAILED', 'EXPIRED', 'CANCEL
 const PaystackWebViewScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<Record<string, Params>, string>>();
-  const { orderNumber, authorizationUrl, continueTo } = route.params ?? ({} as Params);
+  const { orderNumber, authorizationUrl, mode, continueTo } = route.params ?? ({} as Params);
+  const isSubscription = mode === 'subscription';
 
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -65,6 +68,22 @@ const PaystackWebViewScreen: React.FC = () => {
     return false;
   }, [orderNumber, finish]);
 
+  const pollSubscription = useCallback(async () => {
+    if (finishedRef.current) return;
+    try {
+      const status = await SubscriptionService.getStatus();
+      if (status.isPremium) {
+        finish(true, 'Payment successful');
+        return true;
+      }
+    } catch (err) {
+      // transient network errors are ignored; polling continues
+    }
+    return false;
+  }, [finish]);
+
+  const poll = useCallback(() => (isSubscription ? pollSubscription() : pollOrder()), [isSubscription, pollSubscription, pollOrder]);
+
   useEffect(() => {
     const timer = setInterval(async () => {
       pollCount.current += 1;
@@ -75,10 +94,10 @@ const PaystackWebViewScreen: React.FC = () => {
         }
         return;
       }
-      await pollOrder();
+      await poll();
     }, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [pollOrder, finish]);
+  }, [poll, finish]);
 
   const handleNavigationChange = (navState: any) => {
     const url = String(navState.url || '');
@@ -93,7 +112,7 @@ const PaystackWebViewScreen: React.FC = () => {
         hasReference;
       if (isCallback && !finishedRef.current) {
         // The provider is redirecting back; poll now and keep the webview open.
-        pollOrder();
+        poll();
       }
     }
   };
@@ -105,10 +124,12 @@ const PaystackWebViewScreen: React.FC = () => {
         text: 'Cancel order',
         style: 'destructive',
         onPress: async () => {
-          try {
-            await OrdersService.cancelOrder(orderNumber);
-          } catch (err) {
-            // order may already be processing; still navigate away
+          if (!isSubscription) {
+            try {
+              await OrdersService.cancelOrder(orderNumber);
+            } catch (err) {
+              // order may already be processing; still navigate away
+            }
           }
           finish(false, 'Payment cancelled');
         },

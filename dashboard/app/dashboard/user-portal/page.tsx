@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Crown,
   FileText,
   GraduationCap,
   Inbox,
@@ -259,6 +260,7 @@ export default function UserPortalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [premium, setPremium] = useState<{ isPremium: boolean; expiresAt: string | null } | null>(null);
 
   useEffect(() => {
     const checkRole = async () => {
@@ -293,6 +295,24 @@ export default function UserPortalPage() {
       }
     };
     fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchPremium = async () => {
+      try {
+        const res = await fetch('/api/subscriptions/status');
+        if (res.ok) {
+          const data = await res.json();
+          setPremium({
+            isPremium: Boolean(data.isPremium),
+            expiresAt: data.premiumExpiresAt ?? null,
+          });
+        }
+      } catch {
+        // silently fail
+      }
+    };
+    fetchPremium();
   }, []);
 
   useEffect(() => {
@@ -1185,6 +1205,22 @@ export default function UserPortalPage() {
                     <Lock className="size-3" /> Account type
                   </span>
                   <Badge variant="outline">Member</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5">
+                    <Crown className="size-3" /> Premium
+                  </span>
+                  {premium === null ? (
+                    <span className="text-xs text-muted-foreground">…</span>
+                  ) : premium.isPremium ? (
+                    <Badge className="bg-[#2563EB] text-white">
+                      Active{premium.expiresAt ? ` · ${formatDate(premium.expiresAt)}` : ''}
+                    </Badge>
+                  ) : (
+                    <Button asChild size="sm" variant="outline">
+                      <Link href="/subscriptions">Upgrade</Link>
+                    </Button>
+                  )}
                 </div>
                 <p className="pt-2 text-xs text-muted-foreground">
                   Need help? Email{' '}

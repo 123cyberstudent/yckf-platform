@@ -332,8 +332,6 @@ export const SCREEN_NAMES = {
   ABOUT: 'About',
   SETTINGS: 'Settings',
   SELECT_SPECIALIST: 'SelectSpecialist',
-  PAYMENT_OPTIONS: 'PaymentOptions',
-  BOOK_SESSION: 'BookSession',
   // Thief Detection screens
   SECURITY_PROTECTION: 'SecurityProtection',
   ENABLE_THIEF_DETECTION: 'EnableThiefDetection',
@@ -348,8 +346,7 @@ export const SCREEN_NAMES = {
   RESOURCES: 'Resources',
   MY_REPORTS: 'MyReports',
   // Commerce / Wallet screens
-  WALLET: 'Wallet',
-  CREDIT_PACKAGES: 'CreditPackages',
+  PLANS: 'Plans',
   COURSE_CATALOG: 'CourseCatalog',
   CHECKOUT: 'Checkout',
   PAYSTACK_WEBVIEW: 'PaystackWebView',

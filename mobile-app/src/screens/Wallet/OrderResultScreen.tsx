@@ -70,9 +70,9 @@ const OrderResultScreen: React.FC = () => {
           style={styles.primaryButton}
         />
         <Button
-          title={success ? 'Back to Wallet' : 'Try Again'}
+          title={success ? 'Back to Plans' : 'Try Again'}
           onPress={() => {
-            navigation.navigate('Wallet' as never);
+            navigation.navigate('Plans' as never);
           }}
           variant="outline"
           size="large"

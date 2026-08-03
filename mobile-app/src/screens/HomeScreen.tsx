@@ -764,7 +764,7 @@ const HomeScreen: React.FC = () => {
               style={styles.modalButton}
               onPress={() => {
                 setShowPremiumModal(false);
-                navigation.navigate('SubscriptionTerms' as never);
+                navigation.navigate('Plans' as never);
               }}
             >
               <Text style={styles.modalButtonText}>Subscribe</Text>

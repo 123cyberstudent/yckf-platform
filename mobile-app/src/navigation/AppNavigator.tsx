@@ -32,13 +32,7 @@ import PoliceStationScreen from '../screens/PoliceStationScreen';
 import FireStationScreen from '../screens/FireStationScreen';
 // Booking Module Screens
 import SelectSpecialistScreen from '../screens/Booking/SelectSpecialistScreen';
-import PaymentOptionsScreen from '../screens/Booking/PaymentOptionsScreen';
 import BookSessionScreen from '../screens/Booking/BookSessionScreen';
-import PaymentConfirmationScreen from '../screens/Booking/PaymentConfirmationScreen';
-import PaymentSubmittedScreen from '../screens/Booking/PaymentSubmittedScreen';
-
-// Subscription & Coupon Screens
-import SubscriptionTermsScreen from '../screens/SubscriptionTermsScreen';
 
 // ⭐ Profile Screen (NEW)
 import ProfileScreen from '../screens/ProfileScreen';
@@ -52,8 +46,7 @@ import CoursesScreen from '../screens/CoursesScreen';
 import ResourcesScreen from '../screens/ResourcesScreen';
 
 // Commerce / Wallet Screens
-import WalletScreen from '../screens/Wallet/WalletScreen';
-import CreditPackagesScreen from '../screens/Wallet/CreditPackagesScreen';
+import PlansScreen from '../screens/Wallet/PlansScreen';
 import CourseCatalogScreen from '../screens/Wallet/CourseCatalogScreen';
 import CheckoutScreen from '../screens/Wallet/CheckoutScreen';
 import PaystackWebViewScreen from '../screens/Wallet/PaystackWebViewScreen';
@@ -112,27 +105,19 @@ type RootStackParamList = {
   LocationShare: undefined;
   EmergencyReport: undefined;
   SelectSpecialist: undefined;
-  PaymentOptions: {
-    specialist?: any;
-    fromSubscription?: boolean;
-  };
   BookSession: {
     specialist: any;
     paymentReference: string;
     paymentMethod: string;
   };
-  SubscriptionTerms: undefined;
   CouponRedemption: undefined;
   AdminDashboard: undefined;
-  
-  // ⭐ NEW - Payment Confirmation Screens
-  PaymentConfirmation: {
-    paymentMethod: string;
-    amount: string;
-  };
-  PaymentSubmitted: {
-    transactionRef?: string;
-  };
+  [SCREEN_NAMES.PLANS]: undefined;
+  [SCREEN_NAMES.COURSE_CATALOG]: undefined;
+  [SCREEN_NAMES.CHECKOUT]: undefined;
+  [SCREEN_NAMES.PAYSTACK_WEBVIEW]: undefined;
+  [SCREEN_NAMES.ORDER_RESULT]: undefined;
+  [SCREEN_NAMES.MY_ORDERS]: undefined;
   News: undefined;
   Events: undefined;
   Courses: undefined;
@@ -299,14 +284,6 @@ const AppNavigator: React.FC = () => {
         }}
       />
       <Stack.Screen
-        name="PaymentOptions"
-        component={ensureScreen(PaymentOptionsScreen, 'PaymentOptionsScreen')}
-        options={{
-          headerShown: false,
-          title: 'Payment Options',
-        }}
-      />
-      <Stack.Screen
         name="BookSession"
         component={ensureScreen(BookSessionScreen, 'BookSessionScreen')}
         options={{
@@ -315,16 +292,6 @@ const AppNavigator: React.FC = () => {
         }}
       />
 
-      {/* Subscription & Coupon */}
-      <Stack.Screen
-        name="SubscriptionTerms"
-        component={ensureScreen(SubscriptionTermsScreen, 'SubscriptionTermsScreen')}
-        options={{
-          headerShown: false,
-          title: 'Subscription & Terms',
-        }}
-      />
-      
       {/* ⭐ Coupon Redemption Screen (NEW) */}
       <Stack.Screen
         name="CouponRedemption"
@@ -351,17 +318,6 @@ const AppNavigator: React.FC = () => {
   }}
 />
 
-<Stack.Screen 
-  name="PaymentConfirmation" 
-  component={PaymentConfirmationScreen}
-  options={{ headerShown: false }}
-/>
-<Stack.Screen 
-  name="PaymentSubmitted" 
-  component={PaymentSubmittedScreen}
-  options={{ headerShown: false }}
-/>
-
       {/* CMS Content Screens */}
       <Stack.Screen
         name="News"
@@ -386,13 +342,8 @@ const AppNavigator: React.FC = () => {
 
       {/* Commerce / Wallet Screens */}
       <Stack.Screen
-        name={SCREEN_NAMES.WALLET}
-        component={ensureScreen(WalletScreen, 'WalletScreen')}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name={SCREEN_NAMES.CREDIT_PACKAGES}
-        component={ensureScreen(CreditPackagesScreen, 'CreditPackagesScreen')}
+        name={SCREEN_NAMES.PLANS}
+        component={ensureScreen(PlansScreen, 'PlansScreen')}
         options={{ headerShown: false }}
       />
       <Stack.Screen

@@ -1,5 +1,6 @@
 import { PrismaClient, Role } from '@prisma/client';
 import { hashPassword } from './auth/password.js';
+import { ensurePlansSeeded } from './subscriptions/service.js';
 
 const prisma = new PrismaClient();
 
@@ -43,6 +44,9 @@ async function main() {
   for (const u of DEFAULT_USERS) {
     await upsertUser(u);
   }
+
+  await ensurePlansSeeded();
+  console.log('Subscription plans seeded');
 
   const pages = [
     { slug: 'about', title: 'About YCKF', content: { hero: { title: 'About Young Cyber Knights Foundation', subtitle: 'Building a safer digital future' }, mission: '', vision: '', values: [], timeline: [] } },
