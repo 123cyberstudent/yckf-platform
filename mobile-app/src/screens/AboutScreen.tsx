@@ -269,7 +269,6 @@ const AboutScreen: React.FC = () => {
           <View style={styles.legalSection} pointerEvents="box-none">
             <Text style={styles.legalText}>© 2026 Young Cyber Knights Foundation</Text>
             <Text style={styles.legalText}>All rights reserved</Text>
-            <Text style={styles.legalText}>Designed & Developed by: Bienvenu Gbeti DevPro</Text>
 
             <View style={styles.legalLinks}>
               <TouchableOpacity onPress={openPrivacyPolicy}>
