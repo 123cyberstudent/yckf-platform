@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../shared/db.js';
-import { verifyToken, isAdmin } from '../auth/middleware.js';
+import { verifyToken, isSuperAdmin } from '../auth/middleware.js';
 
 const router = Router();
 
@@ -125,7 +125,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:slug', verifyToken, isAdmin, async (req: Request, res: Response) => {
+router.put('/:slug', verifyToken, isSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
     if (!VALID_SLUGS.includes(slug)) {

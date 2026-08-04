@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/permissions-server';
 
 const BACKEND = process.env.BACKEND_URL || 'http://localhost:4001';
 
@@ -21,6 +22,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
+    const denied = await requireSuperAdmin();
+    if (denied) return denied;
     const { slug } = await params;
     const body = await req.json();
     const token = extractToken(req);

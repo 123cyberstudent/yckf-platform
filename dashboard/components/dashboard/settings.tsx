@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Bell, Eye, Shield, Mail, Clock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Lock, Bell, Eye, Shield, Mail, Clock, Copy, Check } from 'lucide-react';
 
 interface User {
   id: string;
@@ -36,6 +37,11 @@ export function Settings() {
 
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [twoFaLoading, setTwoFaLoading] = useState(false);
+  const [twoFaError, setTwoFaError] = useState('');
+  const [twoFaSetup, setTwoFaSetup] = useState<{ secret: string; otpauthUrl: string; qrCodeDataURL: string } | null>(null);
+  const [twoFaVerifyCode, setTwoFaVerifyCode] = useState('');
+  const [twoFaVerifyLoading, setTwoFaVerifyLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const [siemConnected, setSiemConnected] = useState(false);
   const [siemLoading, setSiemLoading] = useState(true);
@@ -57,12 +63,14 @@ export function Settings() {
 
   useEffect(() => {
     const init = async () => {
+      let userId: string | null = null;
       try {
         const meRes = await fetch('/api/auth/me');
         if (meRes.ok) {
           const me = await meRes.json();
+          userId = me.id?.toString() ?? null;
           const user: User = {
-            id: me.id?.toString() ?? '1',
+            id: userId ?? '1',
             fullName: me.fullName || me.name || 'User',
             email: me.email || '',
             role: me.role,
@@ -77,10 +85,10 @@ export function Settings() {
       }
 
       try {
-        const faRes = await fetch('/api/auth/2fa/status');
+        const faRes = await fetch('/api/auth/2fa');
         if (faRes.ok) {
           const fa = await faRes.json();
-          setTwoFaEnabled(!!fa.enabled);
+          setTwoFaEnabled(!!(fa.twoFactorEnabled ?? fa.twoFaEnabled ?? fa.enabled));
         }
       } catch { /* ignore */ }
 
@@ -104,10 +112,12 @@ export function Settings() {
       }
 
       try {
-        const logsRes = await fetch('/api/audit/logs?limit=10');
+        const qs = userId ? `?limit=5&userId=${encodeURIComponent(userId)}` : '?limit=5';
+        const logsRes = await fetch(`/api/audit/logs${qs}`);
         if (logsRes.ok) {
           const logs = await logsRes.json();
-          setRecentActivity(Array.isArray(logs) ? logs.slice(0, 5) : []);
+          const items = Array.isArray(logs) ? logs : logs.auditLogs;
+          setRecentActivity(Array.isArray(items) ? items.slice(0, 5) : []);
         }
       } catch { /* ignore */ }
 
@@ -156,14 +166,64 @@ export function Settings() {
   };
 
   const handleToggle2FA = async () => {
+    setTwoFaError('');
     setTwoFaLoading(true);
     try {
-      const endpoint = twoFaEnabled ? '/api/auth/2fa/disable' : '/api/auth/2fa/enable';
-      const res = await fetch(endpoint, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to toggle 2FA');
-      setTwoFaEnabled(!twoFaEnabled);
-    } catch { /* ignore */ }
-    finally { setTwoFaLoading(false); }
+      if (twoFaEnabled) {
+        const res = await fetch('/api/auth/2fa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'disable' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || data.message || 'Failed to disable 2FA');
+        setTwoFaEnabled(false);
+      } else {
+        const res = await fetch('/api/auth/2fa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'enable' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || data.message || 'Failed to start 2FA setup');
+        if (!data.secret || !data.qrCodeDataURL) throw new Error('Invalid 2FA setup response');
+        setTwoFaSetup(data);
+        setTwoFaVerifyCode('');
+      }
+    } catch (error: any) {
+      setTwoFaError(error.message || 'Failed to toggle 2FA');
+    } finally {
+      setTwoFaLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    setTwoFaError('');
+    setTwoFaVerifyLoading(true);
+    try {
+      const res = await fetch('/api/auth/2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', token: twoFaVerifyCode.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || 'Invalid verification code');
+      setTwoFaEnabled(true);
+      setTwoFaSetup(null);
+      setTwoFaVerifyCode('');
+    } catch (error: any) {
+      setTwoFaError(error.message || 'Failed to verify 2FA code');
+    } finally {
+      setTwoFaVerifyLoading(false);
+    }
+  };
+
+  const handleCopySecret = async () => {
+    if (twoFaSetup?.secret && navigator.clipboard) {
+      await navigator.clipboard.writeText(twoFaSetup.secret);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleSaveSystem = async () => {
@@ -311,6 +371,11 @@ export function Settings() {
               {twoFaLoading ? '...' : twoFaEnabled ? 'Disable' : 'Enable'}
             </Button>
           </div>
+          {twoFaError && (
+            <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+              {twoFaError}
+            </div>
+          )}
 
           <div className="flex items-center justify-between p-4 border border-border rounded-lg">
             <div className="flex items-center gap-3">
@@ -452,6 +517,52 @@ export function Settings() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!twoFaSetup} onOpenChange={(open) => { if (!open) { setTwoFaSetup(null); setTwoFaError(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set up Two-Factor Authentication</DialogTitle>
+            <DialogDescription>
+              Scan the QR code with your authenticator app, then enter the 6-digit code to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          {twoFaSetup && (
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={twoFaSetup.qrCodeDataURL} alt="2FA QR code" className="size-48 rounded-md border border-border" />
+              </div>
+              <div className="flex items-center justify-between gap-2 p-3 rounded-md border border-border bg-muted/50">
+                <code className="text-sm break-all">{twoFaSetup.secret}</code>
+                <Button variant="outline" size="icon" onClick={handleCopySecret} aria-label="Copy secret">
+                  {copied ? <Check className="size-4 text-green-500" /> : <Copy className="size-4" />}
+                </Button>
+              </div>
+              {twoFaError && (
+                <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+                  {twoFaError}
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium">Verification Code</label>
+                <Input
+                  value={twoFaVerifyCode}
+                  onChange={(e) => setTwoFaVerifyCode(e.target.value)}
+                  className="mt-2"
+                  placeholder="6-digit code"
+                  maxLength={6}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setTwoFaSetup(null); setTwoFaError(''); }}>Cancel</Button>
+            <Button onClick={handleVerify2FA} disabled={twoFaVerifyLoading || twoFaVerifyCode.trim().length < 6}>
+              {twoFaVerifyLoading ? 'Verifying...' : 'Verify & Enable'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { isSuperAdmin } from '@/lib/permissions';
 import {
   Ticket,
   Plus,
@@ -50,6 +52,7 @@ interface Coupon {
 }
 
 export default function CouponsPage() {
+  const router = useRouter();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,6 +83,14 @@ export default function CouponsPage() {
       setLoading(false);
     }
   }, [searchQuery]);
+
+  useEffect(() => {
+    isSuperAdmin().then((allowed) => {
+      if (!allowed) {
+        router.replace('/dashboard');
+      }
+    });
+  }, [router]);
 
   useEffect(() => {
     fetchCoupons();

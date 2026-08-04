@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { verifyToken, isAdmin, AuthRequest } from '../auth/middleware.js';
+import { verifyToken, isAdmin, isSuperAdmin, AuthRequest } from '../auth/middleware.js';
 import { generalRateLimiter } from '../shared/rateLimiter.js';
 import couponsRouter from './coupons.js';
 import ordersRouter from './orders.js';
@@ -30,9 +30,9 @@ router.get('/audit-logs', async (req: Request, res: Response) => {
   res.json({ logs: [], total: 0, limit });
 });
 
-router.use('/coupons', couponsRouter);
+router.use('/coupons', isSuperAdmin, couponsRouter);
 router.use('/orders', ordersRouter);
-router.use('/promotions', promotionsRouter);
+router.use('/promotions', isSuperAdmin, promotionsRouter);
 router.use('/redemptions', redemptionsRouter);
 router.use('/demo', demoRouter);
 router.use('/login-logs', loginLogsRouter);

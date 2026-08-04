@@ -14,8 +14,8 @@ export async function PATCH() {
     }
 
     try {
-      const response = await backendFetch('/api/notifications/read-all', {
-        method: 'PATCH',
+      const response = await backendFetch('/api/notifications/mark-all-read', {
+        method: 'PUT',
       }, token)
 
       if (response.status === 401) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { isSuperAdmin } from '@/lib/permissions';
 import {
   Megaphone,
   Plus,
@@ -136,6 +138,7 @@ const emptyForm = {
 };
 
 export default function PromotionsPage() {
+  const router = useRouter();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -165,6 +168,14 @@ export default function PromotionsPage() {
       setLoading(false);
     }
   }, [search, status]);
+
+  useEffect(() => {
+    isSuperAdmin().then((allowed) => {
+      if (!allowed) {
+        router.replace('/dashboard');
+      }
+    });
+  }, [router]);
 
   useEffect(() => {
     fetchPromotions();

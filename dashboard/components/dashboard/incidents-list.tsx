@@ -62,6 +62,7 @@ interface CaseResponse {
 }
 
 interface ReportDetail extends Incident {
+  reportId?: string;
   ticketNumber?: string;
   reporterEmail?: string;
   reporterPhone?: string;
@@ -262,33 +263,45 @@ export function IncidentsList() {
     setDetailLoading(true);
     setDetailIncident(null);
     setResponseText('');
+    const reportId = incident.reportId ?? incident.id;
     try {
-      const response = await fetch(`/api/reports/${incident.id}`);
+      const response = await fetch(`/api/reports/${reportId}`);
       if (response.ok) {
         const data = await response.json();
+        const caseData = Array.isArray(data.cases) ? data.cases[0] : null;
+        const mappedResponses = (caseData?.responses ?? []).map((r: any) => ({
+          id: r.id?.toString() ?? `resp-${Date.now()}-${Math.random()}`,
+          authorName: r.author?.fullName ?? 'User',
+          authorRole: (r.author?.role ?? 'user').toLowerCase(),
+          text: r.responseText ?? r.text ?? '',
+          createdAt: r.createdAt ?? new Date().toISOString(),
+        }));
         setDetailIncident({
           ...incident,
-          ticketNumber: data.ticketNumber ?? data.ticket_number ?? `#${incident.id}`,
+          reportId,
+          ticketNumber: data.ticketNumber ?? data.ticket_number ?? `#${reportId}`,
           reporterEmail: data.reporterEmail ?? data.reporter_email,
           reporterPhone: data.reporterPhone ?? data.reporter_phone,
           incidentType: data.incidentType ?? data.incident_type ?? incident.type,
-          gpsLocation: data.gpsLocation ?? data.gps_location,
+          gpsLocation: data.gpsLocation ?? data.gps_address ?? data.gpsAddress,
           submittedDate: data.submittedDate ?? data.submitted_date ?? data.createdAt,
-          assignedVolunteerId: data.assignedVolunteerId ?? data.assigned_volunteer_id,
-          assignedVolunteerName: data.assignedVolunteerName ?? data.assigned_volunteer_name ?? incident.assignedToName,
-          responses: data.responses ?? [],
+          assignedVolunteerId: caseData?.assignedInvestigator?.id ?? data.assignedVolunteerId ?? data.assigned_volunteer_id,
+          assignedVolunteerName: caseData?.assignedInvestigator?.fullName ?? data.assignedVolunteerName ?? data.assigned_volunteer_name ?? incident.assignedToName,
+          responses: mappedResponses,
         });
       } else {
         setDetailIncident({
           ...incident,
-          ticketNumber: `#${incident.id}`,
+          reportId,
+          ticketNumber: `#${reportId}`,
           responses: [],
         });
       }
     } catch {
       setDetailIncident({
         ...incident,
-        ticketNumber: `#${incident.id}`,
+        reportId,
+        ticketNumber: `#${reportId}`,
         responses: [],
       });
     } finally {
@@ -323,7 +336,7 @@ export function IncidentsList() {
     if (!detailIncident) return;
     setAccepting(true);
     try {
-      const response = await fetch(`/api/reports/${detailIncident.id}/accept`, { method: 'POST' });
+      const response = await fetch(`/api/reports/${detailIncident.reportId ?? detailIncident.id}/accept`, { method: 'POST' });
       if (response.ok) {
         const data = await response.json();
         setDetailIncident((prev) =>
@@ -348,7 +361,7 @@ export function IncidentsList() {
     if (!detailIncident || !responseText.trim()) return;
     setResponding(true);
     try {
-      const response = await fetch(`/api/reports/${detailIncident.id}/respond`, {
+      const response = await fetch(`/api/reports/${detailIncident.reportId ?? detailIncident.id}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ responseText: responseText.trim() }),
@@ -378,7 +391,7 @@ export function IncidentsList() {
     if (!detailIncident) return;
     setAssigningVolunteer(volunteerId);
     try {
-      const response = await fetch(`/api/reports/${detailIncident.id}/assign`, {
+      const response = await fetch(`/api/reports/${detailIncident.reportId ?? detailIncident.id}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ volunteerId }),
@@ -408,8 +421,8 @@ export function IncidentsList() {
     if (!detailIncident) return;
     setStatusUpdating(true);
     try {
-      const response = await fetch(`/api/reports/${detailIncident.id}/status`, {
-        method: 'POST',
+      const response = await fetch(`/api/incidents/${detailIncident.id}/status`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });

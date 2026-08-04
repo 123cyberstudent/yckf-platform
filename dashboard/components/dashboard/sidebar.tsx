@@ -71,13 +71,10 @@ export function DashboardSidebar() {
   ];
 
   const adminOnlyItems = [
-    { icon: Globe, label: 'Content Manager', href: '/dashboard/content' },
     { icon: Users, label: 'Members', href: '/dashboard/members' },
     { icon: Hash, label: 'Site Stats', href: '/dashboard/site-stats' },
-    { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
     { icon: Receipt, label: 'Orders', href: '/dashboard/orders' },
     { icon: Crown, label: 'Subscriptions', href: '/dashboard/subscriptions' },
-    { icon: Megaphone, label: 'Promotions', href: '/dashboard/promotions' },
     { icon: AlertCircle, label: 'Emergency Reports', href: '/dashboard/emergencies' },
     { icon: Phone, label: 'Bookings', href: '/dashboard/bookings' },
     { icon: Users, label: 'Specialists', href: '/dashboard/specialists' },
@@ -87,10 +84,11 @@ export function DashboardSidebar() {
   ];
 
   const superAdminItems = [
+    { icon: Globe, label: 'Content Manager', href: '/dashboard/content' },
+    { icon: Ticket, label: 'Coupons', href: '/dashboard/coupons' },
+    { icon: Megaphone, label: 'Promotions', href: '/dashboard/promotions' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
-    { icon: Users, label: 'Admins (Secondary Admins)', href: '/dashboard/admins' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
-    { icon: Shield, label: 'Volunteers', href: '/dashboard/volunteers' },
     { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },
   ];
 

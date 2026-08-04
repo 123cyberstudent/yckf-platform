@@ -79,7 +79,7 @@ export default function SiteStatsPage() {
     import('@/lib/permissions').then(({ getRoleFromCookie }) => {
       getRoleFromCookie().then((r) => {
         setRole(r);
-        if (r !== 'admin') router.push('/dashboard');
+        if (r !== 'admin' && r !== 'super_admin') router.push('/dashboard');
       });
     });
   }, [router]);

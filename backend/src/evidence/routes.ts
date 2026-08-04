@@ -71,6 +71,7 @@ router.post(
             originalName: req.file.originalname,
             mimeType,
             size: req.file.size,
+            description: req.body.description || '',
           },
           uploadedById: req.user!.id,
         },

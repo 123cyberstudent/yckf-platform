@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 import { notifications } from '@/lib/mock-data'
 
-export async function POST(
+export async function PUT(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -18,7 +18,7 @@ export async function POST(
 
     try {
       const response = await backendFetch(`/api/notifications/${id}/read`, {
-        method: 'POST',
+        method: 'PUT',
       }, token)
 
       if (!response.ok) {

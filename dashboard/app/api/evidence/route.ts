@@ -55,7 +55,16 @@ export async function GET(request: Request) {
       uploadedByName: item.uploadedBy?.fullName ?? item.uploadedByName ?? 'Unknown',
       uploadedAt: toIsoString(item.uploadedAt) ?? toIsoString(item.createdAt) ?? new Date().toISOString(),
       description: item.metadata?.description ?? item.description ?? '',
-      chainOfCustody: item.chainOfCustody ?? [],
+      chainOfCustody: item.chainOfCustody ?? [
+        {
+          id: `upload-${item.id ?? Date.now()}`,
+          action: 'Evidence uploaded',
+          performedBy: item.uploadedById?.toString() ?? 'unknown',
+          performedByName: item.uploadedBy?.fullName ?? item.uploadedByName ?? 'Unknown',
+          timestamp: toIsoString(item.uploadedAt) ?? toIsoString(item.createdAt) ?? new Date().toISOString(),
+          details: item.fileHash ? `SHA-256 file hash recorded at upload: ${item.fileHash}` : '',
+        },
+      ],
     })))
   } catch (error) {
     console.error('Evidence route error:', error)
@@ -65,17 +74,30 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
     const token = await getBackendAuthToken()
 
     if (!token) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const response = await backendFetch('/api/evidence', {
+    const formData = await request.formData()
+    const file = formData.get('file')
+    const reportId = formData.get('reportId')
+
+    if (!(file instanceof Blob) || !file) {
+      return NextResponse.json({ error: 'File is required' }, { status: 400 })
+    }
+
+    const body = new FormData()
+    const fileName = typeof (file as File).name === 'string' ? (file as File).name : 'evidence'
+    body.append('file', file, fileName)
+    const description = formData.get('description')
+    if (reportId) body.append('reportId', String(reportId))
+    if (description) body.append('description', String(description))
+
+    const response = await backendFetch('/api/evidence/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body,
     }, token)
 
     if (response.status === 401) {
@@ -92,7 +114,7 @@ export async function POST(request: Request) {
     const payload = await response.json()
     return NextResponse.json({
       id: payload.id ?? `evd-${Date.now()}`,
-      ...body,
+      ...payload,
       uploadedAt: payload.uploadedAt ?? new Date().toISOString(),
       chainOfCustody: payload.chainOfCustody ?? [],
     }, { status: 201 })

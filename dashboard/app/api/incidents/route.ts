@@ -14,6 +14,7 @@ export async function GET() {
     const items = Array.isArray(payload?.cases) ? payload.cases : payload?.items ?? []
     const mapped = items.map((incident: any) => ({
       id: incident.id?.toString() ?? 'unknown',
+      reportId: incident.report?.id?.toString() ?? null,
       title: incident.report?.title ?? incident.title ?? 'Untitled incident',
       description: incident.report?.description ?? incident.description ?? '',
       type: incident.report?.incidentType ?? incident.type ?? 'other',

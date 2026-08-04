@@ -61,6 +61,7 @@ export interface IncidentAssignmentEntry {
 
 export interface Incident {
   id: string
+  reportId?: string
   title: string
   description: string
   type: IncidentType

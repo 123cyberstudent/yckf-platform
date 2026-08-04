@@ -35,6 +35,12 @@ export async function POST(request: Request) {
       return NextResponse.json(data, { status: response.status })
     }
 
+    if (action === 'verify') {
+      const response = await backendFetch('/api/auth/2fa/verify', { method: 'POST', body: JSON.stringify(body) }, token)
+      const data = await response.json()
+      return NextResponse.json(data, { status: response.status })
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 })

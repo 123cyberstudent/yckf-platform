@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Upload, Download, AlertCircle, Calendar, User, X } from 'lucide-react';
+import { Search, Upload, Download, AlertCircle, Calendar, User, X, ShieldCheck } from 'lucide-react';
 import { getRoleFromCookie } from '@/lib/permissions';
 
 interface EvidenceItem {
@@ -47,6 +47,9 @@ export function EvidenceVault() {
 
   const [chainOpen, setChainOpen] = useState(false);
   const [chainItem, setChainItem] = useState<EvidenceItem | null>(null);
+  const [verifyResult, setVerifyResult] = useState<{ storedHash: string; currentHash: string; matches: boolean } | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
 
   useEffect(() => {
     getRoleFromCookie().then(setCurrentRole);
@@ -150,7 +153,28 @@ export function EvidenceVault() {
 
   const handleViewChain = (item: EvidenceItem) => {
     setChainItem(item);
+    setVerifyResult(null);
+    setVerifyError('');
     setChainOpen(true);
+  };
+
+  const handleVerifyIntegrity = async () => {
+    if (!chainItem) return;
+    setVerifying(true);
+    setVerifyError('');
+    setVerifyResult(null);
+    try {
+      const response = await fetch(`/api/evidence/verify?id=${encodeURIComponent(chainItem.id)}`);
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || `Verification failed (${response.status})`);
+      }
+      setVerifyResult(data);
+    } catch (err) {
+      setVerifyError(err instanceof Error ? err.message : 'Verification failed');
+    } finally {
+      setVerifying(false);
+    }
   };
 
   if (loading) {
@@ -352,6 +376,30 @@ export function EvidenceVault() {
                 <X className="size-4" />
               </button>
             </div>
+
+            <div className="mb-4 p-3 rounded-md border border-border bg-muted/30">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <ShieldCheck className="size-4 text-primary" />
+                  <span className="font-medium">File Integrity</span>
+                  <code className="text-xs text-muted-foreground break-all">{chainItem.hash || 'No hash recorded'}</code>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleVerifyIntegrity} disabled={verifying}>
+                  {verifying ? 'Verifying...' : 'Verify Integrity'}
+                </Button>
+              </div>
+              {verifyError && (
+                <p className="mt-2 text-sm text-red-500">{verifyError}</p>
+              )}
+              {verifyResult && (
+                <div className={`mt-2 p-2 rounded-md text-sm ${verifyResult.matches ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                  {verifyResult.matches
+                    ? 'File integrity verified: stored hash matches the current file.'
+                    : 'Hash mismatch: the file has been modified since upload.'}
+                </div>
+              )}
+            </div>
+
             {chainItem.chainOfCustody.length === 0 ? (
               <div className="rounded-md border border-border bg-muted/50 p-6 text-center text-muted-foreground">
                 No custody records available for this item.
