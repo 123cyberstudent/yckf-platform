@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AuthService, { API_BASE_URL } from '../services/AuthService';
-import { COLORS, SPACING, CASE_STATUS_LABELS } from '../utils/constants';
+import { COLORS, SPACING, CASE_STATUS_LABELS, API_ENDPOINTS } from '../utils/constants';
 
 interface CaseResponse {
   id: number;
@@ -101,7 +101,7 @@ const CaseTrackerScreen: React.FC = () => {
 
       // Try public lookup first (by ticket number)
       const res = await fetch(
-        `${API_BASE_URL}/api/cases/lookup/${searchTicket.trim()}`,
+        `${API_BASE_URL}${API_ENDPOINTS.TRACK_CASE}/${searchTicket.trim()}`,
         { headers }
       );
 

@@ -260,14 +260,14 @@ export const STORAGE_KEYS = {
 
 /**
  * ============================================================================
- * API ENDPOINTS (Future Use)
+ * API ENDPOINTS
  * ============================================================================
  */
 export const API_ENDPOINTS = {
   BASE_URL: typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL || 'http://localhost:4001',
-  SUBMIT_REPORT: '/api/reports/submit',
-  TRACK_CASE: '/api/cases/track',
-  CONTACT: '/api/contact',
+  SUBMIT_REPORT: '/api/reports',
+  TRACK_CASE: '/api/cases/lookup',
+  CONTACT: '/api/enquiries',
 };
 
 /**

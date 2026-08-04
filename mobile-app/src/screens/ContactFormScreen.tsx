@@ -35,6 +35,7 @@ import {
   SPACING,
   TYPOGRAPHY,
   SUCCESS_MESSAGES,
+  API_ENDPOINTS,
 } from '../utils/constants';
 // Backend API URL
 const API_URL = API_BASE_URL;
@@ -82,7 +83,7 @@ const ContactFormScreen: React.FC = () => {
   try {
     console.log('Sending enquiry to backend...');
     
-    const response = await fetch(`${API_URL}/api/enquiries`, {
+    const response = await fetch(`${API_URL}${API_ENDPOINTS.CONTACT}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

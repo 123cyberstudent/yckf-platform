@@ -41,6 +41,7 @@ import {
   SUCCESS_MESSAGES,
   ERROR_MESSAGES,
   FILE_CONFIG,
+  API_ENDPOINTS,
 } from '../utils/constants';
 import { CybercrimeReportForm, EvidenceItem } from '../types';
 
@@ -321,7 +322,7 @@ const CybercrimeReportScreen: React.FC = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/reports`, {
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.SUBMIT_REPORT}`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
