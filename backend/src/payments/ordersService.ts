@@ -20,6 +20,7 @@ import { PaymentError, PaymentErrorCode } from './errors.js';
 import { getWallet, recordCreditTransaction } from './walletService.js';
 import { emptyDiscount, resolveDiscountForQuote, DiscountResult } from './promotionService.js';
 import { initializeTransaction, verifyTransaction } from './paystack.js';
+import { SUBSCRIPTION_PAYMENT_STATUS } from '../subscriptions/constants.js';
 
 export interface CreateOrderInput {
   userId: number;
@@ -236,6 +237,113 @@ export async function listOrdersForUser(userId: number, limit = 50) {
     ...toSummary(o),
     paymentStatus: o.paymentAttempts[0]?.status ?? null,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Unified payment history (legacy orders + subscription payments)
+// ---------------------------------------------------------------------------
+
+export type HistoryStatus = 'pending' | 'processing' | 'successful' | 'failed' | 'cancelled' | 'expired' | 'refunded';
+
+export interface PaymentHistoryItem {
+  id: string;
+  reference: string;
+  kind: 'order' | 'subscription';
+  orderType: string | null;
+  status: HistoryStatus;
+  amountPesewas: number;
+  currency: string;
+  productName: string;
+  planCode: string | null;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+function standardizeOrderStatus(status: string): HistoryStatus {
+  switch (status) {
+    case OrderStatus.CREATED:
+    case OrderStatus.PENDING_PAYMENT:
+      return 'pending';
+    case OrderStatus.PAID:
+    case OrderStatus.FULFILLED:
+      return 'successful';
+    case OrderStatus.FAILED:
+      return 'failed';
+    case OrderStatus.CANCELLED:
+      return 'cancelled';
+    case OrderStatus.EXPIRED:
+      return 'expired';
+    case OrderStatus.REFUNDED:
+    case OrderStatus.PARTIALLY_REFUNDED:
+      return 'refunded';
+    default:
+      return 'pending';
+  }
+}
+
+function standardizeSubscriptionPaymentStatus(status: string): HistoryStatus {
+  switch (status) {
+    case SUBSCRIPTION_PAYMENT_STATUS.PAID:
+      return 'successful';
+    case SUBSCRIPTION_PAYMENT_STATUS.FAILED:
+      return 'failed';
+    case SUBSCRIPTION_PAYMENT_STATUS.CANCELLED:
+      return 'cancelled';
+    case SUBSCRIPTION_PAYMENT_STATUS.REFUNDED:
+      return 'refunded';
+    default:
+      return 'pending';
+  }
+}
+
+export async function listPaymentHistoryForUser(userId: number, limit = 50): Promise<PaymentHistoryItem[]> {
+  const take = Math.min(limit, 100);
+  const [orders, subscriptionPayments] = await Promise.all([
+    prisma.order.findMany({
+      where: { userId },
+      orderBy: { id: 'desc' },
+      take,
+      include: { items: true, paymentAttempts: { orderBy: { id: 'desc' }, take: 1 } },
+    }),
+    prisma.subscriptionPayment.findMany({
+      where: { userId },
+      orderBy: { id: 'desc' },
+      take,
+      include: { plan: true },
+    }),
+  ]);
+
+  const items: PaymentHistoryItem[] = [
+    ...orders.map((o) => ({
+      id: `order:${o.id}`,
+      reference: o.orderNumber,
+      kind: 'order' as const,
+      orderType: o.orderType,
+      status: standardizeOrderStatus(o.status),
+      amountPesewas: o.totalAmount,
+      currency: o.currency,
+      productName: o.items.map((i) => i.productName).join(', ') || 'Order',
+      planCode: null,
+      createdAt: o.createdAt.toISOString(),
+      paidAt: o.paidAt?.toISOString() ?? null,
+    })),
+    ...subscriptionPayments.map((p) => ({
+      id: `subscription:${p.id}`,
+      reference: p.providerReference,
+      kind: 'subscription' as const,
+      orderType: 'PREMIUM_SUBSCRIPTION',
+      status: standardizeSubscriptionPaymentStatus(p.status),
+      amountPesewas: p.amountPesewas,
+      currency: p.currency,
+      productName: `YCKF Premium (${p.plan?.name ?? 'Subscription'})`,
+      planCode: p.plan?.code ?? null,
+      createdAt: p.createdAt.toISOString(),
+      paidAt: p.paidAt?.toISOString() ?? null,
+    })),
+  ];
+
+  items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return items.slice(0, take);
 }
 
 export async function payOrderWithCredits(orderNumber: string, userId: number): Promise<OrderSummary> {

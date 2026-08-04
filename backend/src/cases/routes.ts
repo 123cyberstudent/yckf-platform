@@ -17,9 +17,9 @@ router.get('/my', verifyToken, async (req: AuthRequest, res: Response) => {
     } else if (user.role === 'VOLUNTEER') {
       whereClause = { assignedInvestigatorId: user.id };
     } else {
-      // Regular user: show cases from reports they submitted
+      // Regular user: show only cases from reports they own
       const userReports = await prisma.report.findMany({
-        where: { reporterEmail: user.email },
+        where: { userId: req.user!.id },
         select: { id: true },
       });
       whereClause = { reportId: { in: userReports.map(r => r.id) } };

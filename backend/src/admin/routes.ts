@@ -13,6 +13,7 @@ import testSendRouter from './testSend.js';
 import subscriptionPlansRouter from './subscriptionPlans.js';
 import subscriptionPaymentsRouter from './subscriptionPayments.js';
 import referralsRouter from './referrals.js';
+import { adminRequestLogger } from './requestLog.js';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/volunteer-stats', verifyToken, (req: AuthRequest, res: Response, ne
 }, volunteerStatsRouter);
 
 router.use(verifyToken, isAdmin, generalRateLimiter);
+router.use(adminRequestLogger);
 
 router.get('/audit-logs', async (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);

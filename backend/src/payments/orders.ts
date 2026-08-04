@@ -9,6 +9,7 @@ import {
   getOrderForUser,
   initializePaystackOrder,
   listOrdersForUser,
+  listPaymentHistoryForUser,
 } from './ordersService.js';
 
 const router = Router();
@@ -58,6 +59,18 @@ router.get('/', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error('Failed to list orders:', err);
     res.status(500).json({ success: false, error: 'Failed to list orders' });
+  }
+});
+
+/** GET /api/orders/history — unified payment history (orders + subscription payments). */
+router.get('/history', async (req: AuthRequest, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const items = await listPaymentHistoryForUser(req.user!.id, limit);
+    res.json({ success: true, items });
+  } catch (err) {
+    console.error('Failed to list payment history:', err);
+    res.status(500).json({ success: false, error: 'Failed to list payment history' });
   }
 });
 

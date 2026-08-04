@@ -74,7 +74,13 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
 }
 
 export async function initializeTransaction(params: InitializeTransactionParams): Promise<InitializeTransactionResult> {
-  const data = await request<InitializeTransactionResult>('/transaction/initialize', {
+  // Paystack returns snake_case fields in `data`; map them to the camelCase
+  // interface so callers never receive `undefined` for `authorizationUrl`.
+  const data = await request<{
+    authorization_url: string;
+    access_code: string;
+    reference: string;
+  }>('/transaction/initialize', {
     method: 'POST',
     body: {
       email: params.email,
@@ -85,20 +91,24 @@ export async function initializeTransaction(params: InitializeTransactionParams)
       metadata: params.metadata,
     },
   });
-  return data;
+  return {
+    authorizationUrl: data.authorization_url,
+    accessCode: data.access_code,
+    reference: data.reference,
+  };
 }
 
 export async function verifyTransaction(reference: string): Promise<VerifyTransactionResult> {
-  const data = await request<VerifyTransactionResult & { authorization?: { authorization_code?: string } }>(
-    `/transaction/verify/${encodeURIComponent(reference)}`
-  );
+  const data = await request<
+    VerifyTransactionResult & { authorization?: { authorization_code?: string }; paid_at?: string }
+  >(`/transaction/verify/${encodeURIComponent(reference)}`);
   return {
     status: data.status,
     amount: data.amount,
     currency: data.currency,
     channel: data.channel,
     authorizationCode: data.authorization?.authorization_code,
-    paidAt: data.paidAt,
+    paidAt: data.paid_at,
   };
 }
 

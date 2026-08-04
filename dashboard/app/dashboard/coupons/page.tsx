@@ -43,6 +43,7 @@ interface Coupon {
   code: string;
   description: string | null;
   discountPercent: number | null;
+  durationHours: number;
   maxUses: number | null;
   usedCount: number;
   isActive: boolean;
@@ -65,6 +66,7 @@ export default function CouponsPage() {
     code: '',
     description: '',
     discountPercent: '',
+    durationHours: '24',
     maxUses: '',
     expiresAt: '',
   });
@@ -101,6 +103,18 @@ export default function CouponsPage() {
       toast.error('Coupon code is required');
       return;
     }
+    if (newCoupon.discountPercent && (Number(newCoupon.discountPercent) < 0 || Number(newCoupon.discountPercent) > 100)) {
+      toast.error('Discount percent must be between 0 and 100');
+      return;
+    }
+    if (!newCoupon.durationHours || !Number.isInteger(Number(newCoupon.durationHours)) || Number(newCoupon.durationHours) < 1) {
+      toast.error('Duration hours must be a positive integer');
+      return;
+    }
+    if (newCoupon.maxUses && (!Number.isInteger(Number(newCoupon.maxUses)) || Number(newCoupon.maxUses) < 1)) {
+      toast.error('Max uses must be a positive integer');
+      return;
+    }
     setCreating(true);
     try {
       const res = await fetch('/api/coupons', {
@@ -110,6 +124,7 @@ export default function CouponsPage() {
           code: newCoupon.code.trim(),
           description: newCoupon.description.trim() || undefined,
           discountPercent: newCoupon.discountPercent ? Number(newCoupon.discountPercent) : undefined,
+          durationHours: Number(newCoupon.durationHours),
           maxUses: newCoupon.maxUses ? Number(newCoupon.maxUses) : undefined,
           expiresAt: newCoupon.expiresAt || undefined,
         }),
@@ -117,7 +132,7 @@ export default function CouponsPage() {
       const data = await res.json();
       if (data.success) {
         setCreatedCouponCode(data.coupon.code);
-        setNewCoupon({ code: '', description: '', discountPercent: '', maxUses: '', expiresAt: '' });
+        setNewCoupon({ code: '', description: '', discountPercent: '', durationHours: '24', maxUses: '', expiresAt: '' });
         toast.success('Coupon created');
         fetchCoupons();
       } else {
@@ -238,6 +253,7 @@ export default function CouponsPage() {
                 <TableRow>
                   <TableHead>Code</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Benefit</TableHead>
                   <TableHead>Uses</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Expires</TableHead>
@@ -273,6 +289,11 @@ export default function CouponsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{coupon.description || '—'}</TableCell>
+                    <TableCell>
+                      {coupon.discountPercent != null && coupon.discountPercent > 0
+                        ? `${coupon.discountPercent}% off`
+                        : `${coupon.durationHours || 24} hr premium`}
+                    </TableCell>
                     <TableCell>{coupon.usedCount}{coupon.maxUses ? ` / ${coupon.maxUses}` : ''}</TableCell>
                     <TableCell>
                       <Badge variant={coupon.isActive ? 'default' : 'secondary'}>
@@ -378,19 +399,41 @@ export default function CouponsPage() {
                   <Label>Max Uses</Label>
                   <Input
                     type="number"
+                    min={1}
                     value={newCoupon.maxUses}
                     onChange={(e) => setNewCoupon({ ...newCoupon, maxUses: e.target.value })}
                     placeholder="Unlimited"
                   />
                 </div>
                 <div>
-                  <Label>Expires At</Label>
+                  <Label>Duration (hours)</Label>
                   <Input
-                    type="datetime-local"
-                    value={newCoupon.expiresAt}
-                    onChange={(e) => setNewCoupon({ ...newCoupon, expiresAt: e.target.value })}
+                    type="number"
+                    min={1}
+                    value={newCoupon.durationHours}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, durationHours: e.target.value })}
+                    placeholder="24"
                   />
                 </div>
+              </div>
+              <div>
+                <Label>Discount Percent (optional)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={newCoupon.discountPercent}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, discountPercent: e.target.value })}
+                  placeholder="e.g. 20"
+                />
+              </div>
+              <div>
+                <Label>Expires At</Label>
+                <Input
+                  type="datetime-local"
+                  value={newCoupon.expiresAt}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, expiresAt: e.target.value })}
+                />
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={closeCreateDialog}>Cancel</Button>

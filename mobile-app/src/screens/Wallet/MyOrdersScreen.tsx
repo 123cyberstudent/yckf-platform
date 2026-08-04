@@ -20,41 +20,37 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, LAYOUT } from '../../utils/constants';
 import { formatMoney, formatCredits } from '../../utils/money';
 import ScreenHeader from '../../components/common/ScreenHeader';
-import OrdersService, { OrderSummary } from '../../services/OrdersService';
+import OrdersService, { PaymentHistoryItem } from '../../services/OrdersService';
 
 const statusColor: Record<string, string> = {
-  CREATED: COLORS.accent,
-  PENDING_PAYMENT: COLORS.accent,
-  PAID: COLORS.primary,
-  FULFILLED: COLORS.secondary,
-  FAILED: COLORS.error,
-  CANCELLED: COLORS.text.secondary,
-  EXPIRED: COLORS.text.secondary,
-  REFUNDED: COLORS.error,
-  PARTIALLY_REFUNDED: COLORS.error,
+  pending: COLORS.accent,
+  processing: COLORS.primary,
+  successful: COLORS.secondary,
+  failed: COLORS.error,
+  cancelled: COLORS.text.secondary,
+  expired: COLORS.text.secondary,
+  refunded: COLORS.error,
 };
 
 const statusLabel: Record<string, string> = {
-  CREATED: 'Created',
-  PENDING_PAYMENT: 'Awaiting payment',
-  PAID: 'Paid',
-  FULFILLED: 'Completed',
-  FAILED: 'Failed',
-  CANCELLED: 'Cancelled',
-  EXPIRED: 'Expired',
-  REFUNDED: 'Refunded',
-  PARTIALLY_REFUNDED: 'Partially refunded',
+  pending: 'Pending',
+  processing: 'Processing',
+  successful: 'Successful',
+  failed: 'Failed',
+  cancelled: 'Cancelled',
+  expired: 'Expired',
+  refunded: 'Refunded',
 };
 
 const MyOrdersScreen: React.FC = () => {
-  const [orders, setOrders] = useState<OrderSummary[]>([]);
+  const [orders, setOrders] = useState<PaymentHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async (spinner = true) => {
     if (spinner) setIsLoading(true);
     try {
-      const items = await OrdersService.listOrders(100);
+      const items = await OrdersService.listHistory(100);
       setOrders(items);
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to load orders');
@@ -86,20 +82,20 @@ const MyOrdersScreen: React.FC = () => {
       <ScreenHeader title="My Orders" />
       <FlatList
         data={orders}
-        keyExtractor={(item) => item.orderNumber}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(false)} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="receipt-outline" size={40} color={COLORS.text.light} />
             <Text style={styles.emptyTitle}>No orders yet</Text>
-            <Text style={styles.emptyText}>Your course and credit purchases will appear here.</Text>
+            <Text style={styles.emptyText}>Your orders and premium subscriptions will appear here.</Text>
           </View>
         }
         renderItem={({ item }) => (
           <View style={styles.orderCard}>
             <View style={styles.orderHeader}>
-              <Text style={styles.orderNumber}>{item.orderNumber}</Text>
+              <Text style={styles.orderNumber}>{item.reference}</Text>
               <View style={[styles.statusBadge, { backgroundColor: (statusColor[item.status] || COLORS.text.secondary) + '20' }]}>
                 <Text style={[styles.statusText, { color: statusColor[item.status] || COLORS.text.secondary }]}>
                   {statusLabel[item.status] || item.status}
@@ -107,19 +103,20 @@ const MyOrdersScreen: React.FC = () => {
               </View>
             </View>
             <Text style={styles.productName}>
-              {item.items.map((i) => i.productName).join(', ')}
+              {item.productName}
             </Text>
             <View style={styles.orderFooter}>
               <Text style={styles.orderType}>
-                {item.orderType === 'COURSE'
-                  ? 'Course'
-                  : item.orderType === 'CREDIT_PACKAGE'
-                    ? 'Credit package'
-                    : 'Premium'}
+                {item.kind === 'subscription'
+                  ? 'Premium'
+                  : item.orderType === 'COURSE'
+                    ? 'Course'
+                    : item.orderType === 'CREDIT_PACKAGE'
+                      ? 'Credit package'
+                      : 'Order'}
               </Text>
               <Text style={styles.orderTotal}>
-                {item.appliedCode ? `${item.appliedCode} · ` : ''}
-                {formatMoney(item.totalAmount)}
+                {formatMoney(item.amountPesewas, item.currency)}
               </Text>
             </View>
             <Text style={styles.orderDate}>

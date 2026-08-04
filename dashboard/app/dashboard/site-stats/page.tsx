@@ -114,6 +114,14 @@ export default function SiteStatsPage() {
 
   const handleSave = async () => {
     try {
+      if (!form.stat.trim() || !form.label.trim()) {
+        toast.error('Stat value and label are required');
+        return;
+      }
+      if (!Number.isInteger(form.order) || form.order < 0) {
+        toast.error('Order must be a non-negative integer');
+        return;
+      }
       const url = editing ? `/api/site-stats/admin/${editing.id}` : '/api/site-stats/admin';
       const method = editing ? 'PUT' : 'POST';
       const res = await fetch(url, {
@@ -352,6 +360,7 @@ export default function SiteStatsPage() {
                 <Label>Order</Label>
                 <Input
                   type="number"
+                  min={0}
                   value={form.order}
                   onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })}
                   className="mt-1"

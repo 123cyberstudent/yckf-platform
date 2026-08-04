@@ -39,6 +39,22 @@ export interface PaystackInit {
   accessCode: string | null;
 }
 
+export type HistoryStatus = 'pending' | 'processing' | 'successful' | 'failed' | 'cancelled' | 'expired' | 'refunded';
+
+export interface PaymentHistoryItem {
+  id: string;
+  reference: string;
+  kind: 'order' | 'subscription';
+  orderType: string | null;
+  status: HistoryStatus;
+  amountPesewas: number;
+  currency: string;
+  productName: string;
+  planCode: string | null;
+  createdAt: string;
+  paidAt: string | null;
+}
+
 export interface ApiError {
   status?: number;
   code?: string;
@@ -95,6 +111,18 @@ class OrdersService {
       throw this.errorFrom(data, 'Failed to load orders');
     }
     return data.orders as OrderSummary[];
+  }
+
+  /** Unified payment history: legacy orders + subscription payments. */
+  async listHistory(limit = 100): Promise<PaymentHistoryItem[]> {
+    const res = await fetch(`${API_BASE_URL}/api/orders/history?limit=${limit}`, {
+      headers: await this.headers(),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw this.errorFrom(data, 'Failed to load payment history');
+    }
+    return data.items as PaymentHistoryItem[];
   }
 
   /** Initialize a Paystack transaction. Returns the redirect authorization URL. */

@@ -20,7 +20,6 @@ import { COLORS, SPACING, CASE_STATUS_LABELS, API_ENDPOINTS } from '../utils/con
 interface CaseResponse {
   id: number;
   message: string;
-  isPublic: boolean;
   createdAt: string;
   author: {
     id: number;
@@ -280,9 +279,7 @@ const CaseTrackerScreen: React.FC = () => {
               {caseData.responses && caseData.responses.length > 0 && (
                 <View style={styles.sectionCard}>
                   <Text style={styles.sectionTitle}>Case Updates ({caseData.responses.length})</Text>
-                  {caseData.responses
-                    .filter((r) => r.isPublic)
-                    .map((response) => (
+                  {caseData.responses.map((response) => (
                       <View key={response.id} style={styles.responseCard}>
                         <View style={styles.responseHeader}>
                           <View style={styles.responseAvatar}>

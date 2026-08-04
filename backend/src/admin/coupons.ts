@@ -31,21 +31,51 @@ router.get('/', async (req: Request, res: Response) => {
 router.post('/create', async (req: Request, res: Response) => {
   try {
     const { code, description, discountPercent, durationHours, maxUses, expiresAt } = req.body;
-    if (!code) {
+    if (!code || typeof code !== 'string' || !code.trim()) {
       return res.status(400).json({ error: 'code is required' });
     }
-    const existing = await prisma.coupon.findUnique({ where: { code: code.toUpperCase() } });
+
+    const discount = discountPercent === undefined || discountPercent === null || discountPercent === ''
+      ? null
+      : Number(discountPercent);
+    if (discount !== null && (!Number.isFinite(discount) || discount < 0 || discount > 100)) {
+      return res.status(400).json({ error: 'discountPercent must be a number between 0 and 100' });
+    }
+
+    const duration = durationHours === undefined || durationHours === null || durationHours === ''
+      ? 24
+      : Number(durationHours);
+    if (!Number.isInteger(duration) || duration < 1) {
+      return res.status(400).json({ error: 'durationHours must be a positive integer' });
+    }
+
+    const max = maxUses === undefined || maxUses === null || maxUses === ''
+      ? null
+      : Number(maxUses);
+    if (max !== null && (!Number.isInteger(max) || max < 1)) {
+      return res.status(400).json({ error: 'maxUses must be a positive integer' });
+    }
+
+    let expires: Date | null = null;
+    if (expiresAt) {
+      expires = new Date(expiresAt);
+      if (Number.isNaN(expires.getTime())) {
+        return res.status(400).json({ error: 'expiresAt must be a valid date' });
+      }
+    }
+
+    const existing = await prisma.coupon.findUnique({ where: { code: String(code).trim().toUpperCase() } });
     if (existing) {
       return res.status(409).json({ error: 'Coupon code already exists' });
     }
     const coupon = await prisma.coupon.create({
       data: {
-        code: code.toUpperCase(),
+        code: String(code).trim().toUpperCase(),
         description,
-        discountPercent: discountPercent ? Number(discountPercent) : null,
-        durationHours: durationHours ? Number(durationHours) : 24,
-        maxUses: maxUses ? Number(maxUses) : null,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        discountPercent: discount,
+        durationHours: duration,
+        maxUses: max,
+        expiresAt: expires,
         createdById: (req as any).user?.id,
       },
     });

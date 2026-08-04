@@ -97,36 +97,19 @@ export async function POST(request: Request) {
     
     const payload = await response.json().catch(() => null)
 
-    // If backend returns 401, use mock creation
+    // If backend returns 401, surface the session problem so the UI can react
     if (response.status === 401) {
-      console.log('Auth token invalid, creating mock notification')
       const { clearBackendAuthCookie } = await import('@/lib/backend')
       await clearBackendAuthCookie()
-      return NextResponse.json({
-        id: `notif-${Date.now()}`,
-        type: 'broadcast',
-        title: body.title ?? 'Broadcast',
-        message: body.message ?? '',
-        priority: body.priority ?? 'high',
-        createdAt: new Date().toISOString(),
-        read: false,
-        targetRoles: body.targetRoles ?? ['admin', 'investigator'],
-      }, { status: 201 })
+      return NextResponse.json({ error: 'Session expired. Please log in again.' }, { status: 401 })
     }
 
     if (!response.ok) {
-      // If backend fails, still return a mock success response
-      console.log(`Backend error ${response.status}, returning mock notification`)
-      return NextResponse.json({
-        id: `notif-${Date.now()}`,
-        type: 'broadcast',
-        title: body.title ?? 'Broadcast',
-        message: body.message ?? '',
-        priority: body.priority ?? 'high',
-        createdAt: new Date().toISOString(),
-        read: false,
-        targetRoles: body.targetRoles ?? ['admin', 'investigator'],
-      }, { status: 201 })
+      // Propagate the real backend error instead of faking success
+      return NextResponse.json(
+        { error: payload?.error ?? `Backend error ${response.status}` },
+        { status: response.status }
+      )
     }
 
     // Return the real response from backend
@@ -142,17 +125,10 @@ export async function POST(request: Request) {
     }, { status: 201 })
   } catch (error) {
     console.error('Create notification error:', error)
-    // Even on error, return a mock response so the UI doesn't break
-    return NextResponse.json({
-      id: `notif-${Date.now()}`,
-      type: 'broadcast',
-      title: 'Broadcast',
-      message: 'Notification sent (demo mode)',
-      priority: 'high',
-      createdAt: new Date().toISOString(),
-      read: false,
-      targetRoles: ['admin', 'investigator'],
-    }, { status: 201 })
+    return NextResponse.json(
+      { error: 'Backend unreachable. Broadcast was not sent.' },
+      { status: 502 }
+    )
   }
 }
 

@@ -192,6 +192,15 @@ export default function SubscriptionsPage() {
       toast.error('Price (pesewas) must be a positive integer');
       return;
     }
+    const durationValue = Number(form.durationValue);
+    if (!Number.isInteger(durationValue) || durationValue < 1) {
+      toast.error('Duration value must be a positive integer');
+      return;
+    }
+    if (form.durationUnit !== 'MONTH' && form.durationUnit !== 'YEAR') {
+      toast.error('Duration unit must be MONTH or YEAR');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -201,7 +210,7 @@ export default function SubscriptionsPage() {
         description: form.description.trim() || undefined,
         pricePesewas,
         durationUnit: form.durationUnit,
-        durationValue: Number(form.durationValue) || 1,
+        durationValue,
         active: form.active,
         displayOrder: Number(form.displayOrder) || 0,
       };
@@ -569,6 +578,7 @@ export default function SubscriptionsPage() {
                 <Label>Duration Value</Label>
                 <Input
                   type="number"
+                  min={1}
                   value={form.durationValue}
                   onChange={(e) => setForm({ ...form, durationValue: e.target.value })}
                 />

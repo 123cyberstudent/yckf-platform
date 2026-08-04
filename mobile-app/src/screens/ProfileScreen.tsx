@@ -140,7 +140,7 @@ const ProfileScreen: React.FC = () => {
     if (!user?.referralCode) return;
     Alert.alert(
       'Referral Code',
-      `Your referral code is ${user.referralCode}.\n\nShare it with friends so they get 1 hour of free Premium when they sign up.`,
+      `Your referral code is ${user.referralCode}.\n\nShare it with friends. They get 1 hour of free Premium when they sign up, and you earn 1 hour of Premium when they first activate a paid plan.`,
       [{ text: 'OK' }]
     );
   };
@@ -153,7 +153,7 @@ const ProfileScreen: React.FC = () => {
     }
     try {
       await Share.share({
-        message: `Join me on YCKF — Your Cyber Knights Foundation! 🛡️\n\nUse my referral code ${user.referralCode} when you sign up to get 1 hour of FREE Premium access.\n\nDownload the app and stay protected today!`,
+        message: `Join me on YCKF — Your Cyber Knights Foundation! 🛡️\n\nUse my referral code ${user.referralCode} when you sign up to get 1 hour of FREE Premium access, and I earn 1 free hour when you activate Premium.\n\nDownload the app and stay protected today!`,
       });
     } catch (error) {
       console.error('Share referral code error:', error);
@@ -322,7 +322,7 @@ const handleEmailSupport = async () => {
                 <View style={styles.referralTextContainer}>
                   <Text style={styles.referralTitle}>Invite friends, get rewards</Text>
                   <Text style={styles.referralSubtitle}>
-                    Friends get 1 hour of free Premium when they sign up with your code.
+                    Friends get 1 hour of free Premium when they sign up with your code. You earn 1 hour when they first activate Premium.
                   </Text>
                 </View>
               </View>
@@ -346,9 +346,9 @@ const handleEmailSupport = async () => {
           </View>
         ) : null}
 
-        {/* Wallet & Courses */}
+        {/* Premium */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Wallet & Learning</Text>
+          <Text style={styles.sectionTitle}>Premium</Text>
 
           <TouchableOpacity
             style={styles.menuItem}
@@ -358,17 +358,6 @@ const handleEmailSupport = async () => {
               <Ionicons name="diamond" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.menuText}>Premium Plans</Text>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate(SCREEN_NAMES.COURSE_CATALOG as never)}
-          >
-            <View style={styles.menuIconContainer}>
-              <Ionicons name="school" size={20} color={COLORS.primary} />
-            </View>
-            <Text style={styles.menuText}>Browse Courses</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
           </TouchableOpacity>
         </View>

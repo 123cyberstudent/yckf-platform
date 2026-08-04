@@ -289,9 +289,7 @@ const HomeScreen: React.FC = () => {
 
   // ⭐ NEW - Handle Subscribe Button Click
   const handleSubscribeClick = () => {
-    setShowPremiumModal(true);
-    setSelectedFeature('Subscribe'); // Different message for subscribe button
-
+    navigation.navigate(SCREEN_NAMES.PLANS as never);
   };
 
   // ⭐ Get dynamic modal message based on selected feature
@@ -631,7 +629,7 @@ const HomeScreen: React.FC = () => {
               <>
                 <View style={styles.subscriptionInfo}>
                   <Text style={styles.subscriptionText}>
-                    Unlock premium features for Ghc 100 or USD 9/year
+                    Subscribe to YCKF Premium to unlock Emergency SOS, police station finder, Book Expert and more.
                   </Text>
                 </View>
 
