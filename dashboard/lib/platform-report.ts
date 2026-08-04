@@ -164,7 +164,7 @@ function drawPage1_CoverAndSummary(doc: jsPDF, data: PlatformReportData) {
   doc.setTextColor(180, 200, 220)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
-  doc.text(`New Users (30 days): ${data.users.newLast30Days}  |  New Incidents (30 days): ${data.incidents.newLast30Days}  |  Founded by: ${data.organisation.founder}`, w / 2, y + 14, { align: 'center' })
+  doc.text(`New Users (30 days): ${data.users.newLast30Days}  |  New Incidents (30 days): ${data.incidents.newLast30Days}  |  Founded, Designed, and Supervised by: ${data.organisation.founder}`, w / 2, y + 14, { align: 'center' })
 
   doc.setFontSize(6)
   doc.setTextColor(MED_GRAY)
