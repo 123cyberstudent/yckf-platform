@@ -440,7 +440,7 @@ export default function Page() {
         <footer className="border-t border-gray-200 bg-[#F8FAFC]">
           <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-6 py-12 sm:flex-row sm:justify-between sm:px-10">
             <div className="flex items-center gap-3">
-              <img src="/images/logo.jpeg" alt="YCKF Logo" className="h-12 w-12 rounded-xl object-cover shadow-sm" />
+              <img src="/images/companylogo.png" alt="YCKF Logo" className="h-12 w-12 rounded-xl object-cover shadow-sm" />
               <span className="text-xl font-bold text-[#111827]">YCKF</span>
             </div>
             <p className="text-base text-gray-500">

@@ -26,7 +26,7 @@ export function SiteNav() {
         <Link href="/" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/images/logo.jpeg"
+            src="/images/companylogo.png"
             alt="YCKF Logo"
             className="h-11 w-11 rounded-lg object-cover"
           />

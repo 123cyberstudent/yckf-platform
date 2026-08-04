@@ -163,12 +163,15 @@ function BrandingPanel() {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center px-8 text-center">
-        {/* Shield logo with pulse ring */}
+        {/* Company logo with pulse ring */}
         <div className="relative mb-8">
           <div className="absolute inset-0 rounded-full bg-[#2DD4BF]/10" style={{ animation: 'pulse-ring 3s ease-out infinite' }} />
-          <div className="relative flex size-24 items-center justify-center rounded-full bg-gradient-to-br from-[#2DD4BF]/20 to-[#2DD4BF]/5 ring-2 ring-[#2DD4BF]/30">
-            <Shield className="size-12 text-[#2DD4BF]" strokeWidth={1.5} />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/companylogo.png"
+            alt="YCKF Logo"
+            className="relative size-24 rounded-full object-cover shadow-lg ring-2 ring-[#2DD4BF]/30"
+          />
         </div>
 
         {/* Brand text */}

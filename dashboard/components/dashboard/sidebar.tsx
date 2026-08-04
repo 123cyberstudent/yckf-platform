@@ -116,9 +116,12 @@ export function DashboardSidebar() {
         <div className="h-full flex flex-col">
           <div className="p-5 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-[#06292D] flex items-center justify-center shadow-sm">
-                <Shield className="size-5 text-white" />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/companylogo.png"
+                alt="YCKF"
+                className="size-10 rounded-xl object-cover shadow-sm"
+              />
               <div className="flex flex-col">
                 <span className="font-bold text-gray-900 tracking-tight">YCKF</span>
                 <span className="text-xs text-gray-400 font-medium">Security Portal</span>
