@@ -26,6 +26,7 @@ import {
   Receipt,
   Crown,
   Megaphone,
+  KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getRoleFromCookie, resetCachedRole } from '@/lib/permissions';
@@ -89,6 +90,7 @@ export function DashboardSidebar() {
     { icon: Megaphone, label: 'Promotions', href: '/dashboard/promotions' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
+    { icon: KeyRound, label: 'Password Reset Requests', href: '/dashboard/password-reset-requests' },
     { icon: BarChart3, label: 'Volunteer Stats', href: '/dashboard/volunteer-stats' },
   ];
 

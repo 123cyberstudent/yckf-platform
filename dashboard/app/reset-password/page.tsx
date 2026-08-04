@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const prefilledEmail = searchParams.get('email') || ''
+  const token = searchParams.get('token') || ''
 
   const [email, setEmail] = useState(prefilledEmail)
   const [code, setCode] = useState('')
@@ -23,14 +24,6 @@ function ResetPasswordContent() {
     e.preventDefault()
     setError('')
 
-    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setError('Please enter a valid email address.')
-      return
-    }
-    if (!/^\d{6}$/.test(code.trim())) {
-      setError('Please enter the 6-digit reset code from your email.')
-      return
-    }
     if (newPassword.length < 8) {
       setError('Password must be at least 8 characters long.')
       return
@@ -41,6 +34,40 @@ function ResetPasswordContent() {
     }
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match.')
+      return
+    }
+
+    if (token) {
+      setStatus('sending')
+      try {
+        const response = await fetch('/api/auth/staff/reset-link/use', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || !data.success) {
+          setError(data.error || 'Password reset failed. Please try again.')
+          setStatus('error')
+          return
+        }
+
+        setStatus('done')
+      } catch {
+        setError('Something went wrong. Please try again.')
+        setStatus('error')
+      }
+      return
+    }
+
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (!/^\d{6}$/.test(code.trim())) {
+      setError('Please enter the 6-digit reset code from your email.')
       return
     }
 
@@ -95,7 +122,9 @@ function ResetPasswordContent() {
           <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary">Create New Password</p>
           <h1 className="text-3xl font-semibold text-foreground">Reset your account password.</h1>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            Enter the 6-digit code we emailed you, then choose a strong new password.
+            {token
+              ? 'The Super Admin approved your password reset. Choose a strong new password below.'
+              : 'Enter the 6-digit code we emailed you, then choose a strong new password.'}
           </p>
         </section>
         <form
@@ -108,26 +137,30 @@ function ResetPasswordContent() {
               {error}
             </div>
           )}
-          <input
-            className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-foreground outline-none"
-            type="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
-          <input
-            className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 text-sm tracking-widest text-foreground outline-none"
-            type="text"
-            inputMode="numeric"
-            placeholder="6-digit reset code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            maxLength={6}
-            autoComplete="one-time-code"
-            required
-          />
+          {!token && (
+            <>
+              <input
+                className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-foreground outline-none"
+                type="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+              <input
+                className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 text-sm tracking-widest text-foreground outline-none"
+                type="text"
+                inputMode="numeric"
+                placeholder="6-digit reset code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                maxLength={6}
+                autoComplete="one-time-code"
+                required
+              />
+            </>
+          )}
           <div className="relative">
             <input
               className="w-full rounded-3xl border border-border/70 bg-background/70 px-4 py-3 pr-12 text-sm text-foreground outline-none"

@@ -121,6 +121,13 @@ export default function ForgotPasswordPage() {
                 Back to Login
               </Link>
             </p>
+            <p className="rounded-2xl border border-border/60 bg-background/50 px-4 py-3 text-center text-sm leading-6 text-muted-foreground">
+              Staff member and don&apos;t remember your account email?{' '}
+              <Link href="/staff-password-request" className="font-medium text-primary hover:text-primary/80">
+                Request a password reset from the Super Admin
+              </Link>
+              .
+            </p>
           </form>
         )}
       </div>

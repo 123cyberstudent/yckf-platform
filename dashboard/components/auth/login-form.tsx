@@ -790,10 +790,22 @@ export function LoginForm() {
                     </button>
                   </div>
 
-                  <div className="mt-5 pt-4 text-center">
+                  <div className="mt-5 pt-4 text-center space-y-3">
+                    <Link
+                      href="/forgot-password"
+                      className="block text-sm font-medium text-[#2563EB] underline-offset-4 transition-colors hover:underline hover:text-[#2563EB]/80"
+                    >
+                      Forgot your password? Reset it here
+                    </Link>
+                    <Link
+                      href="/staff-password-request"
+                      className="block text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:underline hover:text-foreground"
+                    >
+                      Staff forgot your email or password? Request a reset from the Super Admin
+                    </Link>
                     <Link
                       href="/volunteers"
-                      className="text-lg font-semibold text-[#2563EB] underline-offset-4 transition-colors hover:underline hover:text-[#2563EB]/80"
+                      className="block text-sm font-semibold text-[#2563EB] underline-offset-4 transition-colors hover:underline hover:text-[#2563EB]/80"
                     >
                       New Volunteer? Request Access
                     </Link>

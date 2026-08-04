@@ -6,6 +6,7 @@ import express from 'express';
 import helmet from 'helmet';
 import path from 'path';
 import authRouter from './auth/routes.js';
+import staffPasswordResetRouter from './auth/staffPasswordReset.js';
 import usersRouter from './users/routes.js';
 import auditRouter from './audit/routes.js';
 import auditExportLogRouter from './audit/exportLog.js';
@@ -117,6 +118,7 @@ app.get('/api/health', (_req, res) => res.json({
 }));
 app.use('/api/site-stats', siteStatsPublicRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/auth', staffPasswordResetRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/audit', auditRouter);

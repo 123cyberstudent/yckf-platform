@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 import { users } from '@/lib/mock-data'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const token = await getBackendAuthToken()
     
@@ -13,7 +13,17 @@ export async function GET() {
     }
 
     try {
-      const response = await backendFetch('/api/users', { method: 'GET' }, token)
+      const { searchParams } = new URL(request.url)
+      const params = new URLSearchParams()
+      const role = searchParams.get('role')
+      const status = searchParams.get('status')
+      const search = searchParams.get('search')
+      if (role) params.set('role', role)
+      if (status) params.set('status', status)
+      if (search) params.set('search', search)
+      const queryString = params.toString()
+
+      const response = await backendFetch(`/api/users${queryString ? `?${queryString}` : ''}`, { method: 'GET' }, token)
       
       // If backend returns 401 or any error, use mock data
       if (response.status === 401) {

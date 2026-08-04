@@ -81,9 +81,40 @@ model User {
   promoEngagements        PromotionEngagement[]
   requestedRefunds        Refund[]                 @relation("RefundRequestedBy")
   loginChallenges         LoginChallenge[]
+  matchedPasswordResetRequests PasswordResetRequest[] @relation("RequestMatchedUser")
+  handledPasswordResetRequests PasswordResetRequest[] @relation("RequestHandledBy")
 
   @@index([referredByUserId])
   @@index([premiumExpiresAt])
+}
+
+/// Staff password-reset requests: a volunteer / secondary admin (or investigator)
+/// who forgot their login email or password submits a request which the Super
+/// Admin approves by sending a reset link or a one-time temporary password.
+model PasswordResetRequest {
+  id                  Int       @id @default(autoincrement())
+  requestNumber       String    @unique
+  fullName            String
+  email               String?
+  phone               String?
+  role                String?
+  reason              String?
+  status              String    @default("pending") // pending | approved | rejected | completed
+  action              String?   // reset_link | temp_password
+  matchedUserId       Int?
+  matchedUser         User?     @relation("RequestMatchedUser", fields: [matchedUserId], references: [id])
+  handledById         Int?
+  handledBy           User?     @relation("RequestHandledBy", fields: [handledById], references: [id])
+  handledAt           DateTime?
+  adminNote           String?
+  resetTokenHash      String?   @unique
+  resetTokenExpiresAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([matchedUserId])
 }
 
 model Report {
