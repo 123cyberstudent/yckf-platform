@@ -92,6 +92,8 @@ export async function POST(request: Request) {
         link: body.link,
         priority: body.priority,
         targetRoles: body.targetRoles,
+        audience: body.audience,
+        recipientEmails: body.recipientEmails,
       }),
     }, token)
     

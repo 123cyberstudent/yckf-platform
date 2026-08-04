@@ -98,8 +98,9 @@ const CouponRedemptionScreen: React.FC = () => {
       const validation = await SecureCouponService.validateCoupon(normalizedCode);
       
       if (!validation.valid) {
-        const isNetworkError = validation.message.includes('Network error') || validation.message.includes('check your connection');
-        Alert.alert(isNetworkError ? 'Connection Error' : 'Invalid Coupon', validation.message);
+        const msg = validation.message || validation.error || 'Invalid coupon';
+        const isNetworkError = msg.includes('Network error') || msg.includes('check your connection');
+        Alert.alert(isNetworkError ? 'Connection Error' : 'Invalid Coupon', msg);
         setIsLoading(false);
         return;
       }

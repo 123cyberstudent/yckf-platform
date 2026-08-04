@@ -83,6 +83,11 @@ model User {
   loginChallenges         LoginChallenge[]
   matchedPasswordResetRequests PasswordResetRequest[] @relation("RequestMatchedUser")
   handledPasswordResetRequests PasswordResetRequest[] @relation("RequestHandledBy")
+  assignedEmergencyReports EmergencyReport[]       @relation("AssignedEmergencyReports")
+  emergencyAssignmentsMade EmergencyReportAssignment[] @relation("AssignmentsMade")
+  emergencyAssignmentsReceived EmergencyReportAssignment[] @relation("AssignmentsReceived")
+  broadcastsCreated       Broadcast[]              @relation("BroadcastsCreated")
+  broadcastRecipients     BroadcastRecipient[]     @relation("BroadcastsReceived")
 
   @@index([referredByUserId])
   @@index([premiumExpiresAt])
@@ -182,13 +187,23 @@ model Evidence {
 }
 
 model AuditLog {
-  id        Int      @id @default(autoincrement())
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    Int?
-  action    String
-  targetId  Int?
-  ipAddress String
-  timestamp DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  user          User?    @relation(fields: [userId], references: [id])
+  userId        Int?
+  action        String
+  entityType    String?
+  entityId      Int?
+  targetId      Int?
+  previousValue Json?
+  newValue      Json?
+  ipAddress     String
+  userAgent     String?
+  timestamp     DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([timestamp])
 }
 
 model InvestigationNote {
@@ -222,21 +237,26 @@ model RefreshToken {
 }
 
 model Notification {
-  id          Int      @id @default(autoincrement())
-  type        String
-  title       String
-  body        String
-  link        String?
-  recipient   User?    @relation("UserNotifications", fields: [recipientId], references: [id])
-  recipientId Int?
-  sender      User?    @relation("SentNotifications", fields: [senderId], references: [id])
-  senderId    Int?
-  case        Case?    @relation(fields: [caseId], references: [id])
-  caseId      Int?
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id                Int      @id @default(autoincrement())
+  type              String
+  title             String
+  body              String
+  link              String?
+  priority          String   @default("normal") // low | normal | high | urgent
+  relatedEntityType String?
+  relatedEntityId   Int?
+  recipient         User?    @relation("UserNotifications", fields: [recipientId], references: [id])
+  recipientId       Int?
+  sender            User?    @relation("SentNotifications", fields: [senderId], references: [id])
+  senderId          Int?
+  case              Case?    @relation(fields: [caseId], references: [id])
+  caseId            Int?
+  isRead            Boolean  @default(false)
+  readAt            DateTime?
+  createdAt         DateTime @default(now())
 
   @@index([recipientId, isRead])
+  @@index([relatedEntityType, relatedEntityId])
 }
 
 model ContentPage {
@@ -289,29 +309,36 @@ model LoginLog {
 }
 
 model Coupon {
-  id             Int                @id @default(autoincrement())
-  code           String             @unique
-  description    String?
-  discountPercent Int?
-  durationHours  Int                @default(24)
-  maxUses        Int?
-  usedCount      Int                @default(0)
-  isActive       Boolean            @default(true)
-  expiresAt      DateTime?
-  createdAt      DateTime           @default(now())
-  createdBy      User?              @relation(fields: [createdById], references: [id])
-  createdById    Int?
-  redemptions    CouponRedemption[]
+  id                 Int                @id @default(autoincrement())
+  code               String             @unique
+  description        String?
+  discountPercent    Int?
+  durationHours      Int                @default(24)
+  accessDurationValue Int               @default(24)
+  accessDurationUnit String             @default("hours") // hours | days | months
+  validFrom          DateTime?
+  expiresAt          DateTime?
+  maxUses            Int?
+  perUserLimit       Int                @default(1)
+  usedCount          Int                @default(0)
+  isActive           Boolean            @default(true)
+  status             String             @default("active") // active | inactive | expired
+  createdAt          DateTime           @default(now())
+  createdBy          User?              @relation(fields: [createdById], references: [id])
+  createdById        Int?
+  redemptions        CouponRedemption[]
 }
 
 model CouponRedemption {
-  id          Int      @id @default(autoincrement())
-  coupon      Coupon   @relation(fields: [couponId], references: [id])
-  couponId    Int
-  user        User     @relation(fields: [userId], references: [id])
-  userId      Int
-  redeemedAt  DateTime @default(now())
-  expiresAt   DateTime?
+  id             Int      @id @default(autoincrement())
+  coupon         Coupon   @relation(fields: [couponId], references: [id])
+  couponId       Int
+  user           User     @relation(fields: [userId], references: [id])
+  userId         Int
+  redeemedAt     DateTime @default(now())
+  accessStartsAt DateTime?
+  expiresAt      DateTime?
+  status         String   @default("active") // active | expired
 
   @@unique([couponId, userId])
 }
@@ -353,6 +380,7 @@ model EmergencyReport {
   ticketNumber      String   @unique
   user              User?    @relation(fields: [userId], references: [id])
   userId            Int?
+  incidentType      String?
   reporterName      String?
   reporterPhone     String?
   reporterEmail     String?
@@ -360,28 +388,58 @@ model EmergencyReport {
   audioFileUrl      String?
   audioDuration     Float?
   audioMimeType     String?
+  attachments       Json?
   stationName       String?
   stationPhone      String?
   stationAddress    String?
   stationLatitude   Float?
   stationLongitude  Float?
+  stationDistance   Float?
+  nearestStationId  Int?
   gpsLatitude       Float?
   gpsLongitude      Float?
   gpsAccuracy       Float?
   gpsAddress        String?
+  mapsLink          String?
   status            String   @default("new")
   priority          String   @default("high")
   assignedVolunteerId Int?
+  assignedBy        User?    @relation("AssignedEmergencyReports", fields: [assignedById], references: [id])
+  assignedById      Int?
+  assignmentNote    String?
+  dueAt             DateTime?
+  assignedAt        DateTime?
+  unassignedAt      DateTime?
   adminNotes        String?
   emailStatus       String   @default("queued")
   submittedAt       DateTime @default(now())
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  assignmentHistory EmergencyReportAssignment[]
 
   @@index([ticketNumber])
   @@index([status])
   @@index([createdAt])
   @@index([userId])
+}
+
+/// Append-only history of emergency-report assignments to responders.
+model EmergencyReportAssignment {
+  id          Int             @id @default(autoincrement())
+  report      EmergencyReport @relation(fields: [reportId], references: [id])
+  reportId    Int
+  assignee    User            @relation("AssignmentsReceived", fields: [assigneeId], references: [id])
+  assigneeId  Int
+  assignedBy  User?           @relation("AssignmentsMade", fields: [assignedById], references: [id])
+  assignedById Int?
+  note        String?
+  assignedAt  DateTime        @default(now())
+  unassignedAt DateTime?
+  status      String          @default("assigned") // assigned | unassigned
+
+  @@index([reportId])
+  @@index([assigneeId])
+  @@index([status])
 }
 
 model Specialist {
@@ -878,8 +936,9 @@ model SubscriptionPlan {
 model Subscription {
   id        Int                @id @default(autoincrement())
   userId    Int
-  planId    Int
+  planId    Int?
   paymentId Int?               @unique
+  source    String             @default("paystack") // paystack | coupon | promotion | referral | manual_admin
   startsAt  DateTime
   expiresAt DateTime
   status    String             @default("active") // active | expired | cancelled | refunded
@@ -887,7 +946,7 @@ model Subscription {
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
   user      User               @relation(fields: [userId], references: [id])
-  plan      SubscriptionPlan   @relation(fields: [planId], references: [id])
+  plan      SubscriptionPlan?  @relation(fields: [planId], references: [id])
   payment   SubscriptionPayment? @relation("SubscriptionPaymentSubscription", fields: [paymentId], references: [id])
 
   @@index([userId])
@@ -988,4 +1047,38 @@ model PromotionEngagement {
   user          User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, promoKey, placement])
+}
+
+/// An admin broadcast to a selected audience. Recipients get an in-app
+/// Notification plus a queued individual email; delivery is tracked per
+/// recipient (no double-send, read tracking).
+model Broadcast {
+  id           Int                  @id @default(autoincrement())
+  title        String
+  body         String
+  link         String?
+  audience     String               @default("all_users") // all_users | volunteers | investigators | volunteers_and_investigators
+  createdBy    User                 @relation("BroadcastsCreated", fields: [createdById], references: [id])
+  createdById  Int
+  createdAt    DateTime             @default(now())
+  recipients   BroadcastRecipient[]
+}
+
+model BroadcastRecipient {
+  id             Int                 @id @default(autoincrement())
+  broadcast      Broadcast           @relation(fields: [broadcastId], references: [id])
+  broadcastId    Int
+  recipient      User?               @relation("BroadcastsReceived", fields: [recipientId], references: [id])
+  recipientId    Int?
+  recipientEmail String?
+  notificationId Int?                @unique
+  emailStatus    String              @default("queued") // queued | sent | failed | skipped
+  emailError     String?
+  sentAt         DateTime?
+  readAt         DateTime?
+  createdAt      DateTime            @default(now())
+
+  @@unique([broadcastId, recipientId])
+  @@index([recipientId])
+  @@index([emailStatus])
 }

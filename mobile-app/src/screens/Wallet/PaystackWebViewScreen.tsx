@@ -40,7 +40,6 @@ const PaystackWebViewScreen: React.FC = () => {
   const { orderNumber, authorizationUrl, mode, continueTo } = route.params ?? ({} as Params);
   const isSubscription = mode === 'subscription';
 
-  const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const pollCount = useRef(0);
   const finishedRef = useRef(false);
@@ -101,9 +100,6 @@ const PaystackWebViewScreen: React.FC = () => {
 
   const handleNavigationChange = (navState: any) => {
     const url = String(navState.url || '');
-    if (navState.loading) setLoading(true);
-    else setLoading(false);
-
     if (navState.url && navState.url.startsWith('http')) {
       const hasReference = url.includes('reference=');
       const isCallback =
@@ -178,6 +174,11 @@ const PaystackWebViewScreen: React.FC = () => {
             )}
             javaScriptEnabled
             domStorageEnabled
+            sharedCookiesEnabled
+            thirdPartyCookiesEnabled
+            setSupportMultipleWindows={false}
+            textZoom={100}
+            overScrollMode="never"
           />
         )}
       </View>

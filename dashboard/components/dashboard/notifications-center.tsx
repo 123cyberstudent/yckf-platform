@@ -17,6 +17,8 @@ export function NotificationsCenter() {
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcastPriority, setBroadcastPriority] = useState<NotificationPriority>('normal');
+  const [broadcastAudience, setBroadcastAudience] = useState('all_users');
+  const [broadcastRecipients, setBroadcastRecipients] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
   const [sendSuccess, setSendSuccess] = useState(false);
@@ -73,6 +75,11 @@ export function NotificationsCenter() {
           title: broadcastTitle,
           message: broadcastMessage,
           priority: broadcastPriority,
+          audience: broadcastAudience,
+          recipientEmails: broadcastRecipients
+            .split(',')
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0),
         }),
       });
       if (!response.ok) throw new Error(`Failed to send: ${response.status}`);
@@ -80,6 +87,8 @@ export function NotificationsCenter() {
       setBroadcastTitle('');
       setBroadcastMessage('');
       setBroadcastPriority('normal');
+      setBroadcastAudience('all_users');
+      setBroadcastRecipients('');
       await fetchNotifications();
       setTimeout(() => {
         setBroadcastOpen(false);
@@ -261,7 +270,7 @@ export function NotificationsCenter() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold">Send Broadcast</h2>
-            <p className="text-sm text-muted-foreground">Send a notification to all users.</p>
+            <p className="text-sm text-muted-foreground">Send a notification to your selected audience.</p>
 
             {sendSuccess && (
               <div className="p-3 rounded-md bg-green-500/10 border border-green-500/20 text-green-500 text-sm">
@@ -305,6 +314,32 @@ export function NotificationsCenter() {
                   <option value="high">High</option>
                   <option value="urgent">Critical</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Audience</label>
+                <select
+                  value={broadcastAudience}
+                  onChange={(e) => setBroadcastAudience(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm"
+                >
+                  <option value="all_users">All users</option>
+                  <option value="volunteers">Volunteers</option>
+                  <option value="investigators">Investigators</option>
+                  <option value="volunteers_and_investigators">Volunteers + investigators</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Specific emails (optional)</label>
+                <input
+                  type="text"
+                  value={broadcastRecipients}
+                  onChange={(e) => setBroadcastRecipients(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm"
+                  placeholder="one@example.com, two@example.com"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave empty to notify the whole audience. When set, only these addresses receive email (unregistered emails still get a copy).
+                </p>
               </div>
             </div>
 

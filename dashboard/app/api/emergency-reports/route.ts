@@ -26,7 +26,11 @@ export async function GET() {
       ticketNumber: report.ticketNumber ?? report.ticket_number ?? `ER-${String(report.id).padStart(4, '0')}`,
       reporterName: report.reporterName ?? report.reporter_name ?? report.reporter?.fullName ?? 'Unknown',
       reporterPhone: report.reporterPhone ?? report.reporter_phone ?? report.reporter?.phone ?? '',
+      reporterEmail: report.reporterEmail ?? report.reporter_email ?? '',
       nearestStation: report.nearestStation ?? report.nearest_station ?? report.stationName ?? report.station_name ?? report.stationAddress ?? '',
+      stationDistance: report.stationDistance ?? report.station_distance ?? null,
+      incidentType: report.incidentType ?? report.incident_type ?? null,
+      mapsLink: report.mapsLink ?? report.maps_link ?? null,
       gpsLatitude: report.gpsLatitude ?? report.gps_latitude ?? null,
       gpsLongitude: report.gpsLongitude ?? report.gps_longitude ?? null,
       audioFileUrl: report.audioFileUrl ?? report.audio_file_url ?? null,
@@ -34,6 +38,11 @@ export async function GET() {
       priority: report.priority ?? 'medium',
       submittedAt: report.submittedAt ?? report.submitted_at ?? report.createdAt ?? new Date().toISOString(),
       description: report.description ?? '',
+      assignedVolunteerId: report.assignedVolunteerId ?? null,
+      assignedAt: report.assignedAt ?? null,
+      dueAt: report.dueAt ?? null,
+      assignedBy: report.assignedBy ?? null,
+      assignmentHistory: report.assignmentHistory ?? [],
     }))
 
     return NextResponse.json({ items: mapped })

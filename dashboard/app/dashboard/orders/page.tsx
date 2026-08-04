@@ -64,6 +64,7 @@ const STATUS_OPTIONS = [
   'CANCELLED',
   'EXPIRED',
   'REFUNDED',
+  'PARTIALLY_REFUNDED',
 ];
 
 const statusStyles: Record<string, string> = {
@@ -90,6 +91,7 @@ export default function OrdersPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('ALL');
   const [selected, setSelected] = useState<Order | null>(null);
+  const [actingOn, setActingOn] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -110,6 +112,33 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  const runAction = async (order: Order, action: 'fulfill' | 'cancel' | 'refund') => {
+    setActingOn(order.orderNumber);
+    try {
+      const res = await fetch(`/api/orders/${order.orderNumber}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || `Failed to ${action} order`);
+        return;
+      }
+      toast.success(`Order ${action === 'fulfill' ? 'fulfilled' : action === 'cancel' ? 'cancelled' : 'refunded'}`);
+      setSelected(null);
+      fetchOrders();
+    } catch {
+      toast.error(`Failed to ${action} order`);
+    } finally {
+      setActingOn(null);
+    }
+  };
+
+  const canFulfill = (o: Order) => ['PENDING_PAYMENT', 'CREATED', 'PAID'].includes(o.status);
+  const canCancel = (o: Order) => ['PENDING_PAYMENT', 'CREATED', 'EXPIRED', 'FAILED'].includes(o.status);
+  const canRefund = (o: Order) => ['PAID', 'FULFILLED'].includes(o.status);
 
   return (
     <div className="space-y-6">
@@ -263,6 +292,38 @@ export default function OrdersPage() {
                   Customer: {selected.user.fullName} ({selected.user.email})
                 </p>
               )}
+              <div className="flex flex-wrap gap-2 pt-2 border-t">
+                {canFulfill(selected) && (
+                  <Button
+                    size="sm"
+                    onClick={() => runAction(selected, 'fulfill')}
+                    disabled={actingOn === selected.orderNumber}
+                  >
+                    {actingOn === selected.orderNumber ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Fulfill order
+                  </Button>
+                )}
+                {canCancel(selected) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => runAction(selected, 'cancel')}
+                    disabled={actingOn === selected.orderNumber}
+                  >
+                    Cancel order
+                  </Button>
+                )}
+                {canRefund(selected) && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => runAction(selected, 'refund')}
+                    disabled={actingOn === selected.orderNumber}
+                  >
+                    Refund order
+                  </Button>
+                )}
+              </div>
             </div>
           ) : null}
         </DialogContent>

@@ -287,7 +287,9 @@ export async function getSubscriptionStatus(userId: number) {
     premiumStartsAt: user.premiumStartsAt,
     premiumExpiresAt: user.premiumExpiresAt,
     plan: latest
-      ? { id: latest.plan.id, code: latest.plan.code, name: latest.plan.name, expiresAt: latest.expiresAt, subscriptionStatus: latest.status }
+      ? latest.plan
+        ? { id: latest.plan.id, code: latest.plan.code, name: latest.plan.name, expiresAt: latest.expiresAt, subscriptionStatus: latest.status, source: latest.source }
+        : { id: null, code: null, name: null, expiresAt: latest.expiresAt, subscriptionStatus: latest.status, source: latest.source }
       : null,
     referralCode: user.referralCode,
     referredByUserId: user.referredByUserId,

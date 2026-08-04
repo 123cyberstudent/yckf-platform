@@ -44,12 +44,26 @@ interface Coupon {
   description: string | null;
   discountPercent: number | null;
   durationHours: number;
+  accessDurationValue: number | null;
+  accessDurationUnit: string | null;
   maxUses: number | null;
   usedCount: number;
   isActive: boolean;
   expiresAt: string | null;
   createdAt: string;
   _count?: { redemptions: number };
+}
+
+const DURATION_UNITS = ['hours', 'days', 'months'] as const;
+
+function formatDuration(coupon: Coupon): string {
+  if (coupon.discountPercent != null && coupon.discountPercent > 0) {
+    return `${coupon.discountPercent}% off`;
+  }
+  const value = coupon.accessDurationValue ?? coupon.durationHours ?? 24;
+  const unit = coupon.accessDurationUnit ?? 'hours';
+  const label = unit === 'months' ? 'month' : unit === 'days' ? 'day' : 'hr';
+  return `${value} ${label} premium`;
 }
 
 export default function CouponsPage() {
@@ -66,7 +80,8 @@ export default function CouponsPage() {
     code: '',
     description: '',
     discountPercent: '',
-    durationHours: '24',
+    accessDurationValue: '24',
+    accessDurationUnit: 'hours' as string,
     maxUses: '',
     expiresAt: '',
   });
@@ -107,8 +122,12 @@ export default function CouponsPage() {
       toast.error('Discount percent must be between 0 and 100');
       return;
     }
-    if (!newCoupon.durationHours || !Number.isInteger(Number(newCoupon.durationHours)) || Number(newCoupon.durationHours) < 1) {
-      toast.error('Duration hours must be a positive integer');
+    if (!newCoupon.accessDurationValue || !Number.isInteger(Number(newCoupon.accessDurationValue)) || Number(newCoupon.accessDurationValue) < 1) {
+      toast.error('Access duration must be a positive integer');
+      return;
+    }
+    if (!DURATION_UNITS.includes(newCoupon.accessDurationUnit as any)) {
+      toast.error('Select a valid duration unit');
       return;
     }
     if (newCoupon.maxUses && (!Number.isInteger(Number(newCoupon.maxUses)) || Number(newCoupon.maxUses) < 1)) {
@@ -124,7 +143,8 @@ export default function CouponsPage() {
           code: newCoupon.code.trim(),
           description: newCoupon.description.trim() || undefined,
           discountPercent: newCoupon.discountPercent ? Number(newCoupon.discountPercent) : undefined,
-          durationHours: Number(newCoupon.durationHours),
+          accessDurationValue: Number(newCoupon.accessDurationValue),
+          accessDurationUnit: newCoupon.accessDurationUnit,
           maxUses: newCoupon.maxUses ? Number(newCoupon.maxUses) : undefined,
           expiresAt: newCoupon.expiresAt || undefined,
         }),
@@ -132,7 +152,7 @@ export default function CouponsPage() {
       const data = await res.json();
       if (data.success) {
         setCreatedCouponCode(data.coupon.code);
-        setNewCoupon({ code: '', description: '', discountPercent: '', durationHours: '24', maxUses: '', expiresAt: '' });
+        setNewCoupon({ code: '', description: '', discountPercent: '', accessDurationValue: '24', accessDurationUnit: 'hours', maxUses: '', expiresAt: '' });
         toast.success('Coupon created');
         fetchCoupons();
       } else {
@@ -289,11 +309,7 @@ export default function CouponsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{coupon.description || '—'}</TableCell>
-                    <TableCell>
-                      {coupon.discountPercent != null && coupon.discountPercent > 0
-                        ? `${coupon.discountPercent}% off`
-                        : `${coupon.durationHours || 24} hr premium`}
-                    </TableCell>
+                    <TableCell>{formatDuration(coupon)}</TableCell>
                     <TableCell>{coupon.usedCount}{coupon.maxUses ? ` / ${coupon.maxUses}` : ''}</TableCell>
                     <TableCell>
                       <Badge variant={coupon.isActive ? 'default' : 'secondary'}>
@@ -406,15 +422,27 @@ export default function CouponsPage() {
                   />
                 </div>
                 <div>
-                  <Label>Duration (hours)</Label>
+                  <Label>Access Duration</Label>
                   <Input
                     type="number"
                     min={1}
-                    value={newCoupon.durationHours}
-                    onChange={(e) => setNewCoupon({ ...newCoupon, durationHours: e.target.value })}
+                    value={newCoupon.accessDurationValue}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, accessDurationValue: e.target.value })}
                     placeholder="24"
                   />
                 </div>
+              </div>
+              <div>
+                <Label>Duration Unit</Label>
+                <select
+                  value={newCoupon.accessDurationUnit}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, accessDurationUnit: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm"
+                >
+                  <option value="hours">Hours</option>
+                  <option value="days">Days</option>
+                  <option value="months">Months</option>
+                </select>
               </div>
               <div>
                 <Label>Discount Percent (optional)</Label>

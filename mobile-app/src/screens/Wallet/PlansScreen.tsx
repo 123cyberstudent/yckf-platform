@@ -294,8 +294,11 @@ const PlansScreen: React.FC = () => {
                   style={[styles.buyButton, isBest && styles.buyButtonBest]}
                   onPress={() => handleBuy(plan)}
                   activeOpacity={0.85}
+                  accessibilityLabel={`${plan.name} - Get Premium`}
                 >
-                  <Text style={styles.buyButtonText}>{loggedIn ? 'Get Premium' : 'Sign up to get Premium'}</Text>
+                  <Text style={[styles.buyButtonText, isBest && styles.buyButtonBestText]}>
+                    {loggedIn ? 'Get Premium' : 'Sign up to get Premium'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             );
@@ -623,6 +626,9 @@ const styles = StyleSheet.create({
   },
   buyButtonBest: {
     backgroundColor: COLORS.primary,
+  },
+  buyButtonBestText: {
+    color: '#FFFFFF',
   },
   buyButtonText: {
     color: COLORS.primary,

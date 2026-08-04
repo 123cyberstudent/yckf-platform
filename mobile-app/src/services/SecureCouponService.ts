@@ -8,7 +8,9 @@ import { PremiumAccessService } from './PremiumAccessService';
 
 export interface CouponValidation {
   valid: boolean;
-  message: string;
+  message?: string;
+  error?: string;
+  code?: string;
   description?: string;
   maxRedemptions?: number;
   currentRedemptions?: number;
@@ -22,6 +24,7 @@ export interface RedemptionResult {
     accessDuration: number;
   };
   error?: string;
+  code?: string;
 }
 
 class SecureCouponService {
@@ -104,6 +107,7 @@ class SecureCouponService {
       return {
         success: false,
         error: data.error || 'Failed to redeem coupon',
+        code: data.code,
       };
     } catch (error) {
       console.error('Coupon redemption error:', error);

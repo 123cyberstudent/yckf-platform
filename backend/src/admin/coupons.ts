@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../shared/db.js';
+import { logAudit } from '../audit/service.js';
+import { parseAccessDuration } from '../coupons/duration.js';
 
 const router = Router();
 
@@ -30,7 +32,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/create', async (req: Request, res: Response) => {
   try {
-    const { code, description, discountPercent, durationHours, maxUses, expiresAt } = req.body;
+    const { code, description, discountPercent, maxUses, expiresAt, validFrom, perUserLimit } = req.body;
     if (!code || typeof code !== 'string' || !code.trim()) {
       return res.status(400).json({ error: 'code is required' });
     }
@@ -42,11 +44,9 @@ router.post('/create', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'discountPercent must be a number between 0 and 100' });
     }
 
-    const duration = durationHours === undefined || durationHours === null || durationHours === ''
-      ? 24
-      : Number(durationHours);
-    if (!Number.isInteger(duration) || duration < 1) {
-      return res.status(400).json({ error: 'durationHours must be a positive integer' });
+    const duration = parseAccessDuration(req.body);
+    if ('error' in duration) {
+      return res.status(400).json({ error: duration.error });
     }
 
     const max = maxUses === undefined || maxUses === null || maxUses === ''
@@ -56,11 +56,26 @@ router.post('/create', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'maxUses must be a positive integer' });
     }
 
+    const perUser = perUserLimit === undefined || perUserLimit === null || perUserLimit === ''
+      ? 1
+      : Number(perUserLimit);
+    if (!Number.isInteger(perUser) || perUser < 1) {
+      return res.status(400).json({ error: 'perUserLimit must be a positive integer' });
+    }
+
     let expires: Date | null = null;
     if (expiresAt) {
       expires = new Date(expiresAt);
       if (Number.isNaN(expires.getTime())) {
         return res.status(400).json({ error: 'expiresAt must be a valid date' });
+      }
+    }
+
+    let validFromDate: Date | null = null;
+    if (validFrom) {
+      validFromDate = new Date(validFrom);
+      if (Number.isNaN(validFromDate.getTime())) {
+        return res.status(400).json({ error: 'validFrom must be a valid date' });
       }
     }
 
@@ -73,12 +88,27 @@ router.post('/create', async (req: Request, res: Response) => {
         code: String(code).trim().toUpperCase(),
         description,
         discountPercent: discount,
-        durationHours: duration,
+        durationHours: duration.hours,
+        accessDurationValue: duration.value,
+        accessDurationUnit: duration.unit,
         maxUses: max,
+        perUserLimit: perUser,
         expiresAt: expires,
+        validFrom: validFromDate,
         createdById: (req as any).user?.id,
       },
     });
+    await logAudit(
+      (req as any).user?.id ?? null,
+      'coupon.create',
+      coupon.id,
+      String(req.ip),
+      {
+        entityType: 'coupon',
+        entityId: coupon.id,
+        newValue: { code: coupon.code, accessDurationValue: coupon.accessDurationValue, accessDurationUnit: coupon.accessDurationUnit },
+      }
+    );
     res.json({ success: true, coupon });
   } catch (err) {
     console.error('Failed to create coupon:', err);

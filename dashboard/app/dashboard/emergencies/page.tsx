@@ -6,12 +6,29 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import {
   AlertTriangle,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
   Download,
+  Eye,
   FileDown,
   Filter,
   Loader2,
@@ -21,6 +38,8 @@ import {
   Pause,
   Search,
   Siren,
+  UserMinus,
+  UserPlus,
   Volume2,
 } from 'lucide-react';
 import { generatePDFReport } from '@/lib/pdf-utils';
@@ -52,7 +71,11 @@ interface EmergencyReport {
   ticketNumber: string;
   reporterName: string;
   reporterPhone: string;
+  reporterEmail: string;
   nearestStation: string;
+  stationDistance: number | null;
+  incidentType: string | null;
+  mapsLink: string | null;
   gpsLatitude: number | null;
   gpsLongitude: number | null;
   audioFileUrl: string | null;
@@ -60,6 +83,18 @@ interface EmergencyReport {
   priority: string;
   submittedAt: string;
   description: string;
+  assignedVolunteerId: number | null;
+  assignedAt: string | null;
+  dueAt: string | null;
+  assignedBy: { id: number; fullName: string; email: string } | null;
+  assignmentHistory: { id: number; assignee: { id: number; fullName: string; role: string }; assignedAt: string; unassignedAt: string | null; note: string | null }[];
+}
+
+interface Assignee {
+  id: number;
+  fullName: string;
+  email: string;
+  role: string;
 }
 
 export default function EmergenciesPage() {
@@ -71,6 +106,25 @@ export default function EmergenciesPage() {
   const [page, setPage] = useState(1);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
+  const [assigning, setAssigning] = useState<EmergencyReport | null>(null);
+  const [assigneeId, setAssigneeId] = useState('');
+  const [assignNote, setAssignNote] = useState('');
+  const [assignDue, setAssignDue] = useState('');
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [detail, setDetail] = useState<EmergencyReport | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
+
+  const fetchAssignees = async () => {
+    try {
+      const response = await fetch('/api/emergency-reports/assignees');
+      if (!response.ok) return;
+      const payload = await response.json();
+      setAssignees(payload.assignees || []);
+    } catch {
+      /* non-fatal */
+    }
+  };
 
   const fetchReports = async () => {
     setLoading(true);
@@ -84,7 +138,11 @@ export default function EmergenciesPage() {
         ticketNumber: r.ticketNumber ?? r.ticket_number ?? `ER-${String(r.id).padStart(4, '0')}`,
         reporterName: r.reporterName ?? r.reporter_name ?? r.reporter?.fullName ?? 'Unknown',
         reporterPhone: r.reporterPhone ?? r.reporter_phone ?? r.reporter?.phone ?? '',
-        nearestStation: r.nearestStation ?? r.nearest_station ?? '',
+        reporterEmail: r.reporterEmail ?? r.reporter_email ?? '',
+        nearestStation: r.nearestStation ?? r.nearest_station ?? r.stationName ?? r.station_name ?? r.stationAddress ?? '',
+        stationDistance: r.stationDistance ?? r.station_distance ?? null,
+        incidentType: r.incidentType ?? r.incident_type ?? null,
+        mapsLink: r.mapsLink ?? r.maps_link ?? null,
         gpsLatitude: r.gpsLatitude ?? r.gps_latitude ?? null,
         gpsLongitude: r.gpsLongitude ?? r.gps_longitude ?? null,
         audioFileUrl: r.audioFileUrl ?? r.audio_file_url ?? null,
@@ -92,6 +150,11 @@ export default function EmergenciesPage() {
         priority: r.priority ?? 'medium',
         submittedAt: r.submittedAt ?? r.submitted_at ?? r.createdAt ?? new Date().toISOString(),
         description: r.description ?? '',
+        assignedVolunteerId: r.assignedVolunteerId ?? null,
+        assignedAt: r.assignedAt ?? null,
+        dueAt: r.dueAt ?? null,
+        assignedBy: r.assignedBy ?? null,
+        assignmentHistory: r.assignmentHistory ?? [],
       }));
       setReports(items);
     } catch (err) {
@@ -151,6 +214,70 @@ export default function EmergenciesPage() {
       console.error('Status update failed:', err);
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const openAssign = (report: EmergencyReport) => {
+    setAssigning(report);
+    setAssigneeId('');
+    setAssignNote('');
+    setAssignDue('');
+    if (assignees.length === 0) fetchAssignees();
+  };
+
+  const handleAssign = async () => {
+    if (!assigning) return;
+    if (!assigneeId) {
+      toast.error('Select a responder to assign');
+      return;
+    }
+    setAssignSaving(true);
+    try {
+      const response = await fetch(`/api/emergency-reports/${assigning.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'assign',
+          assigneeId: Number(assigneeId),
+          assignmentNote: assignNote || undefined,
+          dueAt: assignDue ? new Date(assignDue).toISOString() : undefined,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        toast.error(payload?.error || 'Failed to assign responder');
+        return;
+      }
+      toast.success('Responder assigned');
+      setAssigning(null);
+      fetchReports();
+    } catch {
+      toast.error('Failed to assign responder');
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
+  const handleUnassign = async (report: EmergencyReport) => {
+    setActingId(report.id);
+    try {
+      const response = await fetch(`/api/emergency-reports/${report.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unassign' }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        toast.error(payload?.error || 'Failed to unassign');
+        return;
+      }
+      toast.success('Responder unassigned');
+      setDetail(null);
+      fetchReports();
+    } catch {
+      toast.error('Failed to unassign');
+    } finally {
+      setActingId(null);
     }
   };
 
@@ -381,6 +508,40 @@ export default function EmergenciesPage() {
                           ))}
                         </select>
                       </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setDetail(report)}
+                            className="h-7 px-2 text-xs"
+                            title="View details"
+                          >
+                            <Eye className="size-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openAssign(report)}
+                            className="h-7 px-2 text-xs"
+                            title="Assign responder"
+                          >
+                            <UserPlus className="size-3.5" />
+                          </Button>
+                          {report.assignedVolunteerId != null && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleUnassign(report)}
+                              disabled={actingId === report.id}
+                              className="h-7 px-2 text-xs"
+                              title="Unassign"
+                            >
+                              <UserMinus className="size-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -406,6 +567,147 @@ export default function EmergenciesPage() {
           </div>
         </div>
       )}
+
+      <Dialog open={!!assigning} onOpenChange={(open) => { if (!open) setAssigning(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign responder</DialogTitle>
+            <DialogDescription>
+              {assigning ? `Assign ${assigning.ticketNumber} to a volunteer or investigator` : 'Assign this emergency report'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Responder</label>
+              <Select value={assigneeId} onValueChange={setAssigneeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a responder" />
+                </SelectTrigger>
+                <SelectContent>
+                  {assignees.length === 0 ? (
+                    <SelectItem value="__none__" disabled>No assignees available</SelectItem>
+                  ) : (
+                    assignees.map((a) => (
+                      <SelectItem key={a.id} value={String(a.id)}>
+                        {a.fullName || a.email} ({a.role.replace('_', ' ').toLowerCase()})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Assignment note</label>
+              <Input
+                value={assignNote}
+                onChange={(e) => setAssignNote(e.target.value)}
+                placeholder="e.g. Please respond urgently, reporter is at..."
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Due by</label>
+              <Input
+                type="datetime-local"
+                value={assignDue}
+                onChange={(e) => setAssignDue(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssigning(null)}>Cancel</Button>
+            <Button onClick={handleAssign} disabled={assignSaving}>
+              {assignSaving ? <Loader2 className="mr-2 size-4 animate-spin" /> : <UserPlus className="mr-2 size-4" />}
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!detail} onOpenChange={(open) => { if (!open) setDetail(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Report {detail?.ticketNumber}</DialogTitle>
+            <DialogDescription>
+              {detail?.incidentType ? `Incident: ${String(detail.incidentType).replace(/_/g, ' ')}` : 'Emergency report details'}
+            </DialogDescription>
+          </DialogHeader>
+          {detail && (
+            <div className="space-y-4 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className={statusColors[detail.status] ?? ''}>
+                  {(detail.status ?? 'new').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                </Badge>
+                <span className={`font-medium ${priorityColors[detail.priority] ?? ''}`}>
+                  {detail.priority.charAt(0).toUpperCase() + detail.priority.slice(1)} priority
+                </span>
+                {detail.assignedVolunteerId != null && (
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                    Assigned
+                  </Badge>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 rounded-xl border p-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Reporter</p>
+                  <p className="font-medium">{detail.reporterName || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="font-medium">{detail.reporterEmail || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Phone</p>
+                  <p className="font-medium">{currentRole === 'admin' ? detail.reporterPhone || '—' : 'REDACTED'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Nearest station</p>
+                  <p className="font-medium">{detail.nearestStation || '—'}{detail.stationDistance != null ? ` · ${Math.round(detail.stationDistance)}m` : ''}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border p-4">
+                <p className="text-xs text-muted-foreground">Description</p>
+                <p className="mt-1 whitespace-pre-wrap">{detail.description || 'No text description'}</p>
+                {detail.mapsLink ? (
+                  <a href={detail.mapsLink} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#2563EB] hover:underline">
+                    <MapPin className="size-3.5" /> Open in Google Maps
+                  </a>
+                ) : detail.gpsLatitude != null && detail.gpsLongitude != null ? (
+                  <a href={`https://www.google.com/maps?q=${detail.gpsLatitude},${detail.gpsLongitude}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#2563EB] hover:underline">
+                    <MapPin className="size-3.5" /> {detail.gpsLatitude.toFixed(4)}, {detail.gpsLongitude.toFixed(4)}
+                  </a>
+                ) : null}
+              </div>
+
+              <div className="rounded-xl border p-4">
+                <p className="text-xs text-muted-foreground">Assignment</p>
+                {detail.assignmentHistory.length === 0 ? (
+                  <p className="mt-1 text-muted-foreground">Not assigned yet</p>
+                ) : (
+                  <ul className="mt-1 space-y-1">
+                    {detail.assignmentHistory.map((h) => (
+                      <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span>
+                          {h.assignee.fullName || 'Responder'} ({h.assignee.role.replace('_', ' ').toLowerCase()})
+                          {h.unassignedAt ? ' — unassigned' : ' — current'}
+                        </span>
+                        <span className="text-muted-foreground">{new Date(h.assignedAt).toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {detail.assignedVolunteerId != null && (
+                  <Button size="sm" variant="outline" className="mt-3" onClick={() => handleUnassign(detail)} disabled={actingId === detail.id}>
+                    {actingId === detail.id ? <Loader2 className="mr-2 size-4 animate-spin" /> : <UserMinus className="mr-2 size-4" />}
+                    Unassign responder
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

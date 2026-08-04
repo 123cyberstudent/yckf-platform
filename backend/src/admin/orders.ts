@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../shared/db.js';
+import { fulfilOrder } from '../payments/ordersService.js';
+import { PaymentError } from '../payments/errors.js';
+import { logAudit } from '../audit/service.js';
 
 const router = Router();
 
@@ -103,6 +106,85 @@ router.get('/:orderNumber', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('Failed to get order:', err);
     res.status(500).json({ error: 'Failed to get order' });
+  }
+});
+
+/** POST /api/admin/orders/:orderNumber/fulfill — idempotently grant and complete an order */
+router.post('/:orderNumber/fulfill', async (req: Request, res: Response) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { orderNumber: String(req.params.orderNumber) } });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    const outcome = await fulfilOrder(order.id, null);
+    await logAudit((req as any).user?.id ?? null, 'order.fulfill', order.id, String(req.ip), {
+      entityType: 'order',
+      entityId: order.id,
+      previousValue: { status: order.status },
+      newValue: { status: outcome.order.status, alreadyFulfilled: outcome.alreadyFulfilled },
+      userAgent: req.get('user-agent') ?? undefined,
+    });
+    res.json({ success: true, alreadyFulfilled: outcome.alreadyFulfilled, order: serializeOrder({ ...outcome.order, paymentAttempts: [] }) });
+  } catch (err) {
+    if (err instanceof PaymentError) {
+      return res.status(err.status).json({ error: err.message, code: err.code });
+    }
+    console.error('Failed to fulfill order:', err);
+    res.status(500).json({ error: 'Failed to fulfill order' });
+  }
+});
+
+/** POST /api/admin/orders/:orderNumber/cancel — cancel a pending/unpaid order */
+router.post('/:orderNumber/cancel', async (req: Request, res: Response) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { orderNumber: String(req.params.orderNumber) } });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status === 'PAID' || order.status === 'FULFILLED') {
+      return res.status(409).json({ error: 'Paid or fulfilled orders cannot be cancelled' });
+    }
+    if (order.status === 'CANCELLED' || order.status === 'REFUNDED' || order.status === 'PARTIALLY_REFUNDED') {
+      return res.status(409).json({ error: 'Order is already cancelled/refunded' });
+    }
+    const updated = await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'CANCELLED', cancelledAt: new Date() },
+    });
+    await logAudit((req as any).user?.id ?? null, 'order.cancel', order.id, String(req.ip), {
+      entityType: 'order',
+      entityId: order.id,
+      previousValue: { status: order.status },
+      newValue: { status: 'CANCELLED' },
+      userAgent: req.get('user-agent') ?? undefined,
+    });
+    res.json({ success: true, order: serializeOrder({ ...updated, items: [], paymentAttempts: [] }) });
+  } catch (err) {
+    console.error('Failed to cancel order:', err);
+    res.status(500).json({ error: 'Failed to cancel order' });
+  }
+});
+
+/** POST /api/admin/orders/:orderNumber/refund — admin override refund for paid/fulfilled orders */
+router.post('/:orderNumber/refund', async (req: Request, res: Response) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { orderNumber: String(req.params.orderNumber) } });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status !== 'PAID' && order.status !== 'FULFILLED') {
+      return res.status(409).json({ error: 'Only paid or fulfilled orders can be refunded' });
+    }
+    const updated = await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'REFUNDED' },
+    });
+    await logAudit((req as any).user?.id ?? null, 'order.refund', order.id, String(req.ip), {
+      entityType: 'order',
+      entityId: order.id,
+      previousValue: { status: order.status },
+      newValue: { status: 'REFUNDED' },
+      userAgent: req.get('user-agent') ?? undefined,
+    });
+    res.json({ success: true, order: serializeOrder({ ...updated, items: [], paymentAttempts: [] }) });
+  } catch (err) {
+    console.error('Failed to refund order:', err);
+    res.status(500).json({ error: 'Failed to refund order' });
   }
 });
 

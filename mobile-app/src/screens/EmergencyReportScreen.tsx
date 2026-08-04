@@ -76,8 +76,20 @@ const EmergencyReportScreen: React.FC = () => {
   // WhatsApp 2 Modal State
   const [whatsapp2ModalVisible, setWhatsapp2ModalVisible] = useState(false);
   const [whatsapp2Number, setWhatsapp2Number] = useState('');
+  const [whatsapp2Error, setWhatsapp2Error] = useState('');
+  const whatsapp2InputRef = useRef<TextInput>(null);
   // Send Options Modal State  
   const [sendOptionsModalVisible, setSendOptionsModalVisible] = useState(false);
+
+  // Focus the WhatsApp 2 input only after the modal is visible, on a rAF tick,
+  // and clear any stale validation. Focusing during mount caused layout jitter.
+  useEffect(() => {
+    if (whatsapp2ModalVisible) {
+      setWhatsapp2Error('');
+      const frame = requestAnimationFrame(() => whatsapp2InputRef.current?.focus());
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [whatsapp2ModalVisible]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -588,6 +600,7 @@ const EmergencyReportScreen: React.FC = () => {
   
   const promptWhatsApp2Number = (): void => {
     setWhatsapp2Number('');
+    setWhatsapp2Error('');
     setWhatsapp2ModalVisible(true);
   };
 
@@ -1042,7 +1055,7 @@ const sendViaEmailAuto = async () => {
       onRequestClose={() => setWhatsapp2ModalVisible(false)}
     >
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalOverlay}
       >
         <TouchableOpacity 
@@ -1061,18 +1074,34 @@ const sendViaEmailAuto = async () => {
             </Text>
 
             <TextInput
+              ref={whatsapp2InputRef}
               style={styles.modalInput}
               value={whatsapp2Number}
-              onChangeText={setWhatsapp2Number}
+              onChangeText={(t) => {
+                setWhatsapp2Number(t.replace(/[^\d+]/g, ''));
+                if (whatsapp2Error) setWhatsapp2Error('');
+              }}
               placeholder="Enter phone number"
               placeholderTextColor={COLORS.text.light}
               keyboardType="phone-pad"
               returnKeyType="done"
+              maxLength={15}
+              onSubmitEditing={() => {
+                if (whatsapp2Number.trim()) {
+                  setWhatsapp2ModalVisible(false);
+                  sendViaWhatsApp2(whatsapp2Number.trim());
+                }
+              }}
             />
 
-            <Text style={styles.modalHint}>
-              Format: +233XXXXXXXXX or 0XXXXXXXXX
-            </Text>
+            <View style={styles.modalHintBox}>
+              <Text style={styles.modalHint}>
+                Format: +233XXXXXXXXX or 0XXXXXXXXX
+              </Text>
+              {whatsapp2Error ? (
+                <Text style={styles.modalError}>{whatsapp2Error}</Text>
+              ) : null}
+            </View>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -1089,7 +1118,7 @@ const sendViaEmailAuto = async () => {
                     setWhatsapp2ModalVisible(false);
                     sendViaWhatsApp2(whatsapp2Number.trim());
                   } else {
-                    Alert.alert('⚠️ Invalid Number', 'Please enter a valid phone number.');
+                    setWhatsapp2Error('Please enter a valid phone number.');
                   }
                 }}
               >
@@ -1987,10 +2016,19 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     marginBottom: SPACING.sm,
   },
+  modalHintBox: {
+    minHeight: 34,
+    marginBottom: SPACING.md,
+    justifyContent: 'flex-start',
+  },
   modalHint: {
     fontSize: 12,
     color: COLORS.text.light,
-    marginBottom: SPACING.lg,
+  },
+  modalError: {
+    fontSize: 12,
+    color: COLORS.error,
+    marginTop: 2,
   },
   modalButtons: {
     flexDirection: 'row',
