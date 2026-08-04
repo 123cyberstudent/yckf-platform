@@ -286,7 +286,7 @@ const onSubmit = async (data: ContactForm) => {
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Contact YCKF</Text>
+            <Text style={styles.title}>Contact Young Cyber Knights Foundation</Text>
             <Text style={styles.subtitle}>
               Get in touch with our team. We're here to help with any questions or concerns.
             </Text>
@@ -300,7 +300,7 @@ const onSubmit = async (data: ContactForm) => {
               {/* Founder Image */}
               <View style={styles.founderImageContainer}>
                 <Image
-                  source={require('../../assets/images/founder.png')}
+                  source={require('../../assets/images/brightpic.jpg')}
                   style={styles.founderImage}
                   resizeMode="cover"
                 />
@@ -312,7 +312,7 @@ const onSubmit = async (data: ContactForm) => {
                   Bright Peter Kwaku Boateng
                 </Text>
                 <Text style={styles.founderTitle}>
-                  Founder & CEO, YCKF
+                  Founder & Design and Technical Lead
                 </Text>
                 <Text style={styles.founderDescription}>
                   Digital Forensics and Cybercrime Investigator
