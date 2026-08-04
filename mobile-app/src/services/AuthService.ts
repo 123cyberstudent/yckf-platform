@@ -523,47 +523,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Complete forgot password flow (all-in-one method for simpler backends)
-   * @param email - User's email address
-   * @param newPassword - New password to set
-   * @returns Promise with success status
-   */
-  async resetPasswordDirect(
-    email: string,
-    newPassword: string
-  ): Promise<ResetPasswordResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password-direct`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, newPassword }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: data.message || 'Password reset successfully. Please login with your new password.',
-        };
-      }
-
-      return {
-        success: false,
-        error: data.error || 'Failed to reset password',
-      };
-    } catch (error) {
-      console.error('Reset password error:', error);
-      return {
-        success: false,
-        error: 'Network error. Please check your connection.',
-      };
-    }
-  }
-
   async getToken(): Promise<string | null> {
     if (this.authToken) {
       return this.authToken;
