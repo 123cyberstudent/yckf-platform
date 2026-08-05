@@ -22,6 +22,7 @@ export function NotificationsCenter() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
   const [sendSuccess, setSendSuccess] = useState(false);
+  const [sendCounts, setSendCounts] = useState<{ recipients: number | null; emailsQueued: number | null } | null>(null);
 
   const fetchNotifications = async () => {
     try {

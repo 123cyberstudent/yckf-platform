@@ -87,41 +87,60 @@ export async function redeemCoupon(code: string, userId: number, meta: { ip?: st
   const durationValue = coupon.accessDurationValue ?? coupon.durationHours ?? 24;
   const durationUnit = (coupon.accessDurationUnit ?? 'hours') as 'hours' | 'days' | 'months';
   const now = new Date();
-  const expiresAt = computeExpiry(now, durationValue, durationUnit);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.couponRedemption.create({
-      data: {
-        couponId: coupon.id,
-        userId,
-        expiresAt,
-        accessStartsAt: now,
-        status: 'active',
-      },
+  let expiresAt: Date;
+  try {
+    expiresAt = await prisma.$transaction(async (tx) => {
+      // Extend (never truncate) any existing premium window: coupons stack on
+      // top of the user's current entitlement, matching the paid-plan rule.
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { premiumStartsAt: true, premiumExpiresAt: true },
+      });
+      const base = user?.premiumExpiresAt && user.premiumExpiresAt > now ? user.premiumExpiresAt : now;
+      const windowEnd = computeExpiry(base, durationValue, durationUnit);
+
+      await tx.couponRedemption.create({
+        data: {
+          couponId: coupon.id,
+          userId,
+          expiresAt: windowEnd,
+          accessStartsAt: now,
+          status: 'active',
+        },
+      });
+      await tx.coupon.update({
+        where: { id: coupon.id },
+        data: { usedCount: { increment: 1 } },
+      });
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          premiumStartsAt: user?.premiumStartsAt ?? now,
+          premiumExpiresAt: windowEnd,
+          subscriptionStatus: 'active',
+        },
+      });
+      await tx.subscription.create({
+        data: {
+          userId,
+          planId: null,
+          source: 'coupon',
+          startsAt: now,
+          expiresAt: windowEnd,
+          status: 'active',
+        },
+      });
+      return windowEnd;
     });
-    await tx.coupon.update({
-      where: { id: coupon.id },
-      data: { usedCount: { increment: 1 } },
-    });
-    await tx.user.update({
-      where: { id: userId },
-      data: {
-        premiumStartsAt: now,
-        premiumExpiresAt: expiresAt,
-        subscriptionStatus: 'active',
-      },
-    });
-    await tx.subscription.create({
-      data: {
-        userId,
-        planId: null,
-        source: 'coupon',
-        startsAt: now,
-        expiresAt,
-        status: 'active',
-      },
-    });
-  });
+  } catch (err) {
+    // Unique (couponId, userId) constraint: simultaneous double-taps race past
+    // the pre-validation — surface the structured code instead of a 500.
+    if ((err as { code?: string })?.code === 'P2002') {
+      return { success: false, message: 'COUPON_ALREADY_USED' };
+    }
+    throw err;
+  }
 
   await logAudit(userId, 'coupon.redeem', coupon.id, meta.ip ?? '', {
     entityType: 'coupon',

@@ -111,7 +111,13 @@ export function isAdmin(req: AuthRequest, res: Response, next: NextFunction) {
 }
 
 export function isStaff(req: AuthRequest, res: Response, next: NextFunction) {
-  if (!req.user || (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN' && req.user.role !== 'VOLUNTEER')) {
+  if (
+    !req.user ||
+    (req.user.role !== 'SUPER_ADMIN' &&
+      req.user.role !== 'ADMIN' &&
+      req.user.role !== 'INVESTIGATOR' &&
+      req.user.role !== 'VOLUNTEER')
+  ) {
     return res.status(403).json({ error: 'Staff access required' });
   }
   next();

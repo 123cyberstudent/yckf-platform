@@ -910,6 +910,11 @@ const sendViaEmailAuto = async () => {
         formData.append('stationAddress', nearestStation.station.address);
         formData.append('stationLatitude', String(nearestStation.station.latitude));
         formData.append('stationLongitude', String(nearestStation.station.longitude));
+        formData.append('stationDistance', String(nearestStation.distance || 0));
+        const rawStationId = String(nearestStation.station.id || '');
+        if (/^\d+$/.test(rawStationId)) {
+          formData.append('nearestStationId', rawStationId);
+        }
       }
 
       if (currentLocation?.coords) {

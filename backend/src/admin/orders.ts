@@ -39,10 +39,67 @@ function serializeOrder(order: any) {
     user: order.user ? { id: order.user.id, email: order.user.email, fullName: order.user.fullName } : null,
     items: order.items,
     paymentStatus: order.paymentAttempts?.[0]?.status ?? null,
+    source: 'order',
   };
 }
 
-/** GET /api/admin/orders — all orders, filters: status, orderType, search, cursor pagination */
+/** Order-status vocabulary <-> SubscriptionPayment status mapping so premium
+ *  checkouts (which live in SubscriptionPayment, not Order) appear on the
+ *  admin Orders page instead of silently vanishing ("No orders found"). */
+const SUB_PAYMENT_TO_ORDER_STATUS: Record<string, string> = {
+  PENDING: 'PENDING_PAYMENT',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+};
+const ORDER_TO_SUB_PAYMENT_STATUS: Record<string, string> = {
+  PENDING_PAYMENT: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+};
+
+const SUBSCRIPTION_ID_OFFSET = 1_000_000_000;
+
+function serializeSubscriptionPayment(p: any) {
+  return {
+    id: SUBSCRIPTION_ID_OFFSET + p.id,
+    orderNumber: p.providerReference,
+    orderType: 'PREMIUM_SUBSCRIPTION',
+    status: SUB_PAYMENT_TO_ORDER_STATUS[p.status] ?? p.status,
+    currency: p.currency,
+    subtotalAmount: p.amountPesewas,
+    discountAmount: 0,
+    taxAmount: 0,
+    totalAmount: p.amountPesewas,
+    metadata: p.metadata,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+    paidAt: p.paidAt,
+    fulfilledAt: p.paidAt,
+    cancelledAt: null,
+    expiresAt: null,
+    user: p.user ? { id: p.user.id, email: p.user.email, fullName: p.user.fullName } : null,
+    items: [
+      {
+        id: SUBSCRIPTION_ID_OFFSET + p.id,
+        productType: 'PREMIUM_SUBSCRIPTION',
+        productId: p.planId,
+        productName: p.plan?.name ? `${p.plan.name} Premium` : 'Premium subscription',
+        unitPrice: p.amountPesewas,
+        totalPrice: p.amountPesewas,
+        quantity: 1,
+      },
+    ],
+    paymentStatus: p.status,
+    source: 'subscription_payment',
+  };
+}
+
+/** GET /api/admin/orders — all orders, filters: status, orderType, search, cursor pagination.
+ *  Merges legacy Order rows with SubscriptionPayment rows (premium checkouts). */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { status, orderType, search } = req.query;
@@ -74,10 +131,48 @@ router.get('/', async (req: Request, res: Response) => {
       },
     });
 
+    // Merge in subscription checkouts (first page only; cursor pages stay
+    // legacy-order-only to keep cursor semantics stable).
+    let subscriptionRows: any[] = [];
+    let subscriptionTotal = 0;
+    const typeFilter = orderType ? String(orderType).toUpperCase() : null;
+    const includeSubscriptions = !cursor && (!typeFilter || typeFilter === 'PREMIUM_SUBSCRIPTION');
+    const statusFilter = status ? String(status) : null;
+    const mappedSubStatus = statusFilter ? ORDER_TO_SUB_PAYMENT_STATUS[statusFilter] : null;
+    if (includeSubscriptions && (!statusFilter || mappedSubStatus)) {
+      const subWhere: any = {};
+      if (mappedSubStatus) subWhere.status = mappedSubStatus;
+      if (search) {
+        subWhere.OR = [
+          { providerReference: { contains: String(search), mode: 'insensitive' } },
+          { user: { email: { contains: String(search), mode: 'insensitive' } } },
+          { user: { fullName: { contains: String(search), mode: 'insensitive' } } },
+        ];
+      }
+      const [payments, count] = await Promise.all([
+        prisma.subscriptionPayment.findMany({
+          where: subWhere,
+          orderBy: { id: 'desc' },
+          take: limit,
+          include: {
+            user: { select: { id: true, email: true, fullName: true } },
+            plan: { select: { name: true } },
+          },
+        }),
+        prisma.subscriptionPayment.count({ where: subWhere }),
+      ]);
+      subscriptionRows = payments.map(serializeSubscriptionPayment);
+      subscriptionTotal = count;
+    }
+
+    const merged = [...orders.map(serializeOrder), ...subscriptionRows]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+
     res.json({
-      orders: orders.map(serializeOrder),
+      orders: merged,
       nextCursor: orders.length === limit ? orders[orders.length - 1].id : null,
-      total: await prisma.order.count({ where }),
+      total: (await prisma.order.count({ where })) + subscriptionTotal,
     });
   } catch (err) {
     console.error('Failed to list orders:', err);

@@ -53,6 +53,7 @@ interface Order {
   createdAt: string;
   user: { id: number; email: string; fullName: string } | null;
   items: OrderItem[];
+  source?: 'order' | 'subscription_payment';
 }
 
 const STATUS_OPTIONS = [
@@ -136,9 +137,12 @@ export default function OrdersPage() {
     }
   };
 
-  const canFulfill = (o: Order) => ['PENDING_PAYMENT', 'CREATED', 'PAID'].includes(o.status);
-  const canCancel = (o: Order) => ['PENDING_PAYMENT', 'CREATED', 'EXPIRED', 'FAILED'].includes(o.status);
-  const canRefund = (o: Order) => ['PAID', 'FULFILLED'].includes(o.status);
+  // Subscription checkouts are verified/fulfilled by Paystack webhooks, not
+  // the legacy order lifecycle, so admin actions only apply to real Orders.
+  const isLegacyOrder = (o: Order) => o.source !== 'subscription_payment';
+  const canFulfill = (o: Order) => isLegacyOrder(o) && ['PENDING_PAYMENT', 'CREATED', 'PAID'].includes(o.status);
+  const canCancel = (o: Order) => isLegacyOrder(o) && ['PENDING_PAYMENT', 'CREATED', 'EXPIRED', 'FAILED'].includes(o.status);
+  const canRefund = (o: Order) => isLegacyOrder(o) && ['PAID', 'FULFILLED'].includes(o.status);
 
   return (
     <div className="space-y-6">

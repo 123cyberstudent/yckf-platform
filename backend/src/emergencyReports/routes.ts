@@ -3,7 +3,7 @@ import multer from 'multer';
 import { Router, Response } from 'express';
 import { prisma } from '../shared/db.js';
 import { generateTicketNumber } from '../shared/tickets.js';
-import { sendAdminNotification, sendSenderAcknowledgement } from '../email/service.js';
+import { sendAdminNotification, sendSenderAcknowledgement, sendEmail } from '../email/service.js';
 import { computeHash, generateFilename, saveFile, getUploadPath } from '../shared/file.js';
 import { verifyToken, isStaff, optionalAuth, AuthRequest } from '../auth/middleware.js';
 import { notifyAdmins, createNotification } from '../notifications/service.js';
@@ -286,6 +286,24 @@ router.put('/:id/status', verifyToken, isStaff, async (req: AuthRequest, res: Re
     const { status } = req.body;
     const valid = ['new', 'under_review', 'assigned', 'in_progress', 'resolved', 'closed'];
     if (!valid.includes(status)) return res.status(400).json({ error: `Status must be one of: ${valid.join(', ')}` });
+
+    // Responders (volunteers/investigators) may only move their OWN assigned
+    // reports forward (in_progress -> resolved). Closing and administrative
+    // states are reserved for admins.
+    const role = req.user!.role;
+    const isAdminRole = role === 'SUPER_ADMIN' || role === 'ADMIN';
+    if (!isAdminRole) {
+      const RESPONDER_ALLOWED = ['in_progress', 'resolved'];
+      if (!RESPONDER_ALLOWED.includes(status)) {
+        return res.status(403).json({ error: 'Only administrators can set this status' });
+      }
+      const existing = await prisma.emergencyReport.findUnique({ where: { id: Number(req.params.id) } });
+      if (!existing) return res.status(404).json({ error: 'Report not found' });
+      if (existing.assignedVolunteerId !== req.user!.id) {
+        return res.status(403).json({ error: 'You can only update reports assigned to you' });
+      }
+    }
+
     const report = await prisma.emergencyReport.update({ where: { id: Number(req.params.id) }, data: { status } });
     await logAudit(req.user!.id, 'emergency_report.status', Number(req.params.id), String(req.ip), {
       entityType: 'emergency_report',
@@ -367,6 +385,37 @@ router.post('/:id/assign', verifyToken, isStaff, async (req: AuthRequest, res: R
       relatedEntityType: 'emergency_report',
       relatedEntityId: reportId,
     }).catch(() => {});
+
+    // Email the assignee (in addition to the dashboard notification)
+    if (assignee.email) {
+      sendEmail({
+        ticketNumber: report.ticketNumber,
+        reportType: 'emergency_assignment',
+        recipientEmail: assignee.email,
+        subject: `Emergency Report Assigned to You - ${report.ticketNumber}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: #DC2626; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; font-size: 20px;">Emergency Report Assigned to You</h1>
+              <p style="margin: 8px 0 0 0; opacity: 0.9;">Ticket: ${report.ticketNumber}</p>
+            </div>
+            <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
+              <p>Dear ${assignee.fullName},</p>
+              <p>An administrator has assigned an emergency report to you. Please log in to your dashboard to review the details and respond.</p>
+              <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin: 15px 0;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">TICKET NUMBER</p>
+                <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #DC2626;">${report.ticketNumber}</p>
+                ${assignmentNote ? `<p style="margin: 10px 0 0 0; color: #64748b; font-size: 12px;">NOTE</p><p style="margin: 5px 0 0 0;">${assignmentNote}</p>` : ''}
+                ${due ? `<p style="margin: 10px 0 0 0; color: #64748b; font-size: 12px;">DUE</p><p style="margin: 5px 0 0 0;">${due.toLocaleString()}</p>` : ''}
+              </div>
+              <p><a href="${dashboardBase()}/dashboard/volunteer" style="display: inline-block; background: #DC2626; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none;">Open My Assigned Cases</a></p>
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #94a3b8;">Young Cyber Knights Foundation | Cybersecurity &amp; Digital Safety</p>
+            </div>
+          </div>
+        `,
+      }).catch(() => {});
+    }
 
     await logAudit(req.user!.id, 'emergency_report.assign', reportId, String(req.ip), {
       entityType: 'emergency_report',

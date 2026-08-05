@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Return the real response from backend
+    // Return the real response from backend, including delivery counts
     return NextResponse.json({
       id: payload?.id ?? `notif-${Date.now()}`,
       type: 'broadcast',
@@ -124,6 +124,8 @@ export async function POST(request: Request) {
       createdAt: payload?.createdAt ?? new Date().toISOString(),
       read: false,
       targetRoles: body.targetRoles ?? ['admin', 'investigator'],
+      recipients: payload?.recipients ?? null,
+      emailsQueued: payload?.emailsQueued ?? null,
     }, { status: 201 })
   } catch (error) {
     console.error('Create notification error:', error)
