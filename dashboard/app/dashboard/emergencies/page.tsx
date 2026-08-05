@@ -368,7 +368,7 @@ export default function EmergenciesPage() {
             Manage incoming emergency reports, assign responders, and track resolution.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handleExportCsv}>
             <Download className="mr-2 size-4" />
             Export CSV
@@ -380,7 +380,7 @@ export default function EmergenciesPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: 'New Reports', value: summary.newCount, icon: Siren },
           { label: 'In Progress', value: summary.inProgress, icon: Clock },
@@ -418,43 +418,65 @@ export default function EmergenciesPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex flex-wrap gap-2">
-              <label className="flex items-center gap-2 rounded-md border border-border bg-background/60 px-3 py-2 text-sm">
-                <Filter className="size-4" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-transparent outline-none"
-                >
+            <div className="w-full sm:w-auto">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <div className="flex items-center gap-2">
+                    <Filter className="size-4" />
+                    <SelectValue>
+                      {statusFilter === 'all'
+                        ? 'All Status'
+                        : statusFilter.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </SelectValue>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
                   {statusOptions.map((s) => (
-                    <option key={s} value={s}>
+                    <SelectItem key={s} value={s}>
                       {s === 'all' ? 'All Status' : s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </label>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {loading ? (
-        <div className="rounded-lg border border-border bg-card/60 p-10 text-center text-muted-foreground">
-          Loading emergency reports...
+        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card/60 p-14 text-center text-muted-foreground">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p>Loading emergency reports...</p>
         </div>
       ) : error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-10 text-center text-destructive">
           {error}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card/60 p-10 text-center text-muted-foreground">
-          No emergency reports match the selected filters.
+        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card/40 p-14 text-center text-muted-foreground">
+          <Siren className="size-10 text-muted-foreground/40" />
+          <div>
+            <p className="font-semibold text-foreground">No emergency reports</p>
+            <p className="mt-1">No reports match the selected filters.</p>
+          </div>
+          {search || statusFilter !== 'all' ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('all');
+              }}
+            >
+              Clear filters
+            </Button>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-4">
           <Card className="glass-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[760px] text-sm">
                 <thead className="border-b border-border bg-muted/50">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Ticket</th>
@@ -593,7 +615,7 @@ export default function EmergenciesPage() {
       )}
 
       <Dialog open={!!assigning} onOpenChange={(open) => { if (!open) setAssigning(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-full sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Assign responder</DialogTitle>
             <DialogDescription>
@@ -648,7 +670,7 @@ export default function EmergenciesPage() {
       </Dialog>
 
       <Dialog open={!!detail} onOpenChange={(open) => { if (!open) setDetail(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-full sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Report {detail?.ticketNumber}</DialogTitle>
             <DialogDescription>
@@ -671,7 +693,7 @@ export default function EmergenciesPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3 rounded-xl border p-4">
+              <div className="grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Reporter</p>
                   <p className="font-medium">{detail.reporterName || '—'}</p>
