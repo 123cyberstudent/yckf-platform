@@ -65,6 +65,56 @@ const MyOrdersScreen: React.FC = () => {
     }, [load])
   );
 
+  // Only non-paid entries can be deleted (matches the backend rules):
+  // successful/processing/refunded records are kept as financial history.
+  const isDeletable = (item: PaymentHistoryItem) =>
+    item.status === 'failed' || item.status === 'cancelled' || item.status === 'expired';
+
+  const confirmDelete = (item: PaymentHistoryItem) => {
+    Alert.alert(
+      'Delete entry?',
+      `Remove this ${item.kind === 'subscription' ? 'subscription' : 'order'} from your history? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await OrdersService.deleteHistory(item.id);
+              setOrders((prev) => prev.filter((o) => o.id !== item.id));
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Failed to delete entry');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const confirmClear = () => {
+    Alert.alert(
+      'Clear history?',
+      'Delete all failed, cancelled and expired entries from your order history? Paid and processing records will be kept.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { removed } = await OrdersService.clearHistory();
+              setOrders((prev) => prev.filter((o) => isDeletable(o) === false));
+              if (removed > 0) Alert.alert('Done', `Cleared ${removed} entry(ies)`);
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Failed to clear history');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -77,31 +127,38 @@ const MyOrdersScreen: React.FC = () => {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScreenHeader title="My Orders" />
-      <FlatList
-        data={orders}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(false)} />}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="receipt-outline" size={40} color={COLORS.text.light} />
-            <Text style={styles.emptyTitle}>No orders yet</Text>
-            <Text style={styles.emptyText}>Your orders and premium subscriptions will appear here.</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.orderCard}>
-            <View style={styles.orderHeader}>
-              <Text style={styles.orderNumber}>{item.reference}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: (statusColor[item.status] || COLORS.text.secondary) + '20' }]}>
-                <Text style={[styles.statusText, { color: statusColor[item.status] || COLORS.text.secondary }]}>
-                  {statusLabel[item.status] || item.status}
-                </Text>
-              </View>
+return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScreenHeader
+          title="My Orders"
+          right={
+            <TouchableOpacity style={styles.clearButton} onPress={confirmClear} hitSlop={8}>
+              <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+            </TouchableOpacity>
+          }
+        />
+        <FlatList
+          data={orders}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(false)} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="receipt-outline" size={40} color={COLORS.text.light} />
+              <Text style={styles.emptyTitle}>No orders yet</Text>
+              <Text style={styles.emptyText}>Your orders and premium subscriptions will appear here.</Text>
             </View>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.orderCard}>
+              <View style={styles.orderHeader}>
+                <Text style={styles.orderNumber}>{item.reference}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: (statusColor[item.status] || COLORS.text.secondary) + '20' }]}>
+                  <Text style={[styles.statusText, { color: statusColor[item.status] || COLORS.text.secondary }]}>
+                    {statusLabel[item.status] || item.status}
+                  </Text>
+                </View>
+              </View>
             <Text style={styles.productName}>
               {item.productName}
             </Text>
@@ -119,15 +176,22 @@ const MyOrdersScreen: React.FC = () => {
                 {formatMoney(item.amountPesewas, item.currency)}
               </Text>
             </View>
-            <Text style={styles.orderDate}>
-              {new Date(item.createdAt).toLocaleString(undefined, {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </Text>
+            <View style={styles.orderDateRow}>
+              <Text style={styles.orderDate}>
+                {new Date(item.createdAt).toLocaleString(undefined, {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+              {isDeletable(item) && (
+                <TouchableOpacity style={styles.itemDeleteButton} onPress={() => confirmDelete(item)} hitSlop={8}>
+                  <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         )}
       />
@@ -225,6 +289,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.text.light,
     marginTop: SPACING.xs,
+  },
+  orderDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.xs,
+  },
+  itemDeleteButton: {
+    width: 28,
+    height: 28,
+    borderRadius: SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

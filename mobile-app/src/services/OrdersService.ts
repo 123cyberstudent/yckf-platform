@@ -151,6 +151,31 @@ class OrdersService {
     }
     return data.order as OrderSummary;
   }
+
+  /** Delete one non-paid history entry ("order:12" | "subscription:7"). */
+  async deleteHistory(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/orders/history/${id}`, {
+      method: 'DELETE',
+      headers: await this.headers(),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw this.errorFrom(data, 'Failed to delete history entry');
+    }
+  }
+
+  /** Remove all of the caller's non-paid history entries in one go. */
+  async clearHistory(): Promise<{ removed: number }> {
+    const res = await fetch(`${API_BASE_URL}/api/orders/history/clear`, {
+      method: 'DELETE',
+      headers: await this.headers(),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw this.errorFrom(data, 'Failed to clear payment history');
+    }
+    return { removed: Number(data.removed) || 0 };
+  }
 }
 
 const ordersService = new OrdersService();

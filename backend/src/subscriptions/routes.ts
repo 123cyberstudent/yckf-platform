@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { body } from 'express-validator';
+import { body, param } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import type { Response } from 'express';
 import { AuthRequest, verifyToken } from '../auth/middleware.js';
 import { generalRateLimiter } from '../shared/rateLimiter.js';
 import { validateRequest } from '../utils/validators.js';
+import { prisma } from '../shared/db.js';
 import { PaymentError } from '../payments/errors.js';
 import {
   getActivePlans,
@@ -38,6 +39,7 @@ router.get('/plans', generalRateLimiter, async (_req, res) => {
 router.use('/status', verifyToken);
 router.use('/initialize', verifyToken);
 router.use('/validate-referral', verifyToken);
+router.use('/payment-status', verifyToken);
 
 /** GET /api/subscriptions/status — current premium entitlement. */
 router.get('/status', async (req: AuthRequest, res: Response) => {
@@ -52,6 +54,37 @@ router.get('/status', async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, error: 'Failed to get subscription status' });
   }
 });
+
+/** GET /api/subscriptions/payment-status/:reference — poll a checkout by reference.
+ *  Returns the provider status so the mobile WebView can detect completion. */
+router.get(
+  '/payment-status/:reference',
+  [param('reference').trim().notEmpty().withMessage('reference is required')],
+  validateRequest,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const reference = String(req.params.reference).trim();
+      const payment = await prisma.subscriptionPayment.findFirst({
+        where: { providerReference: reference, userId: req.user!.id },
+        select: { status: true, paidAt: true, amountPesewas: true, plan: { select: { name: true, code: true } } },
+      });
+      if (!payment) {
+        return res.status(404).json({ success: false, error: 'Payment not found' });
+      }
+      res.json({
+        success: true,
+        reference,
+        status: payment.status,
+        paid: payment.status === 'PAID',
+        paidAt: payment.paidAt,
+        plan: payment.plan?.name ?? null,
+      });
+    } catch (err) {
+      console.error('Failed to get payment status:', err);
+      res.status(500).json({ success: false, error: 'Failed to get payment status' });
+    }
+  }
+);
 
 /** POST /api/subscriptions/initialize — { planCode, referralCode? } → Paystack auth URL. */
 router.post(

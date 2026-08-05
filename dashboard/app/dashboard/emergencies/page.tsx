@@ -45,6 +45,7 @@ import {
 import { generatePDFReport } from '@/lib/pdf-utils';
 import { getRoleFromCookie } from '@/lib/permissions';
 import { logExport } from '@/lib/export-logger';
+import { useRealtimeEvents } from '@/lib/realtime';
 
 const PAGE_SIZE = 8;
 
@@ -126,9 +127,11 @@ export default function EmergenciesPage() {
     }
   };
 
-  const fetchReports = async () => {
-    setLoading(true);
-    setError('');
+  const fetchReports = async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+      setError('');
+    }
     try {
       const response = await fetch('/api/emergency-reports');
       if (!response.ok) throw new Error(`Failed to load emergency reports: ${response.status}`);
@@ -167,6 +170,27 @@ export default function EmergenciesPage() {
   useEffect(() => {
     fetchReports();
   }, []);
+
+  // Real-time: poll for new/updated reports every 10s so incoming emergencies
+  // appear immediately without requiring a manual refresh. Keeps the current
+  // list visible (no loading flash) while refreshing in the background.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchReports(false);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Real-time: subscribe to socket events pushed by the backend so new
+  // emergency reports appear instantly without waiting for the next poll.
+  useRealtimeEvents(
+    {
+      'emergency:new': () => fetchReports(false),
+      'emergency:updated': () => fetchReports(false),
+      'emergency:assigned': () => fetchReports(false),
+    },
+    []
+  );
 
   useEffect(() => {
     getRoleFromCookie().then(setCurrentRole);

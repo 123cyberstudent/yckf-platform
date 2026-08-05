@@ -5,7 +5,6 @@ import { env } from '../config/env.js';
 import { initializeTransaction, verifyTransaction } from '../payments/paystack.js';
 import { PaymentError } from '../payments/errors.js';
 import {
-  PLAN_BY_CODE,
   SUBSCRIPTION_PLANS,
   TRIAL_DURATION_HOURS,
   FIRST_SUBSCRIPTION_BONUS_HOURS,
@@ -41,6 +40,40 @@ export function addYears(date: Date, years: number): Date {
   const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
   result.setDate(Math.min(day, lastDay));
   return result;
+}
+
+export function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+/** Compute the premium expiry for a plan duration, calendar-aware. */
+export function computePlanExpiry(base: Date, durationUnit: string, durationValue: number): Date {
+  switch (String(durationUnit).toUpperCase()) {
+    case 'YEAR':
+      return addYears(base, durationValue);
+    case 'WEEK':
+      return addDays(base, durationValue * 7);
+    case 'DAY':
+      return addDays(base, durationValue);
+    default:
+      return addMonths(base, durationValue);
+  }
+}
+
+/** Duration in minutes for ledger entries (approximate month = 30 days). */
+export function computePlanDurationMinutes(durationUnit: string, durationValue: number): number {
+  switch (String(durationUnit).toUpperCase()) {
+    case 'YEAR':
+      return durationValue * 365 * 24 * 60;
+    case 'WEEK':
+      return durationValue * 7 * 24 * 60;
+    case 'DAY':
+      return durationValue * 24 * 60;
+    default:
+      return durationValue * 30 * 24 * 60;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -306,12 +339,15 @@ export async function initializeSubscriptionPayment(opts: {
   referralCode?: string;
   platform?: string;
 }): Promise<{ authorizationUrl: string; reference: string; paymentId: number; plan: Record<string, unknown> }> {
-  const planDef = PLAN_BY_CODE[opts.planCode];
-  if (!planDef) throw new PaymentError('INVALID_REQUEST', 'Unknown plan code', 400);
-
   await ensurePlansSeeded();
-  const dbPlan = await prisma.subscriptionPlan.findUnique({ where: { code: planDef.code } });
-  if (!dbPlan || !dbPlan.active) throw new PaymentError('PROMOTION_INACTIVE', 'This plan is not currently available', 409);
+  // Resolve the plan from the DB by code so admin-created plans (including
+  // DAY/WEEK catalogues) are purchasable, not just the seeded defaults.
+  const wantedCode = String(opts.planCode ?? '').trim().toLowerCase();
+  const dbPlan = await prisma.subscriptionPlan.findFirst({
+    where: { code: { equals: wantedCode, mode: 'insensitive' } },
+  });
+  if (!dbPlan) throw new PaymentError('INVALID_REQUEST', 'Unknown plan code', 400);
+  if (!dbPlan.active) throw new PaymentError('PROMOTION_INACTIVE', 'This plan is not currently available', 409);
 
   const user = await prisma.user.findUnique({ where: { id: opts.userId } });
   if (!user) throw new PaymentError('NOT_FOUND', 'User not found', 404);
@@ -430,14 +466,8 @@ async function fulfillSubscriptionPayment(
 ): Promise<void> {
   const now = new Date();
   const baseTime = payment.user.premiumExpiresAt && payment.user.premiumExpiresAt > now ? payment.user.premiumExpiresAt : now;
-  const expiresAt =
-    payment.plan.durationUnit === 'YEAR'
-      ? addYears(baseTime, payment.plan.durationValue)
-      : addMonths(baseTime, payment.plan.durationValue);
-  const durationMinutes =
-    payment.plan.durationUnit === 'YEAR'
-      ? payment.plan.durationValue * 365 * 24 * 60
-      : payment.plan.durationValue * 30 * 24 * 60;
+  const expiresAt = computePlanExpiry(baseTime, payment.plan.durationUnit, payment.plan.durationValue);
+  const durationMinutes = computePlanDurationMinutes(payment.plan.durationUnit, payment.plan.durationValue);
 
   await prisma.$transaction(async (tx) => {
     await tx.subscriptionPayment.update({

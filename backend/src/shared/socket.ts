@@ -63,6 +63,28 @@ export function emitToAll(event: string, payload: unknown) {
   io.emit(event, payload);
 }
 
+export function emitToRole(role: string, event: string, payload: unknown) {
+  if (!io) return;
+  const normalized = role.toUpperCase();
+  for (const [userId, sockets] of userSocketMap.entries()) {
+    io?.sockets.sockets.forEach((socket) => {
+      if (
+        sockets.has(socket.id) &&
+        String(socket.data.role || '').toUpperCase() === normalized
+      ) {
+        io?.to(socket.id).emit(event, payload);
+      }
+    });
+  }
+}
+
+export function emitToStaff(event: string, payload: unknown) {
+  emitToRole('SUPER_ADMIN', event, payload);
+  emitToRole('ADMIN', event, payload);
+  emitToRole('INVESTIGATOR', event, payload);
+  emitToRole('VOLUNTEER', event, payload);
+}
+
 export function getActiveUsersCount() {
   return userSocketMap.size;
 }

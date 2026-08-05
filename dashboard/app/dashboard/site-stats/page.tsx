@@ -343,7 +343,7 @@ export default function SiteStatsPage() {
                 className="mt-1"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>Section</Label>
                 <Select value={form.section} onValueChange={(v) => setForm({ ...form, section: v })}>

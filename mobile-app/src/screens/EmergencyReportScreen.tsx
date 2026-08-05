@@ -610,29 +610,32 @@ const EmergencyReportScreen: React.FC = () => {
   const sendViaWhatsApp2 = async (inputNumber: string): Promise<void> => {
     setIsSending(true);
 
+    // Clean phone number
+    let phoneNumber = inputNumber.replace(/\D/g, '');
+
+    // Validate length
+    if (phoneNumber.length < 9 || phoneNumber.length > 15) {
+      setIsSending(false);
+      Alert.alert(
+        '⚠️ Invalid Number',
+        'Please enter a valid phone number with 9-15 digits.\n\nExample: +233505313578 or 0505313578'
+      );
+      return;
+    }
+
+    // Add Ghana country code only for local numbers. Leave already-
+    // international numbers (leading '233') untouched; avoid prefixing an
+    // unrelated country code with a leading '1' (e.g. NANP +1 numbers) or a
+    // short, already-fully-prefixed number.
+    if (!phoneNumber.startsWith('233')) {
+      if (phoneNumber.startsWith('0')) {
+        phoneNumber = '233' + phoneNumber.substring(1);
+      } else if (!phoneNumber.startsWith('1') && phoneNumber.length >= 10 && phoneNumber.length <= 11) {
+        phoneNumber = '233' + phoneNumber;
+      }
+    }
+
     try {
-      // Clean phone number
-      let phoneNumber = inputNumber.replace(/\D/g, '');
-
-      // Validate length
-      if (phoneNumber.length < 9 || phoneNumber.length > 15) {
-        setIsSending(false);
-        Alert.alert(
-          '⚠️ Invalid Number',
-          'Please enter a valid phone number with 9-15 digits.\n\nExample: +233505313578 or 0505313578'
-        );
-        return;
-      }
-
-      // Add Ghana country code if needed
-      if (!phoneNumber.startsWith('233')) {
-        if (phoneNumber.startsWith('0')) {
-          phoneNumber = '233' + phoneNumber.substring(1);
-        } else {
-          phoneNumber = '233' + phoneNumber;
-        }
-      }
-
       console.log('📱 Sending to WhatsApp 2:', phoneNumber);
 
       // Prepare message
@@ -645,7 +648,6 @@ const EmergencyReportScreen: React.FC = () => {
 
       // Send via WhatsApp
       const result = await WhatsAppService.sendMessage(phoneNumber, finalMessage);
-      setIsSending(false);
 
       if (result.success) {
         Alert.alert(
@@ -659,9 +661,11 @@ const EmergencyReportScreen: React.FC = () => {
         Alert.alert('❌ Error', result.error || 'Failed to open WhatsApp 2');
       }
     } catch (error) {
-      setIsSending(false);
       console.error('❌ WhatsApp 2 error:', error);
       Alert.alert('❌ Error', 'Failed to send via WhatsApp 2. Please try again.');
+    } finally {
+      // Always clear the loader so the screen is never left stuck
+      setIsSending(false);
     }
   };
 
@@ -685,47 +689,51 @@ const EmergencyReportScreen: React.FC = () => {
     }
 
     setIsSending(true);
-    const message = await prepareEmergencyMessage();
+    try {
+      const message = await prepareEmergencyMessage();
 
-    // FIXED: Clean phone number properly - remove all non-digits
-    let phoneNumber = nearestStation.station.phoneNumber.replace(/\D/g, '');
+      // FIXED: Clean phone number properly - remove all non-digits
+      let phoneNumber = nearestStation.station.phoneNumber.replace(/\D/g, '');
 
-    // If number doesn't start with country code, add Ghana country code
-    if (!phoneNumber.startsWith('233')) {
-      // Remove leading 0 if present
-      if (phoneNumber.startsWith('0')) {
-        phoneNumber = '233' + phoneNumber.substring(1);
-      } else {
-        phoneNumber = '233' + phoneNumber;
+      // If number doesn't start with country code, add Ghana country code
+      if (!phoneNumber.startsWith('233')) {
+        // Remove leading 0 if present
+        if (phoneNumber.startsWith('0')) {
+          phoneNumber = '233' + phoneNumber.substring(1);
+        } else {
+          phoneNumber = '233' + phoneNumber;
+        }
       }
-    }
 
-    console.log('Sending to WhatsApp number:', phoneNumber);
+      console.log('Sending to WhatsApp number:', phoneNumber);
 
-  
-    // FIXED: Check if sendAudioMessage exists, otherwise use regular sendMessage
-   let result;
+      // FIXED: Check if sendAudioMessage exists, otherwise use regular sendMessage
+      let result;
 
-    // Voice mode - WhatsApp deep link doesn't support audio attachments
-    if (mode === 'voice' && audioUri) {
-      const audioMessage = message + '\n\n⚠️ Voice recording cannot be sent directly via WhatsApp deep link. Please attach manually.';
-      result = await WhatsAppService.sendMessage(phoneNumber, audioMessage);
-    } else {
-      result = await WhatsAppService.sendMessage(phoneNumber, message);
-    }
+      // Voice mode - WhatsApp deep link doesn't support audio attachments
+      if (mode === 'voice' && audioUri) {
+        const audioMessage = message + '\n\n⚠️ Voice recording cannot be sent directly via WhatsApp deep link. Please attach manually.';
+        result = await WhatsAppService.sendMessage(phoneNumber, audioMessage);
+      } else {
+        result = await WhatsAppService.sendMessage(phoneNumber, message);
+      }
 
-    setIsSending(false);
-
-    if (result.success) {
-      Alert.alert(
-        '✅ WhatsApp Opened',
-        mode === 'voice' && audioUri
-          ? 'WhatsApp opened. Please attach the voice recording manually and send.'
-          : 'WhatsApp opened. Please send the message.',
-        [{ text: 'OK', onPress: () => resetForm() }]
-      );
-    } else {
-      Alert.alert('❌ Error', result.error || 'Failed to open WhatsApp');
+      if (result.success) {
+        Alert.alert(
+          '✅ WhatsApp Opened',
+          mode === 'voice' && audioUri
+            ? 'WhatsApp opened. Please attach the voice recording manually and send.'
+            : 'WhatsApp opened. Please send the message.',
+          [{ text: 'OK', onPress: () => resetForm() }]
+        );
+      } else {
+        Alert.alert('❌ Error', result.error || 'Failed to open WhatsApp');
+      }
+    } catch (error) {
+      console.error('❌ WhatsApp error:', error);
+      Alert.alert('❌ Error', 'Failed to open WhatsApp. Please try again.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -921,6 +929,10 @@ const sendViaEmailAuto = async () => {
         formData.append('gpsLatitude', String(currentLocation.coords.latitude));
         formData.append('gpsLongitude', String(currentLocation.coords.longitude));
         formData.append('gpsAccuracy', String(currentLocation.coords.accuracy || 0));
+        formData.append(
+          'mapsLink',
+          `https://maps.google.com/?q=${currentLocation.coords.latitude},${currentLocation.coords.longitude}`
+        );
       }
 
       const token = await authService.getToken();

@@ -28,7 +28,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Receipt, Search, Loader2, RefreshCw } from 'lucide-react';
+import { Receipt, Search, Loader2, RefreshCw, Trash2, Trash } from 'lucide-react';
 
 interface OrderItem {
   productType: string;
@@ -144,6 +144,51 @@ export default function OrdersPage() {
   const canCancel = (o: Order) => isLegacyOrder(o) && ['PENDING_PAYMENT', 'CREATED', 'EXPIRED', 'FAILED'].includes(o.status);
   const canRefund = (o: Order) => isLegacyOrder(o) && ['PAID', 'FULFILLED'].includes(o.status);
 
+  // Non-paid records (including failed/cancelled subscription checkouts) may be
+  // removed to keep the order list tidy. Paid/fulfilled/refunded are financial
+  // records and are never deletable.
+  const DELETABLE_STATUSES = ['CREATED', 'PENDING_PAYMENT', 'FAILED', 'CANCELLED', 'EXPIRED'];
+  const canDelete = (o: Order) => DELETABLE_STATUSES.includes(o.status);
+
+  const handleDelete = async (order: Order) => {
+    setActingOn(order.orderNumber);
+    try {
+      const res = await fetch(`/api/orders/${order.orderNumber}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to delete order');
+        return;
+      }
+      toast.success('Order deleted');
+      setSelected(null);
+      fetchOrders();
+    } catch {
+      toast.error('Failed to delete order');
+    } finally {
+      setActingOn(null);
+    }
+  };
+
+  const handleClear = async () => {
+    const confirmed = window.confirm('Delete ALL non-paid orders (created, pending, failed, cancelled, expired)? This cannot be undone.');
+    if (!confirmed) return;
+    setActingOn('__clear__');
+    try {
+      const res = await fetch('/api/orders', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to clear orders');
+        return;
+      }
+      toast.success(data.removed ? `Cleared ${data.removed} order(s)` : 'No deletable orders found');
+      fetchOrders();
+    } catch {
+      toast.error('Failed to clear orders');
+    } finally {
+      setActingOn(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -151,9 +196,14 @@ export default function OrdersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
           <p className="text-muted-foreground">Course and premium subscription purchases</p>
         </div>
-        <Button variant="outline" onClick={fetchOrders}>
-          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleClear} disabled={actingOn === '__clear__'} className="text-destructive hover:text-destructive">
+            <Trash className="mr-2 h-4 w-4" /> Clear
+          </Button>
+          <Button variant="outline" onClick={fetchOrders}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -325,6 +375,17 @@ export default function OrdersPage() {
                     disabled={actingOn === selected.orderNumber}
                   >
                     Refund order
+                  </Button>
+                )}
+                {canDelete(selected) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDelete(selected)}
+                    disabled={actingOn === selected.orderNumber}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete order
                   </Button>
                 )}
               </div>

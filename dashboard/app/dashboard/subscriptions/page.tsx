@@ -197,8 +197,8 @@ export default function SubscriptionsPage() {
       toast.error('Duration value must be a positive integer');
       return;
     }
-    if (form.durationUnit !== 'MONTH' && form.durationUnit !== 'YEAR') {
-      toast.error('Duration unit must be MONTH or YEAR');
+if (!['DAY', 'WEEK', 'MONTH', 'YEAR'].includes(form.durationUnit)) {
+    toast.error('Duration unit must be DAY, WEEK, MONTH or YEAR');
       return;
     }
 
@@ -337,7 +337,13 @@ export default function SubscriptionsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {plan.durationValue} {plan.durationUnit.toLowerCase() === 'year' ? 'year(s)' : 'month(s)'}
+                        {plan.durationValue}{' '}
+                        {(() => {
+                          const u = plan.durationUnit.toLowerCase();
+                          const label =
+                            u === 'week' ? 'week' : u === 'day' ? 'day' : u === 'month' ? 'month' : 'year';
+                          return `${label}${Number(plan.durationValue) === 1 ? '' : 's'}`;
+                        })()}
                       </TableCell>
                       <TableCell className="font-semibold">{ghc(plan.pricePesewas)}</TableCell>
                       <TableCell>
@@ -515,7 +521,7 @@ export default function SubscriptionsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>Code</Label>
                 <Input
@@ -542,7 +548,7 @@ export default function SubscriptionsPage() {
                 placeholder="Optional short description"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>Price (pesewas)</Label>
                 <Input
@@ -561,7 +567,7 @@ export default function SubscriptionsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>Duration Unit</Label>
                 <Select value={form.durationUnit} onValueChange={(v) => setForm({ ...form, durationUnit: v })}>
@@ -569,6 +575,8 @@ export default function SubscriptionsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="DAY">Days</SelectItem>
+                    <SelectItem value="WEEK">Weeks</SelectItem>
                     <SelectItem value="MONTH">Months</SelectItem>
                     <SelectItem value="YEAR">Years</SelectItem>
                   </SelectContent>

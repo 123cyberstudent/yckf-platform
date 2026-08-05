@@ -514,7 +514,7 @@ export default function PromotionsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>Internal Name</Label>
                 <Input
@@ -540,7 +540,7 @@ export default function PromotionsPage() {
                 placeholder="Shown on banners/modals"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>Promotion Type</Label>
                 <Select value={form.promotionType} onValueChange={(v) => setForm({ ...form, promotionType: v })}>
@@ -654,7 +654,7 @@ export default function PromotionsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>Starts At</Label>
                 <Input
@@ -672,7 +672,7 @@ export default function PromotionsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex items-center justify-between rounded-xl border p-3">
                 <Label>Code required</Label>
                 <Switch checked={form.codeRequired} onCheckedChange={(v) => setForm({ ...form, codeRequired: v })} />

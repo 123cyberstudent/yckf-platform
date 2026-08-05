@@ -4,12 +4,12 @@ import { SUBSCRIPTION_PLANS } from '../subscriptions/constants.js';
 
 const router = Router();
 
-const VALID_DURATION_UNITS = ['MONTH', 'YEAR'];
+const VALID_DURATION_UNITS = ['DAY', 'WEEK', 'MONTH', 'YEAR'];
 
 function parseDuration(durationUnit: unknown, durationValue: unknown) {
   const unit = String(durationUnit ?? 'MONTH').toUpperCase();
   if (!VALID_DURATION_UNITS.includes(unit)) {
-    return { error: 'durationUnit must be MONTH or YEAR' };
+    return { error: 'durationUnit must be DAY, WEEK, MONTH or YEAR' };
   }
   if (durationValue === undefined || durationValue === null || durationValue === '') {
     return { error: 'durationValue is required' };

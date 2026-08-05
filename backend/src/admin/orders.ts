@@ -283,4 +283,111 @@ router.post('/:orderNumber/refund', async (req: Request, res: Response) => {
   }
 });
 
+// Non-paid statuses that are safe to remove. Paid/fulfilled/refunded records
+// are financial records and are never deleted.
+const ADMIN_DELETABLE_ORDER_STATUSES = new Set(['CREATED', 'PENDING_PAYMENT', 'FAILED', 'CANCELLED', 'EXPIRED']);
+const ADMIN_DELETABLE_SUB_STATUSES = new Set(['PENDING', 'FAILED', 'CANCELLED']);
+
+/** DELETE /api/admin/orders/:orderNumber — remove one non-paid order entry.
+ *  Accepts either a legacy Order number or a subscription provider reference. */
+router.delete('/:orderNumber', async (req: Request, res: Response) => {
+  try {
+    const orderNumber = String(req.params.orderNumber);
+
+    const legacy = await prisma.order.findUnique({ where: { orderNumber } });
+    if (legacy) {
+      if (!ADMIN_DELETABLE_ORDER_STATUSES.has(legacy.status)) {
+        return res.status(409).json({ error: 'Paid or fulfilled orders cannot be deleted' });
+      }
+      await prisma.$transaction([
+        prisma.orderItem.deleteMany({ where: { orderId: legacy.id } }),
+        prisma.paymentAttempt.deleteMany({ where: { orderId: legacy.id } }),
+        prisma.order.delete({ where: { id: legacy.id } }),
+      ]);
+      await logAudit((req as any).user?.id ?? null, 'order.delete', legacy.id, String(req.ip), {
+        entityType: 'order',
+        entityId: legacy.id,
+        previousValue: { orderNumber, status: legacy.status },
+        newValue: { deleted: true },
+        userAgent: req.get('user-agent') ?? undefined,
+      });
+      return res.json({ success: true, deleted: { kind: 'order', orderNumber } });
+    }
+
+    const payment = await prisma.subscriptionPayment.findUnique({ where: { providerReference: orderNumber } });
+    if (payment) {
+      if (!ADMIN_DELETABLE_SUB_STATUSES.has(payment.status)) {
+        return res.status(409).json({ error: 'Completed subscription payments cannot be deleted' });
+      }
+      const linked = await prisma.subscription.findFirst({ where: { paymentId: payment.id }, select: { id: true } });
+      if (linked) return res.status(409).json({ error: 'This payment is linked to an active subscription' });
+      await prisma.subscriptionPayment.delete({ where: { id: payment.id } });
+      await logAudit((req as any).user?.id ?? null, 'order.delete', payment.id, String(req.ip), {
+        entityType: 'subscriptionPayment',
+        entityId: payment.id,
+        previousValue: { providerReference: orderNumber, status: payment.status },
+        newValue: { deleted: true },
+        userAgent: req.get('user-agent') ?? undefined,
+      });
+      return res.json({ success: true, deleted: { kind: 'subscription', orderNumber } });
+    }
+
+    res.status(404).json({ error: 'Order not found' });
+  } catch (err) {
+    console.error('Failed to delete order:', err);
+    res.status(500).json({ error: 'Failed to delete order' });
+  }
+});
+
+/** DELETE /api/admin/orders — remove all non-paid order entries in one go.
+ *  Optionally scope by ?status= (single status, e.g. FAILED). */
+router.delete('/', async (req: Request, res: Response) => {
+  try {
+    const statusFilter = typeof req.query.status === 'string' && req.query.status !== 'ALL' ? req.query.status : null;
+
+    const orderWhere: any = {};
+    if (statusFilter) {
+      const mapped = ADMIN_DELETABLE_ORDER_STATUSES.has(statusFilter) ? statusFilter : null;
+      if (mapped) orderWhere.status = mapped;
+    } else {
+      orderWhere.status = { in: Array.from(ADMIN_DELETABLE_ORDER_STATUSES) };
+    }
+
+    const orders = await prisma.order.findMany({ where: orderWhere, select: { id: true } });
+    const orderIds = orders.map((o) => o.id);
+
+    const subWhere: any = {};
+    if (statusFilter) {
+      const mapped = ADMIN_DELETABLE_SUB_STATUSES.has(statusFilter) ? statusFilter : null;
+      if (mapped) subWhere.status = mapped;
+    } else {
+      subWhere.status = { in: Array.from(ADMIN_DELETABLE_SUB_STATUSES) };
+    }
+    const payments = await prisma.subscriptionPayment.findMany({ where: subWhere, select: { id: true } });
+    const linkedSubs = await prisma.subscription.findMany({ where: { paymentId: { in: payments.map((p) => p.id) } }, select: { paymentId: true } });
+    const protectedIds = new Set(linkedSubs.map((s) => s.paymentId));
+    const paymentIds = payments.map((p) => p.id).filter((id) => !protectedIds.has(id));
+
+    if (orderIds.length > 0 || paymentIds.length > 0) {
+      await prisma.$transaction([
+        prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } }),
+        prisma.paymentAttempt.deleteMany({ where: { orderId: { in: orderIds } } }),
+        prisma.order.deleteMany({ where: { id: { in: orderIds } } }),
+        prisma.subscriptionPayment.deleteMany({ where: { id: { in: paymentIds } } }),
+      ]);
+      await logAudit((req as any).user?.id ?? null, 'order.clear', 0, String(req.ip), {
+        entityType: 'order',
+        previousValue: { count: orderIds.length + paymentIds.length },
+        newValue: { cleared: true },
+        userAgent: req.get('user-agent') ?? undefined,
+      });
+    }
+
+    res.json({ success: true, removed: orderIds.length + paymentIds.length });
+  } catch (err) {
+    console.error('Failed to clear orders:', err);
+    res.status(500).json({ error: 'Failed to clear orders' });
+  }
+});
+
 export default router;

@@ -11,10 +11,11 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { WebView } from 'react-native-webview';
+import { WebView, WebViewNavigation } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING } from '../../utils/constants';
@@ -34,6 +35,17 @@ const MAX_POLLS = 40; // ~2 minutes
 
 const DONE_STATUSES = new Set(['FULFILLED', 'PAID', 'FAILED', 'EXPIRED', 'CANCELLED', 'REFUNDED']);
 
+// Paystack checkout is served behind Cloudflare and blocks requests with a
+// non-browser User-Agent. Use a real mobile browser UA so the payment page
+// loads and stays interactive.
+const BROWSER_USER_AGENT = Platform.select({
+  android:
+    'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+  ios: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  default:
+    'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+});
+
 const PaystackWebViewScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<Record<string, Params>, string>>();
@@ -41,8 +53,10 @@ const PaystackWebViewScreen: React.FC = () => {
   const isSubscription = mode === 'subscription';
 
   const [failed, setFailed] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const pollCount = useRef(0);
   const finishedRef = useRef(false);
+  const didLoadOnce = useRef(false);
 
   const finish = useCallback(
     (success: boolean, message: string) => {
@@ -98,8 +112,18 @@ const PaystackWebViewScreen: React.FC = () => {
     return () => clearInterval(timer);
   }, [poll, finish]);
 
-  const handleNavigationChange = (navState: any) => {
+  const handleNavigationChange = (navState: WebViewNavigation) => {
     const url = String(navState.url || '');
+
+    // Track real page load progress. The payment form must stay interactive, so
+    // never keep a full-screen loading layer up once the document has rendered.
+    if (navState.loading) {
+      setPageLoading(true);
+    } else if (!navState.loading && url.startsWith('http')) {
+      setPageLoading(false);
+      didLoadOnce.current = true;
+    }
+
     if (navState.url && navState.url.startsWith('http')) {
       const hasReference = url.includes('reference=');
       const isCallback =
@@ -111,6 +135,13 @@ const PaystackWebViewScreen: React.FC = () => {
         poll();
       }
     }
+  };
+
+  const [webViewKey, setWebViewKey] = useState(authorizationUrl);
+
+  const reloadWebView = () => {
+    setFailed(false);
+    setWebViewKey((k) => (k === authorizationUrl ? `${authorizationUrl}#retry-${Date.now()}` : authorizationUrl));
   };
 
   const handleCancel = () => {
@@ -153,33 +184,58 @@ const PaystackWebViewScreen: React.FC = () => {
           <View style={styles.failedBox}>
             <Ionicons name="cloud-offline" size={40} color={COLORS.text.light} />
             <Text style={styles.failedTitle}>Payment page failed to load</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => setFailed(false)}>
+            <Text style={styles.failedSubtitle}>
+              Please check your connection and try again, or reopen this order to continue the payment.
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={reloadWebView}>
               <Text style={styles.retryText}>Try Again</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <WebView
-            key={authorizationUrl}
-            source={{ uri: authorizationUrl }}
-            style={styles.webView}
-            onNavigationStateChange={handleNavigationChange}
-            onError={() => setFailed(true)}
-            onHttpError={() => setFailed(true)}
-            startInLoadingState
-            renderLoading={() => (
-              <View style={styles.webLoading}>
+          <View style={styles.webView}>
+            <WebView
+              key={webViewKey}
+              source={{ uri: authorizationUrl }}
+              userAgent={BROWSER_USER_AGENT}
+              style={styles.webView}
+              originWhitelist={['*']}
+              onNavigationStateChange={handleNavigationChange}
+              onShouldStartLoadWithRequest={() => true}
+              onError={() => {
+                // Only treat the page as failed when nothing ever rendered.
+                if (!didLoadOnce.current) setFailed(true);
+              }}
+              onHttpError={() => {
+                if (!didLoadOnce.current) {
+                  setTimeout(() => {
+                    if (!didLoadOnce.current) setFailed(true);
+                  }, 400);
+                }
+              }}
+              onLoadEnd={() => {
+                setPageLoading(false);
+                didLoadOnce.current = true;
+              }}
+              javaScriptEnabled
+              domStorageEnabled
+              sharedCookiesEnabled
+              thirdPartyCookiesEnabled
+              setSupportMultipleWindows={false}
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              allowsFullscreenVideo
+              mixedContentMode="always"
+              textZoom={100}
+              overScrollMode="never"
+            />
+
+            {pageLoading ? (
+              <View style={[styles.webLoading, styles.webLoadingNonBlocking]} pointerEvents="none">
                 <ActivityIndicator size="large" color={COLORS.primary} />
                 <Text style={styles.webLoadingText}>Opening secure payment page...</Text>
               </View>
-            )}
-            javaScriptEnabled
-            domStorageEnabled
-            sharedCookiesEnabled
-            thirdPartyCookiesEnabled
-            setSupportMultipleWindows={false}
-            textZoom={100}
-            overScrollMode="never"
-          />
+            ) : null}
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -239,7 +295,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.94)',
+  },
+  webLoadingNonBlocking: {
+    // The loading layer must NEVER intercept touches on the payment form.
+    pointerEvents: 'none',
   },
   webLoadingText: {
     marginTop: SPACING.sm,
@@ -257,6 +317,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text.primary,
     marginTop: SPACING.md,
+  },
+  failedSubtitle: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
   },
   retryButton: {
     marginTop: SPACING.lg,

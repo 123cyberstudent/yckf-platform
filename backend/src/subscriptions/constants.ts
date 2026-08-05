@@ -6,7 +6,7 @@ export interface SubscriptionPlanDef {
   description: string;
   pricePesewas: number;
   currency: string;
-  durationUnit: 'MONTH' | 'YEAR';
+  durationUnit: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
   durationValue: number;
   displayOrder: number;
 }

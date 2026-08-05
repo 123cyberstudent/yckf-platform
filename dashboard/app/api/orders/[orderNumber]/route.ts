@@ -35,3 +35,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     return NextResponse.json({ error: 'Backend unreachable' }, { status: 502 });
   }
 }
+
+export async function DELETE(request: NextRequest, context: { params: Promise<{ orderNumber: string }> }) {
+  try {
+    const token = await getBackendAuthToken();
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { orderNumber } = await context.params;
+    const res = await backendFetch(`/api/admin/orders/${orderNumber}`, { method: 'DELETE' }, token);
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ success: false, error: 'Backend unreachable' }, { status: 502 });
+  }
+}

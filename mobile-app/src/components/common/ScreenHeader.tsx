@@ -13,9 +13,10 @@ interface Props {
   title: string;
   subtitle?: string;
   showBack?: boolean;
+  right?: React.ReactNode;
 }
 
-const ScreenHeader: React.FC<Props> = ({ title, subtitle, showBack = true }) => {
+const ScreenHeader: React.FC<Props> = ({ title, subtitle, showBack = true, right }) => {
   const navigation = useNavigation();
 
   return (
@@ -33,7 +34,7 @@ const ScreenHeader: React.FC<Props> = ({ title, subtitle, showBack = true }) => 
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
-      {showBack ? <View style={styles.backButton} /> : null}
+      {right ? <View style={styles.backButton}>{right}</View> : showBack ? <View style={styles.backButton} /> : null}
     </View>
   );
 };

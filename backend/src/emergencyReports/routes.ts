@@ -8,6 +8,7 @@ import { computeHash, generateFilename, saveFile, getUploadPath } from '../share
 import { verifyToken, isStaff, optionalAuth, AuthRequest } from '../auth/middleware.js';
 import { notifyAdmins, createNotification } from '../notifications/service.js';
 import { logAudit } from '../audit/service.js';
+import { emitToStaff } from '../shared/socket.js';
 
 const router = Router();
 const upload = multer({
@@ -117,6 +118,19 @@ router.post('/', upload.single('audio'), optionalAuth, async (req: AuthRequest, 
       body: `${finalReporterName || 'Someone'} reported an emergency (${ticketNumber})`,
       link: `${dashboardBase()}/dashboard/emergencies`,
     }).catch(() => {});
+
+    // Real-time push to staff dashboards so new reports appear immediately
+    emitToStaff('emergency:new', {
+      id: report.id,
+      ticketNumber,
+      status: 'new',
+      incidentType: type || null,
+      reporterName: finalReporterName || null,
+      gpsLatitude: lat,
+      gpsLongitude: lng,
+      mapsLink: mapsLink || serverMapsLink,
+      createdAt: report.createdAt,
+    });
 
     const adminHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
