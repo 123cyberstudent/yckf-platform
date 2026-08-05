@@ -324,6 +324,18 @@ const onSubmit = async (data: ContactForm) => {
             </View>
           </View>
 
+          {/* Founder Accreditation Card */}
+          <View style={styles.accreditationCard}>
+            <Text style={styles.accreditationCardTitle}>Founder Accreditation</Text>
+            <View style={styles.accreditationImageContainer}>
+              <Image
+                source={require('../../assets/images/cyberaccreditation.png')}
+                style={styles.accreditationImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+
           {/* Official Links Card */}
       {/* Official Links Card */}
 <View style={styles.officialLinksCard}>
@@ -539,12 +551,35 @@ backButtonText: {
 
   // Founder Card
  founderCard: {
-  backgroundColor: COLORS.surface,
-  borderRadius: 16,
-  padding: SPACING.lg,
-  marginBottom: SPACING.lg,
-  elevation: 2,
-},
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
+    elevation: 2,
+  },
+  accreditationCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
+    elevation: 2,
+  },
+  accreditationCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.md,
+    textAlign: 'center',
+  },
+  accreditationImageContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  accreditationImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: 8,
+  },
   founderCardTitle: {
   fontSize: 18,
   fontWeight: '700',
