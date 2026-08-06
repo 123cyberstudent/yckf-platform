@@ -1218,7 +1218,9 @@ export default function UserPortalPage() {
                     </Badge>
                   ) : (
                     <Button asChild size="sm" variant="outline">
-                      <Link href="/subscriptions">Upgrade</Link>
+                      <a href="mailto:support@youngcyberknightsfoundation.org?subject=Premium%20Subscription%20Request">
+                        Upgrade
+                      </a>
                     </Button>
                   )}
                 </div>

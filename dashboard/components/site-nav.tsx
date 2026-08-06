@@ -12,7 +12,6 @@ const links = [
   { href: '/news', label: 'News' },
   { href: '/events', label: 'Events' },
   { href: '/courses', label: 'Courses' },
-  { href: '/subscriptions', label: 'Premium' },
   { href: '/resources', label: 'Resources' },
   { href: '/contact', label: 'Contact' },
 ];
