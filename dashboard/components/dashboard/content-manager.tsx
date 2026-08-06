@@ -28,7 +28,7 @@ const PAGE_CONFIGS: Record<string, { label: string; description: string; fields:
     label: 'Resources', description: 'Downloads and videos',
     fields: [],
     sections: {
-      downloads: { label: 'Downloads', template: { title: '', format: '', description: '', imageUrl: '' } },
+      downloads: { label: 'Downloads', template: { title: '', format: '', description: '', imageUrl: '', downloadUrl: '' } },
       videos: { label: 'Videos', template: { title: '' } },
       banners: { label: 'Banner Images', template: { url: '', alt: '', caption: '' } },
     },

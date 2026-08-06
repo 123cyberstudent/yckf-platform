@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 
 export default function ResourcesPage() {
   const [page, setPage] = useState<any>(null);
@@ -61,6 +63,17 @@ export default function ResourcesPage() {
                     <h3 className="text-lg font-semibold text-white">{item.title}</h3>
                     <p className="text-base text-primary mt-1">{item.format}</p>
                     <p className="text-base text-muted-foreground mt-2">{item.description}</p>
+                    {item.downloadUrl ? (
+                      <Button asChild className="mt-4 w-full bg-gradient-to-r from-[#2563EB] to-[#3B82F6]">
+                        <a href={item.downloadUrl} target="_blank" rel="noopener noreferrer">
+                          <Download className="mr-2 size-4" /> Download
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button className="mt-4 w-full" variant="outline" disabled>
+                        <Download className="mr-2 size-4" /> {item.format || 'Download'}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}

@@ -60,7 +60,7 @@ const DEFAULT_CONTENT: Record<string, { title: string; content: object }> = {
     content: {
       hero: { title: 'Cyber Safety Resources', subtitle: 'Free tools and guides for digital safety' },
       downloads: [
-        { title: 'Cyber Safety Basics Guide', format: 'PDF', description: 'A beginner-friendly guide to essential online safety practices, strong passwords, and spotting threats.', imageUrl: '' },
+        { title: 'Cyber Safety Basics Guide', format: 'PDF', description: 'A beginner-friendly guide to essential online safety practices, strong passwords, and spotting threats.', imageUrl: '', downloadUrl: '' },
         { title: 'Safeguarding Teens Online', format: 'PDF', description: 'Practical advice for parents, guardians, and educators to keep young people safe on social media.', imageUrl: '' },
         { title: 'Phishing & Scam Awareness', format: 'PDF', description: 'Learn how to recognise phishing emails, fake websites, and online scams before they catch you out.', imageUrl: '' },
         { title: 'Sextortion & Online Blackmail', format: 'PDF', description: 'Understand sextortion threats and how to respond safely, seek help, and report to authorities.', imageUrl: '' },
