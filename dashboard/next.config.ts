@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  async redirects() {
+    return [
+      {
+        source: "/events",
+        destination: "/news",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
