@@ -18,6 +18,14 @@ function backfillContent(stored: Record<string, any>, defaults: Record<string, a
     const storedValue = merged[key];
     if (isEmptyValue(storedValue)) {
       merged[key] = defaultValue;
+    } else if (Array.isArray(storedValue) && Array.isArray(defaultValue)) {
+      merged[key] = storedValue.map((item: any, idx: number) => {
+        const template = defaultValue[idx];
+        if (item && typeof item === 'object' && !Array.isArray(item) && template && typeof template === 'object' && !Array.isArray(template)) {
+          return backfillContent(item, template);
+        }
+        return item;
+      });
     } else if (typeof storedValue === 'object' && !Array.isArray(storedValue) && typeof defaultValue === 'object' && defaultValue !== null) {
       merged[key] = backfillContent(storedValue, defaultValue);
     }
@@ -69,11 +77,11 @@ const DEFAULT_CONTENT: Record<string, { title: string; content: object }> = {
     content: {
       hero: { title: 'Cybersecurity Courses', subtitle: 'Professional certifications for all levels' },
       courses: [
-        { title: 'Cyber Safety Fundamentals', level: 'Beginner', duration: 'Self-paced', price: 'Free', description: 'Learn the essentials of online safety, strong passwords, safe browsing, and protecting your digital identity.', imageUrl: '' },
-        { title: 'Ethical Hacking Basics', level: 'Intermediate', duration: '8 weeks', price: 'Free', description: 'Introduction to ethical hacking, recon, vulnerability discovery, and how ethical hackers secure systems.', imageUrl: '' },
-        { title: 'Digital Forensics', level: 'Intermediate', duration: '8 weeks', price: 'Free', description: 'Hands-on digital forensics - evidence collection, analysis, and reporting for investigations.', imageUrl: '' },
-        { title: 'CompTIA Security+ Prep', level: 'Advanced', duration: '12 weeks', price: 'Paid', description: 'Full courseware and labs to prepare you for the CompTIA Security+ certification exam.', imageUrl: '' },
-        { title: 'CEH Preparation', level: 'Advanced', duration: '12 weeks', price: 'Paid', description: 'Exam preparation for Certified Ethical Hacker, covering real-world penetration testing and countermeasures.', imageUrl: '' },
+        { slug: 'cyber-safety-fundamentals', title: 'Cyber Safety Fundamentals', level: 'Beginner', duration: 'Self-paced', price: 'Free', description: 'Learn the essentials of online safety, strong passwords, safe browsing, and protecting your digital identity.', imageUrl: '' },
+        { slug: 'ethical-hacking-basics', title: 'Ethical Hacking Basics', level: 'Intermediate', duration: '8 weeks', price: 'Free', description: 'Introduction to ethical hacking, recon, vulnerability discovery, and how ethical hackers secure systems.', imageUrl: '' },
+        { slug: 'digital-forensics', title: 'Digital Forensics', level: 'Intermediate', duration: '8 weeks', price: 'Free', description: 'Hands-on digital forensics - evidence collection, analysis, and reporting for investigations.', imageUrl: '' },
+        { slug: 'comptia-security-prep', title: 'CompTIA Security+ Prep', level: 'Advanced', duration: '12 weeks', price: 'Paid', description: 'Full courseware and labs to prepare you for the CompTIA Security+ certification exam.', imageUrl: '' },
+        { slug: 'ceh-preparation', title: 'CEH Preparation', level: 'Advanced', duration: '12 weeks', price: 'Paid', description: 'Exam preparation for Certified Ethical Hacker, covering real-world penetration testing and countermeasures.', imageUrl: '' },
       ],
     },
   },
