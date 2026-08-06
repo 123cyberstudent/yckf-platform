@@ -333,6 +333,10 @@ router.put('/:id/status', verifyToken, isStaff, async (req: AuthRequest, res: Re
 // Assign an emergency report to a responder (volunteer/investigator/staff)
 router.post('/:id/assign', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
+    // Only administrators may (re)assign reports to responders.
+    if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only administrators can assign responders' });
+    }
     const reportId = Number(req.params.id);
     const { assigneeId, assignmentNote, dueAt, priority } = req.body;
 
@@ -449,6 +453,10 @@ router.post('/:id/assign', verifyToken, isStaff, async (req: AuthRequest, res: R
 // Unassign an emergency report from its current responder
 router.post('/:id/unassign', verifyToken, isStaff, async (req: AuthRequest, res: Response) => {
   try {
+    // Only administrators may unassign reports.
+    if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only administrators can unassign responders' });
+    }
     const reportId = Number(req.params.id);
     const { reason } = req.body;
 

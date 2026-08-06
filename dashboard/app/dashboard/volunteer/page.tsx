@@ -22,6 +22,7 @@ interface AssignedReport {
   dueAt: string | null;
   mapsLink: string | null;
   stationName: string | null;
+  gpsAddress: string | null;
   reporterName: string | null;
   createdAt: string;
 }
@@ -169,7 +170,7 @@ export default function VolunteerDashboardPage() {
                             <MapPin className="h-3.5 w-3.5" /> Map
                           </a>
                         ) : (
-                          report.stationName || '—'
+                          report.gpsAddress || report.stationName || '—'
                         )}
                       </td>
                       <td className="px-3 py-3">

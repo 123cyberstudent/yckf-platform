@@ -27,6 +27,7 @@ type Params = {
   orderNumber: string;
   authorizationUrl: string;
   mode?: 'order' | 'subscription';
+  reference?: string;
   continueTo?: OrderContinueTarget;
 };
 
@@ -49,8 +50,11 @@ const BROWSER_USER_AGENT = Platform.select({
 const PaystackWebViewScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<Record<string, Params>, string>>();
-  const { orderNumber, authorizationUrl, mode, continueTo } = route.params ?? ({} as Params);
+  const { orderNumber, authorizationUrl, mode, reference, continueTo } = route.params ?? ({} as Params);
   const isSubscription = mode === 'subscription';
+  // For subscriptions the checkout is keyed by the Paystack reference, which
+  // is passed both as `reference` and (from PlansScreen) as `orderNumber`.
+  const subscriptionReference = reference || orderNumber;
 
   const [failed, setFailed] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -84,16 +88,21 @@ const PaystackWebViewScreen: React.FC = () => {
   const pollSubscription = useCallback(async () => {
     if (finishedRef.current) return;
     try {
-      const status = await SubscriptionService.getStatus();
-      if (status.isPremium) {
+      const payment = await SubscriptionService.getPaymentStatus(subscriptionReference);
+      // Terminal subscription statuses that conclude the checkout.
+      if (payment.status === 'PAID' || payment.paid) {
         finish(true, 'Payment successful');
+        return true;
+      }
+      if (payment.status === 'FAILED' || payment.status === 'CANCELLED' || payment.status === 'EXPIRED' || payment.status === 'REFUNDED') {
+        finish(false, `Payment ${payment.status.replace(/_/g, ' ').toLowerCase()}`);
         return true;
       }
     } catch (err) {
       // transient network errors are ignored; polling continues
     }
     return false;
-  }, [finish]);
+  }, [subscriptionReference, finish]);
 
   const poll = useCallback(() => (isSubscription ? pollSubscription() : pollOrder()), [isSubscription, pollSubscription, pollOrder]);
 
@@ -151,12 +160,14 @@ const PaystackWebViewScreen: React.FC = () => {
         text: 'Cancel order',
         style: 'destructive',
         onPress: async () => {
-          if (!isSubscription) {
-            try {
+          try {
+            if (isSubscription) {
+              await SubscriptionService.cancelPayment(subscriptionReference);
+            } else {
               await OrdersService.cancelOrder(orderNumber);
-            } catch (err) {
-              // order may already be processing; still navigate away
             }
+          } catch (err) {
+            // payment may already be processing; still navigate away
           }
           finish(false, 'Payment cancelled');
         },

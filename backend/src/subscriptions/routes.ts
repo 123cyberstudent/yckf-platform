@@ -131,4 +131,38 @@ router.post(
   }
 );
 
+/** POST /api/subscriptions/:reference/cancel — cancel/park an abandoned checkout. */
+router.post(
+  '/:reference/cancel',
+  checkoutRateLimiter,
+  [param('reference').trim().notEmpty().withMessage('reference is required')],
+  validateRequest,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const reference = String(req.params.reference).trim();
+      const payment = await prisma.subscriptionPayment.findFirst({
+        where: { providerReference: reference, userId: req.user!.id },
+      });
+      if (!payment) {
+        return res.status(404).json({ success: false, error: 'Payment not found' });
+      }
+      if (payment.status === 'PAID') {
+        return res.status(400).json({ success: false, error: 'Payment already completed' });
+      }
+      // Only transition still-pending/abandoned checkouts so a completed
+      // charge (processed by webhook a moment later) is never cancelled.
+      if (payment.status === 'PENDING' || payment.status === 'INITIALIZED') {
+        await prisma.subscriptionPayment.update({
+          where: { id: payment.id },
+          data: { status: 'CANCELLED', rawProviderStatus: 'cancelled_by_user' },
+        });
+      }
+      res.json({ success: true, message: 'Subscription checkout cancelled' });
+    } catch (err) {
+      console.error('Failed to cancel subscription checkout:', err);
+      res.status(500).json({ success: false, error: 'Failed to cancel subscription checkout' });
+    }
+  }
+);
+
 export default router;

@@ -79,7 +79,10 @@ interface EmergencyReport {
   mapsLink: string | null;
   gpsLatitude: number | null;
   gpsLongitude: number | null;
+  gpsAddress: string | null;
+  stationPhone: string | null;
   audioFileUrl: string | null;
+  audioDuration: number | null;
   status: string;
   priority: string;
   submittedAt: string;
@@ -148,7 +151,10 @@ export default function EmergenciesPage() {
         mapsLink: r.mapsLink ?? r.maps_link ?? null,
         gpsLatitude: r.gpsLatitude ?? r.gps_latitude ?? null,
         gpsLongitude: r.gpsLongitude ?? r.gps_longitude ?? null,
+        gpsAddress: r.gpsAddress ?? r.gps_address ?? null,
+        stationPhone: r.stationPhone ?? r.station_phone ?? null,
         audioFileUrl: r.audioFileUrl ?? r.audio_file_url ?? null,
+        audioDuration: r.audioDuration ?? r.audio_duration ?? null,
         status: r.status ?? 'new',
         priority: r.priority ?? 'medium',
         submittedAt: r.submittedAt ?? r.submitted_at ?? r.createdAt ?? new Date().toISOString(),
@@ -482,6 +488,7 @@ export default function EmergenciesPage() {
                     <th className="px-4 py-3 text-left font-semibold">Ticket</th>
                     <th className="px-4 py-3 text-left font-semibold">Reporter</th>
                     {currentRole === 'admin' && <th className="px-4 py-3 text-left font-semibold">Phone</th>}
+                    <th className="px-4 py-3 text-left font-semibold">Incident</th>
                     <th className="px-4 py-3 text-left font-semibold">Nearest Station</th>
                     {currentRole === 'admin' && <th className="px-4 py-3 text-left font-semibold">GPS</th>}
                     <th className="px-4 py-3 text-left font-semibold">Voice</th>
@@ -506,6 +513,9 @@ export default function EmergenciesPage() {
                           </div>
                         </td>
                       )}
+                      <td className="px-4 py-3">
+          <span className="text-sm capitalize">{report.incidentType ? String(report.incidentType).replace(/_/g, ' ') : '—'}</span>
+        </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{report.nearestStation || '—'}</td>
                       {currentRole === 'admin' && (
                         <td className="px-4 py-3">
@@ -707,10 +717,37 @@ export default function EmergenciesPage() {
                   <p className="font-medium">{currentRole === 'admin' ? detail.reporterPhone || '—' : 'REDACTED'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Nearest station</p>
-                  <p className="font-medium">{detail.nearestStation || '—'}{detail.stationDistance != null ? ` · ${Math.round(detail.stationDistance)}m` : ''}</p>
+                  <p className="text-xs text-muted-foreground">Incident type</p>
+                  <p className="font-medium capitalize">{detail.incidentType ? String(detail.incidentType).replace(/_/g, ' ') : '—'}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Nearest station</p>
+                  <p className="font-medium">{detail.nearestStation || '—'}{detail.stationDistance != null ? ` · ${Math.round(detail.stationDistance)} km` : ''}</p>
+                </div>
+                {currentRole === 'admin' && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Station phone</p>
+                    <p className="font-medium">{detail.stationPhone || '—'}</p>
+                  </div>
+                )}
               </div>
+
+              {detail.gpsAddress ? (
+                <div className="rounded-xl border p-4">
+                  <p className="text-xs text-muted-foreground">GPS address</p>
+                  <p className="mt-1 font-medium">{detail.gpsAddress}</p>
+                  {detail.gpsLatitude != null && detail.gpsLongitude != null && (
+                    <a
+                      href={`https://www.google.com/maps?q=${detail.gpsLatitude},${detail.gpsLongitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-[#2563EB] hover:underline"
+                    >
+                      <MapPin className="size-3.5" /> {detail.gpsLatitude.toFixed(4)}, {detail.gpsLongitude.toFixed(4)}
+                    </a>
+                  )}
+                </div>
+              ) : null}
 
               <div className="rounded-xl border p-4">
                 <p className="text-xs text-muted-foreground">Description</p>

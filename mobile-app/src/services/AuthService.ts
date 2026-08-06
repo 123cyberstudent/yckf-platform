@@ -186,42 +186,51 @@ class AuthService {
 
       const data = await response.json();
 
+      // The backend intentionally does NOT return a token on registration
+      // (201 -> { id, email, ... confirmationSent }). A successful register is
+      // any 2xx response; the user then verifies email and logs in via OTP.
+      if (response.ok) {
+        const authToken = data.accessToken || data.token || this.authToken || undefined;
+        const user = data.user ? {
+          ...data.user,
+          name: data.user.fullName || data.user.name,
+        } : {
+          id: data.id,
+          email: normalizedEmail,
+          fullName: data.fullName || name,
+          phone: data.phone || phoneNumber,
+          role: data.role || 'USER',
+        };
 
-      if (response.ok && (data.accessToken || data.token)) {
-  const authToken = data.accessToken || data.token;
-  const user = data.user ? {
-    ...data.user,
-    name: data.user.fullName || data.user.name,
-  } : data.user;
+        await AsyncStorage.setItem('user_data', JSON.stringify(user));
 
-  await AsyncStorage.setItem('auth_token', authToken);
-  await AsyncStorage.setItem('user_data', JSON.stringify(user));
+        await AsyncStorage.setItem('lastUser', JSON.stringify({
+          name: (user && (user.name || user.fullName)) || name,
+          email: normalizedEmail,
+          profileImage: profileImage || undefined,
+        }));
 
-  await AsyncStorage.setItem('lastUser', JSON.stringify({
-    name: user.name,
-    email: normalizedEmail,
-    profileImage: profileImage || undefined,
-  }));
-
-  this.authToken = authToken;
-  this.currentUser = user;
-
-  try {
-    await this.sendAdminNewUserNotification(user);
-  } catch (emailError) {
-    console.warn('Admin notification failed (non-critical):', emailError);
-  }
+        if (authToken) {
+          await AsyncStorage.setItem('auth_token', authToken);
+          this.authToken = authToken;
+          this.currentUser = user;
+          try {
+            await this.sendAdminNewUserNotification(user);
+          } catch (emailError) {
+            console.warn('Admin notification failed (non-critical):', emailError);
+          }
+        }
 
         return {
           success: true,
-          token: authToken,
+          token: authToken || null,
           user: user,
         };
       }
 
       return {
         success: false,
-        error: data.error || 'Registration failed',
+        error: data.error || (Array.isArray(data.errors) && data.errors[0]?.msg) || 'Registration failed',
       };
     } catch (error) {
       console.error('Registration error:', error);

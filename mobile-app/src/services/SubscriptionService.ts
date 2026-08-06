@@ -106,6 +106,35 @@ class SubscriptionService {
     return data as SubscriptionStatus;
   }
 
+  /**
+   * Poll the provider status of a single subscription checkout by its
+   * Paystack reference. Returns terminated state as soon as the webhook
+   * finishes processing (no dependence on the heavier /status endpoint).
+   */
+  async getPaymentStatus(reference: string): Promise<{ status: string; paid: boolean; paidAt?: string | null; plan?: string | null }> {
+    const res = await fetch(`${API_BASE_URL}/api/subscriptions/payment-status/${encodeURIComponent(reference)}`, {
+      headers: await this.headers(),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw this.errorFrom(data, 'Failed to load payment status');
+    }
+    return data as { status: string; paid: boolean; paidAt?: string | null; plan?: string | null };
+  }
+
+  /**
+   * Request the backend to cancel/park a pending subscription payment that
+   * was abandoned by the user. Best-effort; ends the checkout gracefully.
+   */
+  async cancelPayment(reference: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/subscriptions/${encodeURIComponent(reference)}/cancel`, {
+      method: 'POST',
+      headers: await this.headers(),
+      body: JSON.stringify({}),
+    });
+    await res.json().catch(() => null);
+  }
+
   async initialize(opts: {
     planCode: string;
     referralCode?: string;

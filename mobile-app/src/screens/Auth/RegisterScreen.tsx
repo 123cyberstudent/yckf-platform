@@ -111,6 +111,17 @@ if (phoneNumber.replace(/[^0-9]/g, '').length < 10) {
     return;
   }
 
+  // Backend requires at least one number AND one special character. Validate
+  // here too so users get a clear message instead of a generic server error.
+  if (!/[0-9]/.test(password)) {
+    Alert.alert('Error', 'Password must contain at least one number');
+    return;
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    Alert.alert('Error', 'Password must contain at least one special character (e.g. !@#$%^&*)');
+    return;
+  }
+
   // ============================================
   // NEW: VALIDATE PASSWORD DOESN'T CONTAIN NAME
   // ============================================
@@ -159,7 +170,7 @@ const result = await AuthService.register(normalizedEmail, password, name.trim()
       console.log('❌ Registration error:', errorMsg);
       
       // ⭐ NEW: Show different alerts based on error type
-      if (errorMsg.toLowerCase().includes('already exists')) {
+      if (errorMsg.toLowerCase().includes('already exists') || errorMsg.toLowerCase().includes('already in use')) {
         Alert.alert(
           'Email Already Registered',
           'This email is already registered. Would you like to login instead?',

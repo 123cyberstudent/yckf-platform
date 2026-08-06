@@ -763,6 +763,23 @@ export async function handleChargeSuccess(reference: string): Promise<{ status: 
     return { status: 'failed' };
   }
 
+  // Guard against underpayment / wrong-currency. Mirror the subscription
+  // check: only fulfil when the charged amount and currency exactly match
+  // the checkout attempt.
+  if (verified.currency !== payment.currency || verified.amount !== payment.amount) {
+    await prisma.paymentAttempt.update({
+      where: { id: payment.id },
+      data: {
+        status: PaymentStatus.FAILED,
+        failureCode: 'amount_mismatch',
+        failureMessage: `Verified ${verified.currency} ${verified.amount} but expected ${payment.currency} ${payment.amount}`,
+        channel: verified.channel,
+        failedAt: new Date(),
+      },
+    });
+    return { status: 'amount_mismatch' };
+  }
+
   // The customer has paid; make sure the order is open so fulfilment can run.
   // An order that expired or was cancelled before the payment settled must be
   // re-activated rather than silently skipped.

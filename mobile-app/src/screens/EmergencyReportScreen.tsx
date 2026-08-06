@@ -43,6 +43,19 @@ interface ChatMessage {
   isUser: boolean;
 }
 
+// Emergency incident categories, matching the backend INCIDENT_TYPES list so
+// the submission payload routes the report to the right response team.
+const INCIDENT_TYPES: { value: string; label: string }[] = [
+  { value: 'cyber_threat', label: 'Cyber Threat' },
+  { value: 'physical_threat', label: 'Physical Threat' },
+  { value: 'data_breach', label: 'Data Breach' },
+  { value: 'fraud', label: 'Fraud' },
+  { value: 'harassment', label: 'Harassment' },
+  { value: 'medical', label: 'Medical' },
+  { value: 'fire', label: 'Fire' },
+  { value: 'other', label: 'Other' },
+];
+
 const EmergencyReportScreen: React.FC = () => {
   // State Management
   const [mode, setMode] = useState<'voice' | 'text'>('voice');
@@ -64,6 +77,9 @@ const EmergencyReportScreen: React.FC = () => {
 
   // Loading states
   const [isSending, setIsSending] = useState(false);
+
+  // Incident category used for routing. Mirrors the backend INCIDENT_TYPES.
+  const [incidentType, setIncidentType] = useState<string>('cyber_threat');
 
   // Privacy consent
   const [privacyConsented, setPrivacyConsented] = useState(false);
@@ -873,6 +889,7 @@ const sendViaEmailAuto = async () => {
   };
 
   const submitToBackend = async () => {
+    if (isSending) return; // guard against double-tap duplicate submissions
     setIsSending(true);
 
     try {
@@ -886,6 +903,7 @@ const sendViaEmailAuto = async () => {
       formData.append('reporterName', userName);
       formData.append('reporterPhone', userPhone);
       formData.append('reporterEmail', userEmail);
+      formData.append('incidentType', incidentType || 'other');
 
       let description = '';
       if (mode === 'text' && messages.length > 0) {
@@ -899,10 +917,11 @@ const sendViaEmailAuto = async () => {
         try {
           const fileInfo = await FileSystem.getInfoAsync(audioUri);
           if (fileInfo.exists) {
+            const ext = (audioUri.split('.').pop() || 'm4a').toLowerCase();
             formData.append('audio', {
               uri: audioUri,
-              type: 'audio/m4a',
-              name: 'recording.m4a',
+              type: `audio/${ext === 'm4a' ? 'm4a' : ext === 'caf' ? 'x-caf' : ext}`,
+              name: `recording.${ext}`,
             } as any);
           }
         } catch (error) {
@@ -933,6 +952,25 @@ const sendViaEmailAuto = async () => {
           'mapsLink',
           `https://maps.google.com/?q=${currentLocation.coords.latitude},${currentLocation.coords.longitude}`
         );
+        // Reverse geocode the coordinates into a human-readable address so the
+        // backend/admin email shows a real place instead of "Not available".
+        try {
+          const address = await LocationService.getAddressFromLocation({
+            latitude: currentLocation.coords.latitude,
+            longitude: currentLocation.coords.longitude,
+            accuracy: currentLocation.coords.accuracy ?? undefined,
+            altitude: currentLocation.coords.altitude ?? undefined,
+            timestamp: currentLocation.timestamp,
+          });
+          if (address) {
+            const parts = [address.name, address.street, address.city, address.region, address.country]
+              .filter(Boolean)
+              .join(', ');
+            formData.append('gpsAddress', parts || '');
+          }
+        } catch (error) {
+          console.error('Reverse geocoding failed (non-critical):', error);
+        }
       }
 
       const token = await authService.getToken();
@@ -1049,6 +1087,7 @@ const sendViaEmailAuto = async () => {
     setRecordingDuration(0);
     setMessages([]);
     setInputText('');
+    setIncidentType('cyber_threat');
   };
 
 
@@ -1375,6 +1414,32 @@ const sendViaEmailAuto = async () => {
         </TouchableOpacity>
       </View>
 
+      {/* Incident Type Selector */}
+      <View style={styles.incidentTypeSection}>
+        <Text style={styles.incidentTypeLabel}>What type of emergency is this?</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.incidentTypeRow}
+        >
+          {INCIDENT_TYPES.map((type) => {
+            const isActive = incidentType === type.value;
+            return (
+              <TouchableOpacity
+                key={type.value}
+                style={[styles.incidentChip, isActive && styles.incidentChipActive]}
+                onPress={() => setIncidentType(type.value)}
+                disabled={isRecording || isSending}
+              >
+                <Text style={[styles.incidentChipText, isActive && styles.incidentChipTextActive]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {/* Main Content Area */}
       <ScrollView
         ref={scrollViewRef}
@@ -1688,6 +1753,40 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   modeButtonTextActive: {
+    color: COLORS.text.white,
+  },
+  incidentTypeSection: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+  },
+  incidentTypeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: SPACING.xs,
+  },
+  incidentTypeRow: {
+    paddingRight: SPACING.md,
+    gap: 8,
+  },
+  incidentChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: COLORS.surface,
+  },
+  incidentChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  incidentChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  incidentChipTextActive: {
     color: COLORS.text.white,
   },
   content: {

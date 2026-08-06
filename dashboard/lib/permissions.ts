@@ -40,7 +40,7 @@ export async function isAdmin(): Promise<boolean> {
 
 export async function isStaff(): Promise<boolean> {
   const role = await getRoleFromCookie();
-  return role === 'super_admin' || role === 'admin' || role === 'volunteer';
+  return role === 'super_admin' || role === 'admin' || role === 'volunteer' || role === 'investigator';
 }
 
 export async function isVolunteer(): Promise<boolean> {
