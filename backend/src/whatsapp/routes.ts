@@ -28,7 +28,7 @@ const AUTO_REPLIES: Record<string, string> = {
   'crime': `To report a cybercrime, please visit our secure reporting portal:\n${PUBLIC_SITE_URL}/report-a-cybercrime\n\nAll reports are confidential and handled by trained volunteers.`,
   'volunteer': `Interested in volunteering with YCKF? We'd love to have you!\n\nFill out our volunteer application:\n${PUBLIC_SITE_URL}/volunteers\n\nOr email us at: yckfadmin@youngcyberknightsfoundation.org`,
   'course': `We offer free and paid cybersecurity courses for all levels:\n\nBrowse our courses:\n${PUBLIC_SITE_URL}/courses\n\nCertifications available: CEH, CompTIA Security+, and more.`,
-  'event': `Check out our upcoming cybersecurity events:\n${PUBLIC_SITE_URL}/events\n\nJoin our community for workshops, seminars, and conferences.`,
+  'event': `Check out our upcoming cybersecurity events:\n${PUBLIC_SITE_URL}/news\n\nJoin our community for workshops, seminars, and conferences.`,
   'news': `Stay updated with the latest cybersecurity news:\n${PUBLIC_SITE_URL}/news`,
   'help': `How can we help you? Reply with:\n\n1 - Report a cybercrime\n2 - Volunteer with us\n3 - Browse courses\n4 - View events\n5 - General inquiry`,
   'status': `To check the status of your report, please provide your report ID or visit:\n${PUBLIC_SITE_URL}/report-a-cybercrime\n\nOur team will get back to you.`,

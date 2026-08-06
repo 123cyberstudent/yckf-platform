@@ -11,7 +11,7 @@ const QUICK_REPLIES = [
   { label: 'Browse Courses', command: '/courses' },
   { label: 'Volunteer', command: '/volunteer' },
   { label: 'Cybersecurity Tips', command: '/tips' },
-  { label: 'View Events', command: '/events' },
+  { label: 'News & Events', command: '/news' },
   { label: 'Contact Us', command: '/contact' },
 ];
 

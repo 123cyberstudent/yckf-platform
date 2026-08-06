@@ -12,7 +12,7 @@ const AUTO_REPLIES: Record<string, string> = {
   '/report': `To report a cybercrime to YCKF:\n\n1. Visit our secure portal: ${PUBLIC_SITE_URL}/report-a-cybercrime\n2. Fill in the incident details\n3. You'll receive a report ID\n\nFor urgent matters, call +233505313578`,
   '/courses': `YCKF Cybersecurity Courses:\n\n- Cyber Safety Fundamentals\n- Ethical Hacking Basics\n- Digital Forensics\n- CompTIA Security+ Prep\n- CEH Preparation\n\nBrowse: ${PUBLIC_SITE_URL}/courses`,
   '/volunteer': `Want to volunteer with YCKF?\n\nWe need:\n- Cyber awareness educators\n- Community outreach volunteers\n- Technical support\n- Event coordinators\n\nApply: ${PUBLIC_SITE_URL}/volunteers\nEmail: yckfadmin@youngcyberknightsfoundation.org`,
-  '/events': `Upcoming YCKF Events:\n\nCheck our events page for workshops, seminars, and CTF competitions.\n\n${PUBLIC_SITE_URL}/events`,
+  '/events': `Upcoming YCKF Events:\n\nCheck our news & events page for workshops, seminars, and CTF competitions.\n\n${PUBLIC_SITE_URL}/news`,
   '/tips': `Cybersecurity Tip:\n\n${[
     'Use strong, unique passwords for every account.',
     'Enable two-factor authentication (2FA).',

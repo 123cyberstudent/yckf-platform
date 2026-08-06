@@ -32,7 +32,7 @@ function generateLocalResponse(message: string): string {
   }
 
   if (lower.match(/\b(event|workshop|seminar|conference|meetup)\b/)) {
-    return `Check our upcoming events at: ${SITE_URL}/events\n\nWe regularly host:\n- Cybersecurity workshops\n- Community awareness sessions\n- Capture The Flag (CTF) competitions\n- Expert speaker events`
+    return `Check our upcoming events at: ${SITE_URL}/news\n\nWe regularly host:\n- Cybersecurity workshops\n- Community awareness sessions\n- Capture The Flag (CTF) competitions\n- Expert speaker events`
   }
 
   if (lower.match(/\b(password|secure|safety|protect|tip|advice)\b/)) {
