@@ -54,7 +54,8 @@
         }
       ],
       "expo-font",
-      "expo-mail-composer"
+      "expo-mail-composer",
+      "./plugins/withEmergencyShortcut"
     ],
     "owner": "yckflab",
     "extra": {

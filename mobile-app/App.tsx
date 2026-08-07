@@ -14,6 +14,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import LoadingScreen from './src/components/common/LoadingScreen';
 import AuthMonitorWrapper from './src/components/AuthMonitorWrapper'; // ⭐ NEW - Auto-logout wrapper
+import EmergencyShortcutOverlay from './src/components/EmergencyShortcutOverlay'; // Hardware SOS shortcut
 // import SilentCamera from './src/components/SilentCamera'; // ⭐ NEW - Silent camera for thief detection
 
 // Contexts
@@ -25,6 +26,7 @@ import { StorageProvider } from './src/contexts/StorageContext';
 import NotificationService from './src/services/NotificationService';
 import { requestPermissions } from './src/services/PermissionService';
 import AuthService from './src/services/AuthService'; // ⭐ Auth Service with auto-logout
+import EmergencyShortcutService from './src/services/EmergencyShortcutService';
 // import ThiefDetectionService from './src/services/ThiefDetectionService';
 
 // Utils
@@ -55,6 +57,9 @@ export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
   // ⭐ NEW - State for thief detection config
+  // Hardware SOS shortcut state: armed=true starts the cancel countdown.
+  const [shortcutArmed, setShortcutArmed] = useState(false);
+  const [shortcutTriggeredAt, setShortcutTriggeredAt] = useState(0);
 
  
   useEffect(() => {
@@ -161,6 +166,27 @@ export default function App() {
     });
   };
 
+  useEffect(() => {
+    if (!isReady || initializing) return;
+
+    // Wire the hardware volume-down shortcut: 3 quick presses arm the SOS.
+    const unsub = EmergencyShortcutService.subscribe({
+      onTriggered: () => {
+        setShortcutTriggeredAt(Date.now());
+        setShortcutArmed(true);
+      },
+      onCount: (current, required) => {
+        console.log(`SOS shortcut: ${current}/${required} presses`);
+      },
+    });
+    EmergencyShortcutService.start();
+
+    return () => {
+      unsub();
+      EmergencyShortcutService.stop();
+    };
+  }, [isReady, initializing]);
+
   // Show loading screen while initializing
   if (!isReady || initializing) {
     return <LoadingScreen />;
@@ -183,6 +209,12 @@ export default function App() {
                         <AppNavigator />
                       </AuthMonitorWrapper>
                       {/* END OF AUTH MONITOR WRAPPER */}
+                      {/* Hardware SOS: cancel countdown overlay */}
+                      <EmergencyShortcutOverlay
+                        armed={shortcutArmed}
+                        triggeredAt={shortcutTriggeredAt}
+                        onCancel={() => setShortcutArmed(false)}
+                      />
                       </NavigationContainer>
                   );
                 } catch (err) {
