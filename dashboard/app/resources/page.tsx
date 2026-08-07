@@ -17,6 +17,37 @@ export default function ResourcesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleDownload = (item: any) => {
+    const title = item.title || 'Resource';
+    if (item.downloadUrl) {
+      window.open(item.downloadUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const lines = [
+      title,
+      '-'.repeat(title.length),
+      '',
+      `Format: ${item.format || 'Guide'}`,
+      '',
+      item.description || 'Young Cyber Knights Foundation resource.',
+      '',
+      'Young Cyber Knights Foundation',
+      'www.youngcyberknightsfoundation.org',
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeFileName(title)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const safeFileName = (title: string) =>
+    title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '') || 'resource';
+
   if (loading) return <main className="min-h-screen bg-background px-4 py-10"><div className="mx-auto max-w-6xl text-center text-muted-foreground py-20">Loading...</div></main>;
 
   const content = page?.content || {};
@@ -63,17 +94,12 @@ export default function ResourcesPage() {
                     <h3 className="text-lg font-semibold text-white">{item.title}</h3>
                     <p className="text-base text-primary mt-1">{item.format}</p>
                     <p className="text-base text-muted-foreground mt-2">{item.description}</p>
-                    {item.downloadUrl ? (
-                      <Button asChild className="mt-4 w-full bg-gradient-to-r from-[#2563EB] to-[#3B82F6]">
-                        <a href={item.downloadUrl} target="_blank" rel="noopener noreferrer">
-                          <Download className="mr-2 size-4" /> Download
-                        </a>
-                      </Button>
-                    ) : (
-                      <Button className="mt-4 w-full" variant="outline" disabled>
-                        <Download className="mr-2 size-4" /> {item.format || 'Download'}
-                      </Button>
-                    )}
+                    <Button
+                      className="mt-4 w-full bg-gradient-to-r from-[#2563EB] to-[#3B82F6]"
+                      onClick={() => handleDownload(item)}
+                    >
+                      <Download className="mr-2 size-4" /> Download
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
