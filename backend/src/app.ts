@@ -43,6 +43,7 @@ import promotionsRouter from './payments/promotions.js';
 import paystackWebhookRouter from './payments/webhook.js';
 import subscriptionsRouter from './subscriptions/routes.js';
 import subscriptionsPromoRouter from './subscriptions/promotionsRoutes.js';
+import healthRouter from './health/routes.js';
 
 dotenv.config();
 
@@ -110,12 +111,7 @@ app.use(generalRateLimiter);
 
 app.use('/uploads', verifyToken, express.static(path.join(process.cwd(), 'uploads')));
 
-app.get('/api/health', (_req, res) => res.json({
-  status: 'ok',
-  service: 'YCKF Backend API',
-  version: '0.1.0',
-  timestamp: new Date().toISOString(),
-}));
+app.use('/api/health', healthRouter);
 app.use('/api/site-stats', siteStatsPublicRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/auth', staffPasswordResetRouter);
