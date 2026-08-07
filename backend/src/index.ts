@@ -5,6 +5,7 @@ import app from './app.js';
 import { initSocket } from './shared/socket.js';
 import { initCache } from './shared/cache.js';
 import { scheduleEvidenceRetention } from './evidence/retention.js';
+import { startKeepAlive } from './shared/keepAlive.js';
 
 const PORT = env.port;
 const server = http.createServer(app);
@@ -25,6 +26,7 @@ initCache().catch((error) => {
   console.error('Redis init failed:', error);
 });
 scheduleEvidenceRetention();
+startKeepAlive();
 
 server.listen(PORT, () => {
   if (process.env.NODE_ENV !== 'production') {
