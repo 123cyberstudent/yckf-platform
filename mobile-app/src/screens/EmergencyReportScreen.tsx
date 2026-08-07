@@ -56,6 +56,43 @@ const INCIDENT_TYPES: { value: string; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
+/** 'Not Available' fallback for any missing non-critical field. */
+const NA = 'Not Available' as const;
+
+/** Map a stored incident-type value to a human-friendly label. */
+function incidentTypeLabel(value?: string): string {
+  const match = INCIDENT_TYPES.find((t) => t.value === value);
+  return match ? match.label : 'Emergency';
+}
+
+/**
+ * Generate a unique emergency ticket number (client-side). The backend will
+ * generate its authoritative ticket on submission; this is used to populate
+ * the alert template even when the backend is briefly unreachable.
+ */
+function generateClientTicket(): string {
+  const now = new Date();
+  const yyyymmdd =
+    now.getFullYear() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+  const random = Math.floor(10000 + Math.random() * 90000);
+  return `EMG-${yyyymmdd}-${random}`;
+}
+
+/** Format a timestamp exactly as e.g. "7 Aug 2026, 14:05:33". */
+function formatSubmittedAt(date: Date): string {
+  const parts = new Intl.DateTimeFormat(undefined, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(date);
+  return parts || date.toLocaleString();
+}
+
 const EmergencyReportScreen: React.FC = () => {
   // State Management
   const [mode, setMode] = useState<'voice' | 'text'>('voice');
@@ -272,6 +309,78 @@ const EmergencyReportScreen: React.FC = () => {
   };
 
   /**
+   * Resolve the best available location for an alert without blocking on a
+   * fresh GPS fix. Order: live `currentLocation` -> cached location ->
+   * most-recent last-known position. If only a stale/cached fix is available
+   * the caller should surface it as "Last Known Location".
+   */
+  const resolveAlertLocation = async (): Promise<{
+    latitude: number | null;
+    longitude: number | null;
+    accuracy: number | null;
+    isLastKnown: boolean;
+    address: string;
+  }> => {
+    const empty = { latitude: null, longitude: null, accuracy: null, isLastKnown: false, address: '' };
+
+    let coords: { latitude: number; longitude: number; accuracy?: number } | null = null;
+    let isLastKnown = false;
+
+    if (currentLocation?.coords && currentLocation.coords.latitude != null && currentLocation.coords.longitude != null) {
+      coords = {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        accuracy: currentLocation.coords.accuracy ?? undefined,
+      };
+    } else if (currentLocation) {
+      isLastKnown = true;
+    }
+
+    if (!coords) {
+      // Cached singleton location (may be stale -> treat as last-known).
+      const cached = LocationService.getCachedLocation();
+      if (cached && cached.latitude != null && cached.longitude != null) {
+        coords = { latitude: cached.latitude, longitude: cached.longitude, accuracy: cached.accuracy };
+        isLastKnown = true;
+      }
+    }
+
+    if (!coords) {
+      try {
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        if (lastKnown?.coords && lastKnown.coords.latitude != null && lastKnown.coords.longitude != null) {
+          coords = {
+            latitude: lastKnown.coords.latitude,
+            longitude: lastKnown.coords.longitude,
+            accuracy: lastKnown.coords.accuracy ?? undefined,
+          };
+          isLastKnown = true;
+        }
+      } catch {
+        // ignore; fall through to "Not Available"
+      }
+    }
+
+    if (!coords) return empty;
+
+    let address = '';
+    try {
+      const addr = await LocationService.getAddressFromLocation({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracy,
+      });
+      if (addr) {
+        address = [addr.name, addr.street, addr.city, addr.region, addr.country].filter(Boolean).join(', ');
+      }
+    } catch {
+      address = '';
+    }
+
+    return { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy ?? null, isLastKnown, address };
+  };
+
+  /**
    * Start voice recording
    */
   const startRecording = async () => {
@@ -418,129 +527,103 @@ const EmergencyReportScreen: React.FC = () => {
   };
 
   /**
-   * Prepare emergency message - FIXED coords access
+   * Prepare the structured emergency alert message. Fully auto-populated —
+   * the user is not required to type anything. Every field degrades to
+   * "Not Available" rather than blocking; location degrades to "Last Known
+   * Location" when only a stale/cached fix exists.
    */
- const prepareEmergencyMessage = async (): Promise<string> => {
-  // ⭐ DECLARE message FIRST
-  let message = '🚨 EMERGENCY REPORT 🚨\n\n';
+  const prepareEmergencyMessage = async (): Promise<string> => {
+    const ticket = generateClientTicket();
 
-  const userData = await authService.getCurrentUser();
-  // ⭐ ADD DEBUGGING
-  console.log('📞 User data from authService:', JSON.stringify(userData, null, 2));
-  
-  // Get user contact details
-  const userEmail = userData?.email || 'Not available';
-  const userPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || 'Not available';
+    const userData = await authService.getCurrentUser();
+    const reporterName =
+      (userData as any)?.displayName || (userData as any)?.fullName || (userData as any)?.name || (userData as any)?.full_name || '';
+    const reporterPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || (userData as any)?.phone || '';
+    const reporterEmail = userData?.email || '';
 
-  // ⭐ ADD MORE DEBUGGING
-  console.log('📧 User Email:', userEmail);
-  console.log('📱 User Phone:', userPhone);
+    const locResult = await resolveAlertLocation();
 
-  message += `👤 REPORTER INFORMATION:\n`;
-  message += `Email: ${userEmail}\n`;
-  message += `Phone: ${userPhone}\n\n`;
+    const gpsText =
+      locResult.latitude != null && locResult.longitude != null
+        ? (locResult.isLastKnown
+            ? `Last Known Location: ${locResult.latitude.toFixed(6)}, ${locResult.longitude.toFixed(6)}`
+            : `${locResult.latitude.toFixed(6)}, ${locResult.longitude.toFixed(6)}`)
+        : NA;
 
-  
-    // FIXED: Access coords with optional chaining
-    const coords = currentLocation?.coords;
-    if (coords && coords.latitude != null && coords.longitude != null) {
-      message += `📍 LOCATION:\n`;
-      message += `Coordinates: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}\n`;
-      message += `Google Maps: https://maps.google.com/?q=${coords.latitude},${coords.longitude}\n`;
-      message += `Accuracy: ${coords.accuracy?.toFixed(2) || 'N/A'} meters\n\n`;
-    } else {
-      message += `⚠️ Location not available\n\n`;
-    }
+    const mapsLink =
+      locResult.latitude != null && locResult.longitude != null
+        ? `https://maps.google.com/?q=${locResult.latitude},${locResult.longitude}`
+        : NA;
 
-    // if (currentLocation && currentLocation.coords) {
-    //   message += `📍 LOCATION:\n`;
-    //   message += `Coordinates: ${currentLocation.coords.latitude.toFixed(6)}, ${currentLocation.coords.longitude.toFixed(6)}\n`;
-    //   message += `Google Maps: https://maps.google.com/?q=${currentLocation.coords.latitude},${currentLocation.coords.longitude}\n`;
-    //   message += `Accuracy: ${currentLocation.coords.accuracy?.toFixed(2) || 'N/A'} meters\n\n`;
-    // } else {
-    //   message += `⚠️ Location not available\n\n`;
-    // }
+    const station = nearestStation?.station;
+    const stationName = station?.name || NA;
+    const stationPhone = station?.emergencyLine || station?.phoneNumber || NA;
 
-    // Police Station
-    if (nearestStation) {
-      message += `🚔 NEAREST POLICE STATION:\n`;
-      message += `Name: ${nearestStation.station.name}\n`;
-      message += `Distance: ${nearestStation.distance.toFixed(2)} km\n`;
-      message += `Phone: ${nearestStation.station.emergencyLine}\n`;
-      message += `Address: ${nearestStation.station.address}\n\n`;
-    }
+    const lines: string[] = [
+      '🚨 **EMERGENCY REPORT**',
+      '',
+      '**EMERGENCY ALERT:** I am in immediate danger and urgently need police assistance. Please respond to my current location immediately using the location details provided below. I may be unable to make a phone call or provide any further information.',
+      '',
+      '**Emergency Report Details**',
+      `Ticket Number: ${ticket}`,
+      `Incident Type: ${incidentTypeLabel(incidentType)}`,
+      `Reporter: ${reporterName || NA}`,
+      `Phone: ${reporterPhone || NA}`,
+      `Email: ${reporterEmail || NA}`,
+      `Nearest Police Station: ${stationName}`,
+      `Station Phone: ${stationPhone}`,
+      `GPS Location: ${gpsText}`,
+      `Maps Link: ${mapsLink}`,
+      `GPS Address: ${locResult.address || NA}`,
+      `Submitted At: ${formatSubmittedAt(new Date())}`,
+    ];
 
-    // Content
-    if (mode === 'text' && messages.length > 0) {
-      message += `💬 EMERGENCY DETAILS:\n`;
-      messages.filter(m => m.isUser).forEach((m, idx) => {
-        message += `${idx + 1}. ${m.text}\n`;
-      });
-      message += `\n`;
-    } else if (mode === 'voice' && audioUri) {
-      message += `🎤 VOICE RECORDING:\n`;
-      message += `Duration: ${AudioRecordingService.formatDuration(recordingDuration)}\n`;
-
-      try {
-        const fileInfo = await FileSystem.getInfoAsync(audioUri);
-        if (fileInfo.exists && fileInfo.size) {
-          message += `Size: ${(fileInfo.size / 1024).toFixed(2)} KB\n`;
-        }
-      } catch (error) {
-        console.log('Could not get file info');
+    // Optional, non-blocking additional context (only if present).
+    if (mode === 'text') {
+      const userMessages = messages.filter((m) => m.isUser).map((m) => m.text);
+      if (userMessages.length > 0) {
+        lines.push('', '**More Details:**');
+        userMessages.forEach((t, i) => lines.push(`${i + 1}. ${t}`));
       }
-
-      message += `🎤 Voice recording available\n\n`;
+    }
+    if (mode === 'voice' && audioUri) {
+      lines.push('', `**Voice Recording Attached:** Yes (${AudioRecordingService.formatDuration(recordingDuration)})`);
+    }
+    if (locResult.latitude == null) {
+      lines.push('', '⚠️ No GPS location available. Contact emergency services directly if you are able.');
     }
 
-    message += `⏰ TIMESTAMP:\n`;
-    message += `${new Date().toLocaleString()}\n\n`;
-    message += `📱 Sent via YCKF Mobile App\n`;
-    message += `Report ID: EMG-${Date.now().toString().slice(-8)}`;
-
-    return message;
+    return lines.join('\n');
   };
 
   /**
-   * Send emergency report
+   * Send emergency report. Never blocks the user on typography or missing
+   * data — the structured template is auto-generated. It attempts a fresh
+   * location fix in the background (so capture isn't blocked) and falls back
+   * to the best available location in the message. If no station was resolved,
+   * it recomputes the nearest one; otherwise it proceeds with station fields
+   * reported as "Not Available".
    */
   const sendEmergencyReport = () => {
-    if (!currentLocation) {
-      Alert.alert(
-        '⚠️ Location Required',
-        'Location not captured yet. Please wait or retry.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Retry Location', onPress: () => captureLocationAutomatically() }
-        ]
-      );
-      return;
+    // Kick off a fresh location fix, but do NOT block the alert on it.
+    if (!currentLocation && !locationLoading) {
+      captureLocationAutomatically();
     }
 
+    // If we still don't have a station (e.g. location never resolved), recompute
+    // from whatever coords we have (including cached/last-known).
     if (!nearestStation) {
-      Alert.alert(
-        '⚠️ No Police Station',
-        'No police station found. Continue anyway?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Continue', onPress: () => showSendOptions() }
-        ]
-      );
-      return;
+      const ref = currentLocation?.coords;
+      const cached = LocationService.getCachedLocation();
+      const lat = ref?.latitude ?? cached?.latitude;
+      const lng = ref?.longitude ?? cached?.longitude;
+      if (lat != null && lng != null) {
+        const nearest = findNearestStation(lat, lng, POLICE_STATIONS);
+        if (nearest) setNearestStation(nearest);
+      }
     }
 
-    if (mode === 'voice' && !audioUri) {
-      Alert.alert('⚠️ No Recording', 'Please record your emergency message first.');
-      return;
-    }
-
-    if (mode === 'text' && messages.length === 0) {
-      Alert.alert('⚠️ No Message', 'Please type your emergency details first.');
-      return;
-    }
-
-    // showSendOptions();
-    showSendOptionsModal(); // NEW - Opens custom modal with all options
+    showSendOptionsModal();
   };
 
   /**
@@ -896,7 +979,7 @@ const sendViaEmailAuto = async () => {
       const userData = await authService.getCurrentUser();
       const userEmail = userData?.email || '';
       const userPhone = (userData as any)?.phoneNumber || (userData as any)?.phone_number || '';
-      const userName = (userData as any)?.displayName || (userData as any)?.full_name || '';
+      const userName = (userData as any)?.displayName || (userData as any)?.fullName || (userData as any)?.name || (userData as any)?.full_name || '';
 
       const formData = new FormData();
 
@@ -905,13 +988,12 @@ const sendViaEmailAuto = async () => {
       formData.append('reporterEmail', userEmail);
       formData.append('incidentType', incidentType || 'other');
 
-      let description = '';
-      if (mode === 'text' && messages.length > 0) {
-        description = messages.filter(m => m.isUser).map(m => m.text).join('\n');
-      } else if (mode === 'voice') {
-        description = 'Voice emergency report';
-      }
-      formData.append('description', description);
+      // Auto-generate the structured alert message. The backend requires a
+      // description (or audio); using the template guarantees submission even
+      // when the user typed nothing. Any typed messages are already woven into
+      // the template under "**More Details:**".
+      const template = await prepareEmergencyMessage();
+      formData.append('description', template);
 
       if (mode === 'voice' && audioUri) {
         try {
@@ -1652,38 +1734,33 @@ const sendViaEmailAuto = async () => {
         </KeyboardAvoidingView>
       )}
 
-      {/* Send Report Button */}
-      {((mode === 'voice' && audioUri) || (mode === 'text' && messages.length > 0)) && (
-        <View style={styles.sendReportContainer}>
-          <TouchableOpacity
-            style={[
-              styles.sendReportButton,
-              (isSending || !currentLocation) && styles.sendReportButtonDisabled
-            ]}
-            onPress={sendEmergencyReport}
-            disabled={isSending || !currentLocation}
-            activeOpacity={0.8}
-          >
-            {isSending ? (
-              <>
-                <ActivityIndicator color={COLORS.text.white} />
-                <Text style={styles.sendReportText}>Sending...</Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="send" size={24} color={COLORS.text.white} />
-                <Text style={styles.sendReportText}>Send Emergency Report</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {!currentLocation && (
-            <Text style={styles.sendWarning}>
-              ⚠️ Waiting for location...
-            </Text>
+      {/* Send Report Button — always visible; never blocked on location/typing. */}
+      <View style={styles.sendReportContainer}>
+        <TouchableOpacity
+          style={[styles.sendReportButton, isSending && styles.sendReportButtonDisabled]}
+          onPress={sendEmergencyReport}
+          disabled={isSending}
+          activeOpacity={0.8}
+        >
+          {isSending ? (
+            <>
+              <ActivityIndicator color={COLORS.text.white} />
+              <Text style={styles.sendReportText}>Sending...</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="send" size={24} color={COLORS.text.white} />
+              <Text style={styles.sendReportText}>Send Emergency Report</Text>
+            </>
           )}
-        </View>
-      )}
+        </TouchableOpacity>
+
+        {!currentLocation && (
+          <Text style={styles.sendWarning}>
+            ⚠️ Using last known location if live GPS is unavailable.
+          </Text>
+        )}
+      </View>
 
       {/* WhatsApp 2 Modal */}
       <WhatsApp2Modal />
