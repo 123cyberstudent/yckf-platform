@@ -5,6 +5,7 @@ const PREFIX_MAP: Record<string, string> = {
   emergency: 'EMG',
   booking: 'BKG',
   enquiry: 'ENQ',
+  theft: 'THF',
 };
 
 async function countExistingTickets(type: string, prefix: string, dateStr: string): Promise<number> {
@@ -18,6 +19,8 @@ async function countExistingTickets(type: string, prefix: string, dateStr: strin
       return prisma.booking.count({ where: { ticketNumber: { startsWith: searchPattern } } });
     case 'enquiry':
       return prisma.enquiry.count({ where: { ticketNumber: { startsWith: searchPattern } } });
+    case 'theft':
+      return prisma.stolenDeviceReport.count({ where: { ticketNumber: { startsWith: searchPattern } } });
     default:
       return prisma.emailLog.count({ where: { ticketNumber: { startsWith: searchPattern } } });
   }
@@ -47,6 +50,9 @@ export async function generateTicketNumber(type: string): Promise<string> {
         break;
       case 'enquiry':
         exists = !!(await prisma.enquiry.findFirst({ where: { ticketNumber: candidate } }));
+        break;
+      case 'theft':
+        exists = !!(await prisma.stolenDeviceReport.findFirst({ where: { ticketNumber: candidate } }));
         break;
     }
 

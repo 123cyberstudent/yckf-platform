@@ -150,6 +150,11 @@ const SettingsScreen: React.FC = () => {
           <Text style={styles.linkLabel}>Track My Cases</Text>
           <Ionicons name="chevron-forward" size={18} color={COLORS.text.light} />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('SecurityProtection')}>
+          <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.text.secondary} />
+          <Text style={styles.linkLabel}>Stolen Phone Protection</Text>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.text.light} />
+        </TouchableOpacity>
       </View>
 
       {/* App Info */}

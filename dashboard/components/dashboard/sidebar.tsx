@@ -27,6 +27,7 @@ import {
   Crown,
   Megaphone,
   KeyRound,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getRoleFromCookie, resetCachedRole } from '@/lib/permissions';
@@ -77,6 +78,7 @@ export function DashboardSidebar() {
     { icon: Receipt, label: 'Orders', href: '/dashboard/orders' },
     { icon: Crown, label: 'Subscriptions', href: '/dashboard/subscriptions' },
     { icon: AlertCircle, label: 'Emergency Reports', href: '/dashboard/emergencies' },
+    { icon: Smartphone, label: 'Protected Devices', href: '/dashboard/devices' },
     { icon: Phone, label: 'Bookings', href: '/dashboard/bookings' },
     { icon: Users, label: 'Specialists', href: '/dashboard/specialists' },
     { icon: MessageSquare, label: 'Enquiries', href: '/dashboard/enquiries' },

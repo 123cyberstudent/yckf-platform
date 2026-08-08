@@ -62,7 +62,7 @@ export default function EmergencyShortcutOverlay({
     }, 100);
 
     return () => clearInterval(interval);
-  }, [status, triggeredAt]);
+  }, [armed, triggeredAt]);
 
   // Trigger the send once countdown reaches zero.
   useEffect(() => {

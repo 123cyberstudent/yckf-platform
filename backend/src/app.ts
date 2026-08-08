@@ -44,6 +44,7 @@ import paystackWebhookRouter from './payments/webhook.js';
 import subscriptionsRouter from './subscriptions/routes.js';
 import subscriptionsPromoRouter from './subscriptions/promotionsRoutes.js';
 import healthRouter from './health/routes.js';
+import deviceRouter from './device/routes.js';
 
 dotenv.config();
 
@@ -146,6 +147,7 @@ app.use('/api/orders', ordersRouter);
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/promotions', subscriptionsPromoRouter);
 app.use('/api/promotions', promotionsRouter);
+app.use('/api/device', deviceRouter);
 
 app.get('/', (_req, res) => {
   res.json({
@@ -168,6 +170,7 @@ app.get('/', (_req, res) => {
       reports: '/api/reports',
       whatsapp: '/api/whatsapp',
       telegram: '/api/telegram',
+      device: '/api/device',
     },
   });
 });

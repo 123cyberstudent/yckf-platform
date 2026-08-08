@@ -53,6 +53,10 @@ import PaystackWebViewScreen from '../screens/Wallet/PaystackWebViewScreen';
 import OrderResultScreen from '../screens/Wallet/OrderResultScreen';
 import MyOrdersScreen from '../screens/Wallet/MyOrdersScreen';
 
+// Stolen Phone Protection Screens
+import SecurityProtectionScreen from '../screens/Security/SecurityProtectionScreen';
+import MyDevicesScreen from '../screens/Security/MyDevicesScreen';
+
 // Placeholder for missing screens
 const MissingScreenPlaceholder: React.FC<{ name: string }> = ({ name }) => (
   <View style={styles.placeholder}>
@@ -370,6 +374,18 @@ const AppNavigator: React.FC = () => {
         name={SCREEN_NAMES.MY_ORDERS}
         component={ensureScreen(MyOrdersScreen, 'MyOrdersScreen')}
         options={{ headerShown: false }}
+      />
+
+      {/* Stolen Phone Protection */}
+      <Stack.Screen
+        name={SCREEN_NAMES.SECURITY_PROTECTION}
+        component={ensureScreen(SecurityProtectionScreen, 'SecurityProtectionScreen')}
+        options={{ headerShown: false, title: 'Stolen Phone Protection' }}
+      />
+      <Stack.Screen
+        name={SCREEN_NAMES.MY_DEVICES}
+        component={ensureScreen(MyDevicesScreen, 'MyDevicesScreen')}
+        options={{ headerShown: false, title: 'My Devices' }}
       />
     </Stack.Navigator>
   );

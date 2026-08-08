@@ -27,6 +27,7 @@ import NotificationService from './src/services/NotificationService';
 import { requestPermissions } from './src/services/PermissionService';
 import AuthService from './src/services/AuthService'; // ⭐ Auth Service with auto-logout
 import EmergencyShortcutService from './src/services/EmergencyShortcutService';
+import StolenDeviceService from './src/services/StolenDeviceService'; // Stolen Phone Protection
 // import ThiefDetectionService from './src/services/ThiefDetectionService';
 
 // Utils
@@ -82,6 +83,9 @@ export default function App() {
 
       // Initialize services
       await initializeServices();
+
+      // Start Stolen Phone Protection monitoring (non-blocking)
+      await StolenDeviceService.start().catch(() => {});
 
       // Check app permissions
       await checkPermissions();

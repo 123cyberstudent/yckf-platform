@@ -340,6 +340,7 @@ export const SCREEN_NAMES = {
   LAST_DETECTED_LOCATION: 'LastDetectedLocation',
   SECURITY_ALERT_SENT: 'SecurityAlertSent',
   INCIDENT_HISTORY: 'IncidentHistory',
+  MY_DEVICES: 'MyDevices',
   NEWS: 'News',
   EVENTS: 'Events',
   COURSES: 'Courses',
