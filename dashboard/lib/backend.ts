@@ -2,6 +2,14 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 const DEFAULT_BACKEND_URL = 'http://localhost:4001'
+const BACKEND_FETCH_TIMEOUT_MS = 30000
+const BACKEND_FETCH_RETRIES = 2
+
+function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
 
 export function getBackendBaseUrl() {
   return process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND_URL
@@ -73,10 +81,29 @@ export async function backendFetch(
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(getBackendUrl(path), {
-    ...init,
-    headers,
-  })
+  const doFetch = () =>
+    fetchWithTimeout(getBackendUrl(path), { ...init, headers }, BACKEND_FETCH_TIMEOUT_MS)
+
+  let response: Response | null = null
+  try {
+    response = await doFetch()
+  } catch (err) {
+    // Cold/slow backend or a dropped connection: retry a few times before
+    // surfacing a network error to the client.
+    let lastErr = err
+    for (let attempt = 1; attempt <= BACKEND_FETCH_RETRIES; attempt++) {
+      try {
+        response = await doFetch()
+        break
+      } catch (retryErr) {
+        lastErr = retryErr
+      }
+    }
+    if (!response) {
+      throw lastErr
+    }
+    console.warn(`[backendFetch] retried ${path} after network failure`)
+  }
 
   if (options.autoRefresh && response.status === 401 && authToken) {
     const newToken = await refreshAccessToken()

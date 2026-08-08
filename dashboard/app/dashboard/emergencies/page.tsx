@@ -183,7 +183,14 @@ export default function EmergenciesPage() {
       setError('');
     }
     try {
-      const response = await fetch('/api/emergency-reports');
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      let response: Response;
+      try {
+        response = await fetch('/api/emergency-reports', { signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
       if (!response.ok) throw new Error(`Failed to load emergency reports: ${response.status}`);
       const payload = await response.json();
       const items = (payload.items ?? payload).map((r: RawEmergencyReport) => ({
@@ -214,7 +221,13 @@ export default function EmergenciesPage() {
       }));
       setReports(items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load emergency reports');
+      const message =
+        err instanceof DOMException && err.name === 'AbortError'
+          ? 'The server took too long to respond. Please try again.'
+          : err instanceof Error
+            ? err.message
+            : 'Unable to load emergency reports';
+      setError(message);
     } finally {
       setLoading(false);
     }

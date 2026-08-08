@@ -54,7 +54,7 @@ interface BackendEmergencyReport {
 export async function GET() {
   try {
     const token = await getBackendAuthToken()
-    const response = await backendFetch('/api/emergency-reports', { method: 'GET' }, token)
+    const response = await backendFetch('/api/emergency-reports', { method: 'GET' }, token, { autoRefresh: true })
     const payload = await response.json().catch(() => null)
 
     if (!response.ok) {
