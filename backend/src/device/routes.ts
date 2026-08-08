@@ -79,13 +79,6 @@ router.put('/preferences', verifyToken, async (req: AuthRequest, res: Response) 
       return res.status(400).json({ error: 'internalDeviceId is required' });
     }
 
-    const device = await prisma.device.findUnique({
-      where: { userId_internalDeviceId: { userId: req.user.id, internalDeviceId } },
-    });
-    if (!device) {
-      return res.status(404).json({ error: 'Device not registered' });
-    }
-
     const patch: Record<string, unknown> = {};
     if (typeof req.body.protectionEnabled === 'boolean') patch.protectionEnabled = req.body.protectionEnabled;
     if (typeof req.body.sendLocationEnabled === 'boolean') patch.sendLocationEnabled = req.body.sendLocationEnabled;
@@ -94,6 +87,33 @@ router.put('/preferences', verifyToken, async (req: AuthRequest, res: Response) 
     if (typeof req.body.emergencyContactName === 'string') patch.emergencyContactName = req.body.emergencyContactName;
     if (typeof req.body.emergencyContactPhone === 'string') patch.emergencyContactPhone = req.body.emergencyContactPhone;
     if (typeof req.body.suspiciousThreshold === 'number') patch.suspiciousThreshold = req.body.suspiciousThreshold;
+
+    let device = await prisma.device.findUnique({
+      where: { userId_internalDeviceId: { userId: req.user.id, internalDeviceId } },
+    });
+
+    // Self-heal: a preferences write implies the app wants this device
+    // registered under the account. If the startup registration was skipped
+    // (user not yet signed in) or failed silently, register it now instead of
+    // returning 404 and leaving the UI in a "PROTECTION ACTIVE" state that
+    // has no backing record on the server.
+    if (!device) {
+      device = await upsertDevice({
+        userId: req.user.id,
+        internalDeviceId,
+        deviceName: typeof req.body.deviceName === 'string' ? req.body.deviceName : undefined,
+        platform: typeof req.body.platform === 'string' ? req.body.platform : undefined,
+        ...(patch as {
+          protectionEnabled?: boolean;
+          sendLocationEnabled?: boolean;
+          stealMode?: string;
+          notifyDashboard?: boolean;
+          emergencyContactName?: string;
+          emergencyContactPhone?: string;
+          suspiciousThreshold?: number;
+        }),
+      });
+    }
 
     const updated = await prisma.device.update({ where: { id: device.id }, data: patch });
 

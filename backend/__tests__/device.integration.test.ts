@@ -85,6 +85,40 @@ describe.skipIf(!hasDb)('Stolen Device Protection (live dev DB)', () => {
       deviceId = body.device.id;
     });
 
+    it('defaults a freshly-registered device to protection off (no silent activation)', async () => {
+      const freshId = `fresh-${runId}`;
+      const r = await fetch(`http://localhost:${port}/api/device/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+        body: JSON.stringify({ internalDeviceId: freshId }),
+      });
+      expect(r.status).toBe(200);
+      const body = await r.json();
+      expect(body.device.protectionEnabled).toBe(false);
+      await prisma.device.deleteMany({ where: { internalDeviceId: freshId, userId: user.id } }).catch(() => undefined);
+    });
+
+    it('preferences self-heal by registering an unknown device instead of 404ing', async () => {
+      const healId = `heal-${runId}`;
+      const r = await fetch(`http://localhost:${port}/api/device/preferences`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+        body: JSON.stringify({ internalDeviceId: healId, protectionEnabled: true, stealMode: 'silent' }),
+      });
+      expect(r.status).toBe(200);
+      const body = await r.json();
+      expect(body.success).toBe(true);
+      expect(body.device.protectionEnabled).toBe(true);
+
+      const created = await prisma.device.findUnique({
+        where: { userId_internalDeviceId: { userId: user.id, internalDeviceId: healId } },
+      });
+      expect(created).not.toBeNull();
+      expect(created!.protectionEnabled).toBe(true);
+      await prisma.deviceHeartbeat.deleteMany({ where: { deviceId: created!.id } }).catch(() => undefined);
+      await prisma.device.deleteMany({ where: { internalDeviceId: healId, userId: user.id } }).catch(() => undefined);
+    });
+
     it('lists my devices', async () => {
       const r = await fetch(`http://localhost:${port}/api/device/my`, { headers: authHeaders(token) });
       expect(r.status).toBe(200);

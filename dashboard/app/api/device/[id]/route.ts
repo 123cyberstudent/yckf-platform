@@ -24,7 +24,7 @@ export async function POST(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ description: body.description }),
-    }, token)
+    }, token, { autoRefresh: true })
     const payload = await response.json().catch(() => null)
 
     if (!response.ok) {

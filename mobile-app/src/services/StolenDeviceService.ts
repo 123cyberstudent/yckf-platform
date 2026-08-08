@@ -17,6 +17,7 @@ import { STORAGE_KEYS } from '../utils/constants';
 const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes while app is open
 const STATUS_POLL_INTERVAL_MS = 60 * 1000; // 1 minute while app is open
 const INSTALL_ID_KEY = '@yc_install_id';
+const REGISTERED_DEVICE_ID_KEY = '@yc_registered_device_id';
 
 export type DeviceStatus = 'ACTIVE' | 'STOLEN' | 'RECOVERED' | 'UNPAIRED';
 export type StealMode = 'silent' | 'helper' | 'none';
@@ -85,6 +86,7 @@ export interface StolenDeviceServiceListeners {
 class StolenDeviceService {
   private config: StolenDeviceConfig = { ...DEFAULT_STOLEN_DEVICE_CONFIG };
   private installId: string | null = null;
+  private registeredDeviceId: number | null = null;
   private listeners: StolenDeviceServiceListeners[] = [];
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private statusTimer: ReturnType<typeof setInterval> | null = null;
@@ -143,6 +145,23 @@ class StolenDeviceService {
     return { ...this.config };
   }
 
+  async getRegisteredDeviceId(): Promise<number | null> {
+    if (this.registeredDeviceId != null) return this.registeredDeviceId;
+    try {
+      const raw = await AsyncStorage.getItem(REGISTERED_DEVICE_ID_KEY);
+      if (raw) {
+        const n = Number(raw);
+        if (Number.isFinite(n) && n > 0) {
+          this.registeredDeviceId = n;
+          return n;
+        }
+      }
+    } catch {
+      // fall through
+    }
+    return null;
+  }
+
   // ---------------------------------------------------------------------------
   // Device info helpers
   // ---------------------------------------------------------------------------
@@ -182,6 +201,14 @@ class StolenDeviceService {
       const data = await r.json();
       if (r.ok && data?.device) {
         this.applyServerConfig(data.device);
+        if (typeof data.device.id === 'number') {
+          this.registeredDeviceId = data.device.id;
+          try {
+            await AsyncStorage.setItem(REGISTERED_DEVICE_ID_KEY, String(data.device.id));
+          } catch {
+            // non-fatal
+          }
+        }
         return data.device;
       }
       console.warn('[StolenDevice] register failed', data?.error);
@@ -205,16 +232,39 @@ class StolenDeviceService {
     };
   }
 
-  async syncPreferences(): Promise<boolean> {
+  async syncPreferences(): Promise<{ ok: boolean; device?: DeviceRecord }> {
     try {
       const id = await this.getInstallId();
-      const r = await this.authedFetch('/api/device/preferences', {
+      let r = await this.authedFetch('/api/device/preferences', {
         method: 'PUT',
         body: JSON.stringify({ internalDeviceId: id, ...this.config }),
       });
-      return r.ok;
+      // Self-heal: if the device was never registered (e.g. user was signed out
+      // at startup), register it now, then push preferences again.
+      if (r.status === 404) {
+        const device = await this.register();
+        if (!device) return { ok: false };
+        r = await this.authedFetch('/api/device/preferences', {
+          method: 'PUT',
+          body: JSON.stringify({ internalDeviceId: id, ...this.config }),
+        });
+      }
+      const data = await r.json();
+      if (r.ok) {
+        if (data?.device && typeof data.device.id === 'number') {
+          this.registeredDeviceId = data.device.id;
+          try {
+            await AsyncStorage.setItem(REGISTERED_DEVICE_ID_KEY, String(data.device.id));
+          } catch {
+            // non-fatal
+          }
+        }
+        return { ok: true, device: data?.device };
+      }
+      console.warn('[StolenDevice] syncPreferences failed', data?.error);
+      return { ok: false };
     } catch {
-      return false;
+      return { ok: false };
     }
   }
 

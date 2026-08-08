@@ -29,6 +29,8 @@ const SecurityProtectionScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<StolenDeviceConfig>({ ...DEFAULT_STOLEN_DEVICE_CONFIG });
   const [status, setStatus] = useState<DeviceStatus>('ACTIVE');
+  const [registered, setRegistered] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [saving, setSaving] = useState(false);
@@ -42,8 +44,24 @@ const SecurityProtectionScreen: React.FC = () => {
     setConfig(cfg);
     setContactName(cfg.emergencyContactName);
     setContactPhone(cfg.emergencyContactPhone);
-    const st = await StolenDeviceService.checkStatus();
-    if (st) setStatus(st.status);
+    // Self-heal: (re)register with the backend so the screen reflects the true
+    // server-side state. register() is an idempotent upsert, so this is safe.
+    const device = await StolenDeviceService.register();
+    if (device) {
+      setRegistered(true);
+      const st = await StolenDeviceService.checkStatus();
+      if (st) {
+        setStatus(st.status);
+        // Backend is authoritative: adopt the server's protectionEnabled so the
+        // toggle never claims a state the backend did not record.
+        if (typeof st.protectionEnabled === 'boolean' && st.protectionEnabled !== cfg.protectionEnabled) {
+          const synced = await StolenDeviceService.saveConfig({ protectionEnabled: st.protectionEnabled });
+          setConfig(synced);
+        }
+      }
+    } else {
+      setRegistered(false);
+    }
     setLoading(false);
   };
 
@@ -52,7 +70,14 @@ const SecurityProtectionScreen: React.FC = () => {
     try {
       const next = await StolenDeviceService.saveConfig(patch);
       setConfig(next);
-      await StolenDeviceService.syncPreferences();
+      const res = await StolenDeviceService.syncPreferences();
+      if (!res.ok) {
+        // Revert the optimistic local change so the UI never claims a state
+        // the backend did not accept.
+        const reverted = await StolenDeviceService.loadConfig();
+        setConfig(reverted);
+        Alert.alert('Could not save', 'YCKF could not update your protection settings. Check your connection and try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -65,7 +90,33 @@ const SecurityProtectionScreen: React.FC = () => {
         'YCKF will register this device and, while the app is open, send small location heartbeats so it can be located if reported stolen. No covert camera or microphone is ever used.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Enable', onPress: () => persist({ protectionEnabled: true }) },
+          {
+            text: 'Enable',
+            onPress: async () => {
+              setActivating(true);
+              try {
+                // Ensure the backend actually holds this device before flipping
+                // the switch. Without this, the UI would show "PROTECTION
+                // ACTIVE" while the backend had no record (old defect).
+                const device = await StolenDeviceService.register();
+                if (!device) {
+                  Alert.alert('Could not enable protection', 'YCKF could not register this device. Check your connection and try again.');
+                  return;
+                }
+                setRegistered(true);
+                const next = await StolenDeviceService.saveConfig({ protectionEnabled: true });
+                setConfig(next);
+                const res = await StolenDeviceService.syncPreferences();
+                if (!res.ok) {
+                  const reverted = await StolenDeviceService.loadConfig();
+                  setConfig(reverted);
+                  Alert.alert('Could not enable protection', 'YCKF accepted the device but could not save your settings. Please try again.');
+                }
+              } finally {
+                setActivating(false);
+              }
+            },
+          },
         ]
       );
     } else {
@@ -90,7 +141,21 @@ const SecurityProtectionScreen: React.FC = () => {
           onPress: async () => {
             const devices = await StolenDeviceService.listMyDevices();
             const installId = await StolenDeviceService.getInstallId();
-            const me = devices.find((d) => d.internalDeviceId === installId);
+            let me = devices.find((d) => d.internalDeviceId === installId);
+            // Fall back to the server-assigned device id stored at registration,
+            // and to a fresh self-healing registration, so a device that IS
+            // protected can always be reported.
+            if (!me) {
+              const storedId = await StolenDeviceService.getRegisteredDeviceId();
+              if (storedId) {
+                const byStoredId = devices.find((d) => d.id === storedId);
+                if (byStoredId) me = byStoredId;
+              }
+            }
+            if (!me) {
+              const fresh = await StolenDeviceService.register();
+              if (fresh) me = fresh;
+            }
             if (!me) {
               Alert.alert('Not registered', 'Enable Stolen Phone Protection first.');
               return;
@@ -117,6 +182,7 @@ const SecurityProtectionScreen: React.FC = () => {
   }
 
   const isStolen = status === 'STOLEN';
+  const protectionActive = registered && config.protectionEnabled;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -132,19 +198,31 @@ const SecurityProtectionScreen: React.FC = () => {
       <View style={[styles.statusCard, isStolen ? styles.statusCardStolen : styles.statusCardActive]}>
         <View style={styles.statusRow}>
           <Ionicons
-            name={isStolen ? 'warning' : config.protectionEnabled ? 'shield-checkmark' : 'shield-outline'}
+            name={isStolen ? 'warning' : activating ? 'shield-outline' : protectionActive ? 'shield-checkmark' : 'shield-outline'}
             size={32}
-            color={isStolen ? '#fff' : config.protectionEnabled ? '#16a34a' : '#94a3b8'}
+            color={isStolen ? '#fff' : protectionActive ? '#16a34a' : '#94a3b8'}
           />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={[styles.statusTitle, isStolen && { color: '#fff' }]}>
-              {isStolen ? 'DEVICE REPORTED STOLEN' : config.protectionEnabled ? 'PROTECTION ACTIVE' : 'PROTECTION OFF'}
+              {isStolen
+                ? 'DEVICE REPORTED STOLEN'
+                : activating
+                ? 'ACTIVATING PROTECTION…'
+                : protectionActive
+                ? 'PROTECTION ACTIVE'
+                : config.protectionEnabled && !registered
+                ? 'PROTECTION NOT REGISTERED'
+                : 'PROTECTION OFF'}
             </Text>
             <Text style={[styles.statusSub, isStolen && { color: 'rgba(255,255,255,0.9)' }]}>
               {isStolen
                 ? 'Last-known location is being reported to YCKF and the dashboard has been notified.'
-                : config.protectionEnabled
+                : activating
+                ? 'Contacting YCKF to register this device…'
+                : protectionActive
                 ? 'YCKF can locate and report this device if stolen.'
+                : config.protectionEnabled && !registered
+                ? 'Registration with YCKF failed. Check your connection and try again.'
                 : 'Turn on protection to enable theft reporting and remote location.'}
             </Text>
           </View>
@@ -166,7 +244,7 @@ const SecurityProtectionScreen: React.FC = () => {
             value={config.protectionEnabled}
             onValueChange={toggleProtection}
             trackColor={{ true: COLORS.primary }}
-            disabled={saving}
+            disabled={saving || activating}
           />
         </View>
 

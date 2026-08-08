@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     qs.set('page', url.searchParams.get('page') || '1')
     qs.set('limit', url.searchParams.get('limit') || '50')
 
-    const response = await backendFetch(`/api/device?${qs.toString()}`, { method: 'GET' }, token)
+    const response = await backendFetch(`/api/device?${qs.toString()}`, { method: 'GET' }, token, { autoRefresh: true })
     const payload = await response.json().catch(() => null)
 
     if (!response.ok) {

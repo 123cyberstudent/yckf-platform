@@ -60,7 +60,7 @@ export async function upsertDevice(input: {
     deviceModel: input.deviceModel ?? existing?.deviceModel,
     osVersion: input.osVersion ?? existing?.osVersion,
     appVersion: input.appVersion ?? existing?.appVersion,
-    protectionEnabled: input.protectionEnabled ?? existing?.protectionEnabled ?? true,
+    protectionEnabled: input.protectionEnabled ?? existing?.protectionEnabled ?? false,
     sendLocationEnabled: input.sendLocationEnabled ?? existing?.sendLocationEnabled ?? true,
     stealMode: input.stealMode ?? existing?.stealMode ?? 'silent',
     notifyDashboard: input.notifyDashboard ?? existing?.notifyDashboard ?? true,
