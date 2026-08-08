@@ -5,7 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Platform,
 } from 'react-native';
+import * as Updates from 'expo-updates';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundaryState, AppError } from '../../types';
 import { COLORS, TYPOGRAPHY, SPACING, LAYOUT } from '../../utils/constants';
@@ -40,23 +42,33 @@ class ErrorBoundary extends Component<Props, ErrorBoundaryState> {
   componentDidCatch(error: Error, errorInfo: any) {
     // Log error to console in development
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
-    // In production, it  would send this to the error reporting service
+
+    // In production, it would send this to the error reporting service.
     // Example: reportError(error, errorInfo);
   }
 
-  resetError = () => {
-    this.setState({
-      hasError: false,
-      error: null,
-    });
+  resetRetry = () => {
+    // Re-render a fresh child tree. If the crash was a transient render error,
+    // the app recovers in place without a full restart.
+    this.setState({ hasError: false, error: null });
+  };
+
+  restartApp = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        await Updates.reloadAsync();
+      }
+    } catch (e) {
+      console.warn('ErrorBoundary restart failed', e);
+      this.resetRetry();
+    }
   };
 
   render() {
     if (this.state.hasError && this.state.error) {
       // Custom fallback UI if provided
       if (this.props.fallback) {
-        return this.props.fallback(this.state.error, this.resetError);
+        return this.props.fallback(this.state.error, this.resetRetry);
       }
 
       // Default error UI
@@ -77,7 +89,7 @@ class ErrorBoundary extends Component<Props, ErrorBoundaryState> {
               <Text style={styles.title}>Oops! Something went wrong</Text>
               <Text style={styles.message}>
                 We encountered an unexpected error. Don't worry, this has been logged
-                and our team will look into it.
+                and our team will look into it. Your data is safe.
               </Text>
 
               {/* Error Details (Development only) */}
@@ -104,7 +116,7 @@ class ErrorBoundary extends Component<Props, ErrorBoundaryState> {
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={[styles.button, styles.primaryButton]}
-                  onPress={this.resetError}
+                  onPress={this.resetRetry}
                   activeOpacity={0.8}
                 >
                   <Ionicons
@@ -116,23 +128,21 @@ class ErrorBoundary extends Component<Props, ErrorBoundaryState> {
                   <Text style={styles.primaryButtonText}>Try Again</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.button, styles.secondaryButton]}
-                  onPress={() => {
-                    // In a real app, it  might navigate to a support screen
-                    // or open email client
-                    console.log('Report error pressed');
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name="mail-outline"
-                    size={20}
-                    color={COLORS.primary}
-                    style={styles.buttonIcon}
-                  />
-                  <Text style={styles.secondaryButtonText}>Report Issue</Text>
-                </TouchableOpacity>
+                {Platform.OS !== 'web' ? (
+                  <TouchableOpacity
+                    style={[styles.button, styles.primaryButton]}
+                    onPress={this.restartApp}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="reload-circle-outline"
+                      size={20}
+                      color={COLORS.text.white}
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={styles.primaryButtonText}>Restart App</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           </ScrollView>
