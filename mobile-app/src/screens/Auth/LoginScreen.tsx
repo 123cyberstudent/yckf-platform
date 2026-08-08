@@ -82,6 +82,9 @@ const LoginScreen: React.FC = () => {
   };
 
 const handleLogin = async () => {
+  // Submission lock: ignore re-entry while a login attempt is in flight.
+  if (isLoading) return;
+
   // Validate inputs
   if (!email.trim()) {
     Alert.alert('Error', 'Please enter your email or phone number');

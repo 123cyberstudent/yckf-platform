@@ -13,6 +13,14 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Capture the pristine, unwrapped fetch once at module load. installFetchWithRetry()
+// replaces globalThis.fetch at runtime; every helper below MUST use this captured
+// reference so calls never recurse back through the retry wrapper (which previously
+// caused "Maximum call stack size exceeded (native stack depth)").
+const ORIGINAL_FETCH: typeof fetch =
+  (globalThis as { __yckfOriginalFetch?: typeof fetch }).__yckfOriginalFetch ||
+  globalThis.fetch.bind(globalThis);
+
 export function fetchWithTimeout(
   url: string,
   options: RequestInit = {},
@@ -20,7 +28,7 @@ export function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+  return ORIGINAL_FETCH(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
 /** Fetch with a single timeout (no retries). Good for streaming/GPS etc. */
@@ -87,9 +95,9 @@ export async function parseJson<T = any>(response: Response): Promise<T> {
  */
 export function installFetchWithRetry() {
   if (typeof globalThis === 'undefined' || typeof globalThis.fetch !== 'function') return;
-  const original = globalThis.fetch.bind(globalThis);
+  if ((globalThis as { __yckfOriginalFetch?: typeof fetch }).__yckfOriginalFetch) return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).__yckfOriginalFetch = original;
+  (globalThis as any).__yckfOriginalFetch = ORIGINAL_FETCH;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   globalThis.fetch = (async (input: any, init?: any): Promise<Response> => {
     const url = typeof input === 'string' ? input : (input as any)?.url || String(input);

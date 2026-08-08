@@ -243,73 +243,202 @@ class AuthService {
 
   /**
    * Step 1 of login: email/phone + password. Returns an OTP challenge.
+   *
+   * Error handling is intentionally explicit: transport failures (DNS, TLS,
+   * timeout, connection refused) are separated from HTTP errors so a 401/403/
+   * 429/5xx is never misreported as "check your connection". Sanitized details
+   * are logged for debugging; credentials are never logged.
    */
   async login(identifier: string, password: string): Promise<AuthResponse> {
-  try {
     const normalizedIdentifier = identifier.trim().toLowerCase();
 
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ identifier: normalizedIdentifier, password, platform: 'MOBILE' }),
-    });
+    const endpoint = '/api/auth/login';
 
-      const data = await response.json();
-
-      if (data.requiresOtp) {
-        return {
-          success: false,
-          requiresOtp: true,
-          challengeId: data.challengeId,
-          delivery: data.delivery,
-          maskedEmail: data.maskedEmail,
-          maskedPhone: data.maskedPhone,
-          resendAfter: data.resendAfter,
-          message: data.message || 'A verification code has been sent.',
-        };
-      }
-
-      if (response.ok && (data.accessToken || data.token)) {
-        const authToken = data.accessToken || data.token;
-        const user = data.user ? {
-          ...data.user,
-          name: data.user.fullName || data.user.name,
-        } : data.user;
-
-        await AsyncStorage.setItem('auth_token', authToken);
-        await AsyncStorage.setItem('user_data', JSON.stringify(user));
-
-        await AsyncStorage.setItem('lastUser', JSON.stringify({
-          name: user.name,
-          email: normalizedIdentifier,
-          profileImage: user.profileImage,
-        }));
-
-        this.authToken = authToken;
-        this.currentUser = user;
-
-        this.startInactivityMonitoring();
-
-        return {
-          success: true,
-          token: authToken,
-          user: user,
-        };
-      }
-
-      return {
-        success: false,
-        error: data.error || 'Invalid credentials',
-      };
+    let response: Response;
+    try {
+      response = await this.requestWithTimeout(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier: normalizedIdentifier, password, platform: 'MOBILE' }),
+      });
     } catch (error) {
-      console.error('Login error:', error);
+      // No response was received (DNS, TLS, timeout, connection refused, offline).
+      const failure = this.classifyTransportError(error);
+      console.warn(
+        `[YCKF] login transport failure | url=${API_BASE_URL}${endpoint} | ${failure.detail}`
+      );
+      return { success: false, error: failure.message };
+    }
+
+    // Parse the JSON body defensively. A non-JSON body (e.g. a proxy error page)
+    // must not be reported as a network error.
+    let data: any = null;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      const status = response.status;
+      console.warn(
+        `[YCKF] login non-JSON response | url=${API_BASE_URL}${endpoint} | status=${status} | contentType=${response.headers.get('content-type')}`
+      );
       return {
         success: false,
-        error: 'Network error. Please check your connection.',
+        error: this.describeHttpResponse(status, 'The server returned an unexpected response. Please try again.'),
       };
     }
+
+    if (data && data.requiresOtp) {
+      return {
+        success: false,
+        requiresOtp: true,
+        challengeId: data.challengeId,
+        delivery: data.delivery,
+        maskedEmail: data.maskedEmail,
+        maskedPhone: data.maskedPhone,
+        resendAfter: data.resendAfter,
+        message: data.message || 'A verification code has been sent.',
+      };
+    }
+
+    if (response.ok && data && (data.accessToken || data.token)) {
+      const authToken = data.accessToken || data.token;
+      const user = data.user ? {
+        ...data.user,
+        name: data.user.fullName || data.user.name,
+      } : data.user;
+
+      await AsyncStorage.setItem('auth_token', authToken);
+      await AsyncStorage.setItem('user_data', JSON.stringify(user));
+
+      await AsyncStorage.setItem('lastUser', JSON.stringify({
+        name: user.name,
+        email: normalizedIdentifier,
+        profileImage: user.profileImage,
+      }));
+
+      this.authToken = authToken;
+      this.currentUser = user;
+
+      this.startInactivityMonitoring();
+
+      return {
+        success: true,
+        token: authToken,
+        user: user,
+      };
+    }
+
+    const serverMessage = (data && data.error) || '';
+    if (response.status === 401 || response.status === 403) {
+      return {
+        success: false,
+        error: serverMessage || 'Invalid credentials',
+      };
+    }
+
+    return {
+      success: false,
+      error: serverMessage || this.describeHttpResponse(response.status, 'Login failed. Please try again.'),
+    };
+  }
+
+  /**
+   * Runs a fetch with a bounded timeout so a hung connection does not appear
+   * to be a silent "network" failure forever.
+   */
+  private async requestWithTimeout(url: string, init: RequestInit): Promise<Response> {
+    let controller: AbortController | undefined;
+    if (typeof AbortController !== 'undefined') {
+      controller = new AbortController();
+    }
+    const timeoutMs = 30000;
+    const timeoutHandle = controller
+      ? setTimeout(() => controller?.abort(), timeoutMs)
+      : null;
+    try {
+      const merged: RequestInit = controller
+        ? { ...init, signal: controller.signal }
+        : init;
+      return await fetch(url, merged);
+    } finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+    }
+  }
+
+  private classifyTransportError(error: unknown): { message: string; detail: string } {
+    const err = error as { name?: string; message?: string; code?: string | number; type?: string };
+    const name = err.name || '';
+    const message = err.message || '';
+    const code = err.code != null ? String(err.code) : '';
+    const type = err.type || '';
+
+    let detail = `name=${name} code=${code} type=${type}`;
+    if (message) {
+      detail += ` message=${message}`;
+    }
+
+    const isTimeout =
+      name === 'AbortError' || code === 'ECONNABORTED' || message.toLowerCase().includes('timeout');
+
+    if (isTimeout) {
+      return {
+        message: 'The request timed out. Please check your connection and try again.',
+        detail,
+      };
+    }
+
+    // Internal application errors (e.g. a stack-overflow in the fetch layer or
+    // another thrown crash) are NOT connectivity problems. Report them honestly
+    // so they are never masked as a network failure on the device.
+    const isInternalCrash =
+      name === 'RangeError' ||
+      name === 'InternalError' ||
+      message.includes('Maximum call stack size exceeded') ||
+      message.includes('call stack');
+
+    if (isInternalCrash) {
+      return {
+        message: 'App error detected. Please update the app or restart it, then try again.',
+        detail,
+      };
+    }
+
+    // iOS fetch fails with "Network request failed"; Android may surface
+    // ENOTFOUND / EHOSTUNREACH / connection-refused style codes via OkHttp.
+    // Append a short, credential-safe failure code so the OS-level network
+    // layer (DNS / TLS / connectivity) is identifiable on the device.
+    let hint = '';
+    if (code) {
+      hint = ` Code: ${code}.`;
+    } else if (message) {
+      const sanitized = message.replace(/[^\x20-\x7E]/g, '').trim();
+      if (sanitized && sanitized.length <= 80) {
+        hint = ` Code: ${sanitized}.`;
+      }
+    }
+    return {
+      message: `Network error. Unable to reach the server${hint} Please check your connection and try again.`,
+      detail,
+    };
+  }
+
+  private describeHttpResponse(status: number, fallback: string): string {
+    if (status >= 500) {
+      return 'The server is temporarily unavailable. Please try again in a few minutes.';
+    }
+    if (status === 429) {
+      return 'Too many attempts. Please wait a moment and try again.';
+    }
+    if (status === 404) {
+      return 'The login service is unavailable. Please try again later.';
+    }
+    if (status === 400) {
+      return 'Invalid request. Please check your details and try again.';
+    }
+    return fallback;
   }
 
   /**
