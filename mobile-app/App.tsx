@@ -54,6 +54,20 @@ try {
 // Keep splash screen visible while loading
 SplashScreen.preventAutoHideAsync();
 
+// Extract a safe, non-circular description from a thrown value so the error
+// fallback UI never crashes when JSON.stringify hits a circular structure.
+function thisErrorMessage(err: unknown): string {
+  if (!err) return 'Unknown error';
+  if (typeof err === 'string') return err;
+  const msg = (err as { message?: unknown }).message;
+  if (typeof msg === 'string' && msg) return msg;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -229,7 +243,7 @@ export default function App() {
                     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                       <Text style={{ fontWeight: '700', marginBottom: 8 }}>App failed to load</Text>
                       <Text selectable style={{ color: '#444', marginBottom: 12 }}>
-                        {(err && (err as any).message) || JSON.stringify(err)}
+                        {thisErrorMessage(err)}
                       </Text>
                       <Button
                         title="Reload App"
