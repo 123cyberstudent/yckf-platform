@@ -1,6 +1,32 @@
 import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken, toIsoString } from '@/lib/backend'
 
+interface BackendEvidenceItem {
+  id?: number | string
+  reportId?: number | string
+  incidentId?: number | string
+  report?: { title?: string }
+  incidentTitle?: string
+  metadata?: {
+    originalName?: string
+    size?: number
+    description?: string
+  }
+  filename?: string
+  fileUrl?: string
+  fileType?: string
+  fileSize?: number
+  fileHash?: string
+  hash?: string
+  uploadedById?: number | string
+  uploadedBy?: { fullName?: string }
+  uploadedByName?: string
+  uploadedAt?: string | Date | null
+  createdAt?: string | Date | null
+  description?: string
+  chainOfCustody?: unknown[]
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -26,7 +52,7 @@ export async function GET(request: Request) {
     const payload = await response.json().catch(() => null)
     if (!payload) return NextResponse.json([], { status: 200 })
 
-    let items: any[] = []
+    let items: BackendEvidenceItem[] = []
     if (Array.isArray(payload)) {
       items = payload
     } else if (Array.isArray(payload?.evidence)) {
@@ -38,12 +64,12 @@ export async function GET(request: Request) {
     }
 
     if (incidentId) {
-      items = items.filter((item: any) =>
+      items = items.filter((item: BackendEvidenceItem) =>
         item.reportId?.toString() === incidentId || item.incidentId?.toString() === incidentId
       )
     }
 
-    return NextResponse.json(items.map((item: any) => ({
+    return NextResponse.json(items.map((item: BackendEvidenceItem) => ({
       id: item.id?.toString() ?? `evd-${Date.now()}-${Math.random()}`,
       incidentId: item.reportId?.toString() ?? item.incidentId?.toString() ?? 'unknown',
       incidentTitle: item.report?.title ?? item.incidentTitle ?? 'Case evidence',

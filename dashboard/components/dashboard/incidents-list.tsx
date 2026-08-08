@@ -26,7 +26,7 @@ import {
   UserCheck,
   X,
 } from 'lucide-react';
-import type { Incident } from '@/lib/types';
+import type { Incident, InvestigationNote, User } from '@/lib/types';
 import { getRoleFromCookie } from '@/lib/permissions';
 
 const PAGE_SIZE = 6;
@@ -59,6 +59,14 @@ interface CaseResponse {
   authorRole: string;
   text: string;
   createdAt: string;
+}
+
+interface CaseResponsePayload {
+  id?: string | number;
+  author?: { fullName?: string; role?: string };
+  responseText?: string;
+  text?: string;
+  createdAt?: string;
 }
 
 interface ReportDetail extends Incident {
@@ -128,14 +136,14 @@ export function IncidentsList() {
         throw new Error(`Failed to load incidents: ${response.status}`);
       }
       const payload = await response.json();
-      const parsed = (payload.items ?? payload).map((incident: any) => ({
+      const parsed = (payload.items ?? payload).map((incident: Incident) => ({
         ...incident,
         priority: incident.priority ?? 'medium',
         category: incident.category ?? incident.type,
         createdAt: new Date(incident.createdAt),
         updatedAt: new Date(incident.updatedAt),
         resolvedAt: incident.resolvedAt ? new Date(incident.resolvedAt) : null,
-        notes: (incident.notes ?? []).map((note: any) => ({
+        notes: (incident.notes ?? []).map((note: InvestigationNote) => ({
           ...note,
           createdAt: new Date(note.createdAt),
         })),
@@ -269,7 +277,7 @@ export function IncidentsList() {
       if (response.ok) {
         const data = await response.json();
         const caseData = Array.isArray(data.cases) ? data.cases[0] : null;
-        const mappedResponses = (caseData?.responses ?? []).map((r: any) => ({
+        const mappedResponses = (caseData?.responses ?? []).map((r: CaseResponsePayload) => ({
           id: r.id?.toString() ?? `resp-${Date.now()}-${Math.random()}`,
           authorName: r.author?.fullName ?? 'User',
           authorRole: (r.author?.role ?? 'user').toLowerCase(),
@@ -315,7 +323,7 @@ export function IncidentsList() {
       if (response.ok) {
         const data = await response.json();
         const list = Array.isArray(data) ? data : data.users ?? [];
-        setVolunteers(list.filter((u: any) => u.role === 'volunteer').map((u: any) => ({
+        setVolunteers(list.filter((u: User) => u.role === 'volunteer').map((u: User) => ({
           id: u.id,
           name: u.name,
           email: u.email,

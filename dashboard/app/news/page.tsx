@@ -6,9 +6,58 @@ import { Badge } from '@/components/ui/badge';
 import BackToDashboard from '@/components/dashboard/back-to-dashboard';
 import { Calendar } from 'lucide-react';
 
+interface CmsHero {
+  title?: string;
+  subtitle?: string;
+}
+
+interface CmsBanner {
+  url?: string;
+  alt?: string;
+  caption?: string;
+}
+
+interface NewsArticle {
+  title?: string;
+  excerpt?: string;
+  author?: string;
+  category?: string;
+  date?: string;
+  imageUrl?: string;
+}
+
+interface NewsEvent {
+  title?: string;
+  date?: string;
+  time?: string;
+  format?: string;
+  location?: string;
+  description?: string;
+  summary?: string;
+  imageUrl?: string;
+}
+
+interface NewsPageData {
+  content?: {
+    hero?: CmsHero;
+    featured?: NewsArticle;
+    articles?: NewsArticle[];
+    banners?: CmsBanner[];
+  };
+}
+
+interface EventsPageData {
+  content?: {
+    hero?: CmsHero;
+    upcomingEvents?: NewsEvent[];
+    pastEvents?: NewsEvent[];
+    banners?: CmsBanner[];
+  };
+}
+
 export default function NewsPage() {
-  const [newsPage, setNewsPage] = useState<any>(null);
-  const [eventsPage, setEventsPage] = useState<any>(null);
+  const [newsPage, setNewsPage] = useState<NewsPageData | null>(null);
+  const [eventsPage, setEventsPage] = useState<EventsPageData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -89,7 +138,7 @@ export default function NewsPage() {
           <section className="space-y-4">
             <h2 className="text-3xl font-semibold text-white">News Articles</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {articles.map((article: any, i: number) => (
+              {articles.map((article: NewsArticle, i: number) => (
                 <Card key={i} className="glass-card overflow-hidden">
                   {article.imageUrl && (
                     <div className="h-36 overflow-hidden bg-background/50">
@@ -119,7 +168,7 @@ export default function NewsPage() {
               <h2 className="text-3xl font-semibold text-white">Upcoming Events</h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {upcoming.map((event: any, i: number) => (
+              {upcoming.map((event: NewsEvent, i: number) => (
                 <Card key={i} className="glass-card overflow-hidden">
                   {event.imageUrl && (
                     <div className="h-36 overflow-hidden bg-background/50">
@@ -147,7 +196,7 @@ export default function NewsPage() {
               <h2 className="text-2xl font-semibold text-white">Past Events</h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {past.map((event: any, i: number) => (
+              {past.map((event: NewsEvent, i: number) => (
                 <Card key={i} className="glass-card overflow-hidden">
                   {event.imageUrl && (
                     <div className="h-36 overflow-hidden bg-background/50">

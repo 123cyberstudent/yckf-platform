@@ -18,8 +18,21 @@ interface CmsCourse {
   imageUrl?: string;
 }
 
+interface CmsHero {
+  title?: string;
+  subtitle?: string;
+}
+
+interface CoursesPageData {
+  content?: {
+    hero?: CmsHero;
+    courses?: CmsCourse[];
+    banners?: { url?: string; alt?: string; caption?: string }[];
+  };
+}
+
 export default function CoursesPage() {
-  const [page, setPage] = useState<any>(null);
+  const [page, setPage] = useState<CoursesPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
   const [enrolledSlugs, setEnrolledSlugs] = useState<string[]>([]);

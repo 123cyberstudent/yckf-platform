@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import { backendFetch, getBackendAuthToken } from '@/lib/backend';
 import { generateMockAnalytics } from '@/lib/mock-analytics';
 
+interface AnalyticsMonthEntry {
+  month?: string
+  count: number
+}
+
+interface AnalyticsInvestigatorCase {
+  investigator?: string
+  count?: number
+}
+
 export async function GET() {
   try {
     const token = await getBackendAuthToken()
@@ -41,7 +51,7 @@ export async function GET() {
       const summary = [
         { 
           label: 'Total Incidents', 
-          value: (payload?.incidentsPerMonth?.reduce((sum: number, item: any) => sum + item.count, 0) ?? 0).toString(), 
+          value: (payload?.incidentsPerMonth?.reduce((sum: number, item: AnalyticsMonthEntry) => sum + item.count, 0) ?? 0).toString(), 
           trend: '+12%' 
         },
         { 
@@ -61,7 +71,7 @@ export async function GET() {
         },
       ];
 
-      const monthlyData = (payload?.incidentsPerMonth ?? []).map((item: any) => ({
+      const monthlyData = (payload?.incidentsPerMonth ?? []).map((item: AnalyticsMonthEntry) => ({
         month: item.month?.split('-').slice(1).join('/') ?? item.month,
         incidents: item.count ?? 0,
         resolved: Math.max(0, Math.round((item.count ?? 0) * 0.8)),
@@ -76,11 +86,11 @@ export async function GET() {
       const priorityData = [
         { name: 'Critical', value: Math.max(0, Math.round((payload?.caseClosureRate ?? 0) / 10)) },
         { name: 'High', value: Math.max(0, Math.round((payload?.activeInvestigators ?? 0) * 2)) },
-        { name: 'Medium', value: Math.max(0, Math.round((payload?.incidentsPerMonth?.reduce((sum: number, item: any) => sum + item.count, 0) ?? 0) / 3)) },
-        { name: 'Low', value: Math.max(0, Math.round((payload?.incidentsPerMonth?.reduce((sum: number, item: any) => sum + item.count, 0) ?? 0) / 6)) },
+        { name: 'Medium', value: Math.max(0, Math.round((payload?.incidentsPerMonth?.reduce((sum: number, item: AnalyticsMonthEntry) => sum + item.count, 0) ?? 0) / 3)) },
+        { name: 'Low', value: Math.max(0, Math.round((payload?.incidentsPerMonth?.reduce((sum: number, item: AnalyticsMonthEntry) => sum + item.count, 0) ?? 0) / 6)) },
       ];
 
-      const workloadData = (payload?.casesByInvestigator ?? []).map((item: any) => ({
+      const workloadData = (payload?.casesByInvestigator ?? []).map((item: AnalyticsInvestigatorCase) => ({
         name: item.investigator,
         cases: item.count,
         rate: `${Math.max(0, Math.min(100, 80 + (item.count ?? 0)))}%`,

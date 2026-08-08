@@ -1,6 +1,56 @@
 import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 
+interface BackendEmergencyReport {
+  id?: number | string
+  ticketNumber?: string
+  ticket_number?: string
+  reporterName?: string
+  reporter_name?: string
+  reporter?: { fullName?: string; phone?: string; email?: string }
+  reporterPhone?: string
+  reporter_phone?: string
+  reporterEmail?: string
+  reporter_email?: string
+  nearestStation?: string
+  nearest_station?: string
+  stationName?: string
+  station_name?: string
+  stationAddress?: string
+  station_address?: string
+  stationDistance?: number | string | null
+  station_distance?: number | string | null
+  incidentType?: string
+  incident_type?: string
+  mapsLink?: string
+  maps_link?: string
+  gpsLatitude?: number | string | null
+  gps_latitude?: number | string | null
+  gpsLongitude?: number | string | null
+  gps_longitude?: number | string | null
+  gpsAddress?: string
+  gps_address?: string
+  gpsAccuracy?: number | string | null
+  gps_accuracy?: number | string | null
+  audioFileUrl?: string
+  audio_file_url?: string
+  audioDuration?: number | null
+  audio_duration?: number | null
+  stationPhone?: string
+  station_phone?: string
+  status?: string
+  priority?: string
+  submittedAt?: string
+  submitted_at?: string
+  createdAt?: string
+  description?: string
+  assignedVolunteerId?: string | null
+  assignedAt?: string | null
+  dueAt?: string | null
+  assignedBy?: string | null
+  assignmentHistory?: unknown[]
+}
+
 export async function GET() {
   try {
     const token = await getBackendAuthToken()
@@ -21,7 +71,7 @@ export async function GET() {
         : Array.isArray(payload)
           ? payload
           : []
-    const mapped = items.map((report: any) => ({
+    const mapped = items.map((report: BackendEmergencyReport) => ({
       id: report.id?.toString() ?? 'unknown',
       ticketNumber: report.ticketNumber ?? report.ticket_number ?? `ER-${String(report.id).padStart(4, '0')}`,
       reporterName: report.reporterName ?? report.reporter_name ?? report.reporter?.fullName ?? 'Unknown',

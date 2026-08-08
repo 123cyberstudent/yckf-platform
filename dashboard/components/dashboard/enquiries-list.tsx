@@ -26,8 +26,23 @@ const channelIcons: Record<string, typeof Mail> = {
   sms: MessageSquare,
 };
 
+interface Enquiry {
+  id: string;
+  ticketNumber: string;
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+  channel: string;
+  status: string;
+  adminNotes?: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 export function EnquiriesList() {
-  const [enquiries, setEnquiries] = useState<any[]>([]);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -38,7 +53,7 @@ export function EnquiriesList() {
   const [currentRole, setCurrentRole] = useState<string | null>(null);
 
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  const [statusDialogEnquiry, setStatusDialogEnquiry] = useState<any>(null);
+  const [statusDialogEnquiry, setStatusDialogEnquiry] = useState<Enquiry | null>(null);
   const [newStatus, setNewStatus] = useState('new');
   const [adminNotes, setAdminNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -53,7 +68,7 @@ export function EnquiriesList() {
         throw new Error(`Failed to load enquiries: ${response.status}`);
       }
       const payload = await response.json();
-      const items = (payload.items ?? payload).map((enquiry: any) => ({
+      const items = (payload.items ?? payload).map((enquiry: Enquiry) => ({
         ...enquiry,
         createdAt: new Date(enquiry.createdAt),
         updatedAt: new Date(enquiry.updatedAt),
@@ -165,7 +180,7 @@ export function EnquiriesList() {
     logExport('enquiries', 'csv', filteredEnquiries.length);
   };
 
-  const openStatusDialog = (enquiry: any) => {
+  const openStatusDialog = (enquiry: Enquiry) => {
     setStatusDialogEnquiry(enquiry);
     setNewStatus(enquiry.status);
     setAdminNotes(enquiry.adminNotes ?? '');
@@ -202,8 +217,8 @@ export function EnquiriesList() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatDate = (date: Date | string) => {
+    return new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (

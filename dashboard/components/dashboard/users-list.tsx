@@ -61,7 +61,7 @@ export function UsersList() {
       }
 
       const data = await response.json();
-      const parsed = data.map((user: any) => ({
+      const parsed = data.map((user: User) => ({
         ...user,
         createdAt: new Date(user.createdAt),
         lastLogin: user.lastLogin ? new Date(user.lastLogin) : null,
@@ -76,7 +76,7 @@ export function UsersList() {
         const mockResponse = await fetch('/api/users/mock');
         if (mockResponse.ok) {
           const mockData = await mockResponse.json();
-          const parsed = mockData.map((user: any) => ({
+          const parsed = mockData.map((user: User) => ({
             ...user,
             createdAt: new Date(user.createdAt),
             lastLogin: user.lastLogin ? new Date(user.lastLogin) : null,
@@ -106,7 +106,7 @@ export function UsersList() {
       const items = await response.json();
 
       const headers = ['ID', 'Email', 'Full Name', 'Role', 'Platform', 'Active', 'Last Login', 'Created At'];
-      const rows = items.map((item: any) => [
+      const rows = items.map((item: User) => [
         item.id,
         item.email,
         item.name,
@@ -234,8 +234,8 @@ export function UsersList() {
       setAddOpen(false);
       setAddForm({ fullName: '', email: '', password: '', role: 'USER' });
       await fetchUsers();
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to create user');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to create user');
     } finally {
       setAddLoading(false);
     }
@@ -263,8 +263,8 @@ export function UsersList() {
       setEditOpen(false);
       setEditTarget(null);
       await fetchUsers();
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to update user');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to update user');
     } finally {
       setEditLoading(false);
     }
@@ -283,8 +283,8 @@ export function UsersList() {
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
       setDeleteTarget(null);
       setDeleteConfirm('');
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to delete user');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to delete user');
     } finally {
       setDeleteLoading(false);
     }
@@ -308,8 +308,8 @@ export function UsersList() {
         ? prev.map((u) => u.id === user.id ? { ...u, status: 'active' as const } : u)
         : prev.map((u) => u.id === user.id ? { ...u, status: 'suspended' as const } : u)
       );
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to update user status');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to update user status');
     } finally {
       setSuspendLoading(null);
     }

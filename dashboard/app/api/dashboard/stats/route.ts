@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken, formatResponseTimeSeconds } from '@/lib/backend'
 import { getDashboardStats } from '@/lib/mock-data'
+import type { DashboardStats } from '@/lib/types'
 
 export async function GET() {
   try {
@@ -73,7 +74,7 @@ export async function GET() {
 }
 
 // Helper function to transform mock data to match the expected API response format
-function transformMockStats(mockStats: any) {
+function transformMockStats(mockStats: DashboardStats) {
   // Calculate cases this month (simplified - you might want to calculate from actual incidents)
   const casesThisMonth = Math.floor(Math.random() * 50) + 20
   

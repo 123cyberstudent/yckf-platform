@@ -5,6 +5,34 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
+interface CmsHero {
+  title?: string;
+  subtitle?: string;
+}
+
+interface CmsBanner {
+  url?: string;
+  alt?: string;
+  caption?: string;
+}
+
+interface VolunteerProfile {
+  name?: string;
+  role?: string;
+  bio?: string;
+  location?: string;
+  imageUrl?: string;
+  expertise?: string[];
+}
+
+interface VolunteersPageData {
+  content?: {
+    hero?: CmsHero;
+    members?: VolunteerProfile[];
+    banners?: CmsBanner[];
+  };
+}
+
 const professionalFields = [
   'Software Engineering',
   'Network Security',
@@ -19,7 +47,7 @@ const experienceRanges = ['0-1', '1-3', '3-5', '5-10', '10+'];
 const referralSources = ['Social Media', 'Friend/Colleague', 'Website', 'Other'];
 
 export default function VolunteersPublicPage() {
-  const [page, setPage] = useState<any>(null);
+  const [page, setPage] = useState<VolunteersPageData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [fullName, setFullName] = useState('');
@@ -89,7 +117,7 @@ export default function VolunteersPublicPage() {
       }
 
       setFormSubmitted(true);
-    } catch (err: any) {
+    } catch (err) {
       setFormError(err.message || 'Something went wrong.');
     } finally {
       setFormLoading(false);
@@ -120,7 +148,7 @@ export default function VolunteersPublicPage() {
 
         {members.length > 0 ? (
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {members.map((member: any, i: number) => (
+            {members.map((member: VolunteerProfile, i: number) => (
               <Card key={i} className="glass-card overflow-hidden">
                 {member.imageUrl && (
                   <div className="h-40 overflow-hidden bg-background/50">

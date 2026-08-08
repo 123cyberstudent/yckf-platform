@@ -4,10 +4,60 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
+interface CmsHero {
+  title?: string;
+  subtitle?: string;
+}
+
+interface CmsBanner {
+  url?: string;
+  alt?: string;
+  caption?: string;
+}
+
+interface AboutValue {
+  title?: string;
+  description?: string;
+}
+
+interface TimelineEntry {
+  year?: string;
+  event?: string;
+}
+
+interface TeamMember {
+  _id?: string | number;
+  id?: string | number;
+  fullName?: string;
+  name?: string;
+  title?: string;
+  role?: string;
+  bio?: string;
+  profileImage?: string;
+  image?: string;
+  linkedin?: string;
+  twitter?: string;
+  socialLinks?: {
+    linkedin?: string;
+    twitter?: string;
+  };
+}
+
+interface AboutPageData {
+  content?: {
+    hero?: CmsHero;
+    values?: AboutValue[];
+    timeline?: TimelineEntry[];
+    banners?: CmsBanner[];
+    mission?: string;
+    vision?: string;
+  };
+}
+
 export default function AboutPage() {
-  const [page, setPage] = useState<any>(null);
+  const [page, setPage] = useState<AboutPageData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<TeamMember[]>([]);
 
   useEffect(() => {
     fetch('/api/content/about')
@@ -70,7 +120,7 @@ export default function AboutPage() {
           <section className="rounded-3xl border border-border/70 bg-card/80 p-8">
             <h2 className="text-3xl font-semibold text-white">The Values That Guide Us</h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {values.map((v: any, i: number) => (
+              {values.map((v: AboutValue, i: number) => (
                 <div key={i} className="rounded-3xl border border-border/60 bg-background/80 p-6">
                   <h3 className="text-xl font-semibold text-white">{v.title}</h3>
                   <p className="mt-2 text-base leading-8 text-muted-foreground">{v.description}</p>
@@ -84,7 +134,7 @@ export default function AboutPage() {
           <section className="rounded-3xl border border-border/70 bg-card/80 p-8">
             <h2 className="text-3xl font-semibold text-white">Our Journey</h2>
             <div className="mt-8 space-y-6">
-              {timeline.map((item: any, i: number) => (
+              {timeline.map((item: TimelineEntry, i: number) => (
                 <div key={i} className="flex gap-4">
                   <div className="min-w-[72px] text-base font-semibold text-primary">{item.year}</div>
                   <p className="text-base leading-8 text-muted-foreground">{item.event}</p>
@@ -122,7 +172,7 @@ export default function AboutPage() {
               <h2 className="text-3xl font-semibold text-white">Meet the Team</h2>
             </div>
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {members.map((m: any) => {
+              {members.map((m: TeamMember) => {
                 const initials = (m.fullName || m.name || '?')
                   .split(' ')
                   .map((w: string) => w[0])

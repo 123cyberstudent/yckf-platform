@@ -1,6 +1,26 @@
 import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 
+interface BackendBooking {
+  id?: number | string
+  ticketNumber?: string
+  ticket_number?: string
+  fullName?: string
+  full_name?: string
+  email?: string
+  phone?: string
+  specialist?: string
+  preferredDate?: string
+  preferred_date?: string
+  preferredTime?: string
+  preferred_time?: string
+  status?: string
+  message?: string
+  createdAt?: string
+  updatedAt?: string
+  assignedSpecialist?: string | null
+}
+
 export async function GET() {
   try {
     const token = await getBackendAuthToken()
@@ -12,7 +32,7 @@ export async function GET() {
     }
 
     const items = Array.isArray(payload?.bookings) ? payload.bookings : payload?.items ?? []
-    const mapped = items.map((booking: any) => ({
+    const mapped = items.map((booking: BackendBooking) => ({
       id: booking.id?.toString() ?? 'unknown',
       ticketNumber: booking.ticketNumber ?? booking.ticket_number ?? '',
       fullName: booking.fullName ?? booking.full_name ?? '',

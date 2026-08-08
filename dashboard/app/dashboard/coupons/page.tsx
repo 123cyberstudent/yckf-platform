@@ -126,7 +126,7 @@ export default function CouponsPage() {
       toast.error('Access duration must be a positive integer');
       return;
     }
-    if (!DURATION_UNITS.includes(newCoupon.accessDurationUnit as any)) {
+    if (!DURATION_UNITS.includes(newCoupon.accessDurationUnit as (typeof DURATION_UNITS)[number])) {
       toast.error('Select a valid duration unit');
       return;
     }

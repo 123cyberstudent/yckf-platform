@@ -1,6 +1,27 @@
 import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 
+interface BackendMember {
+  id?: number | string
+  _id?: number | string
+  name?: string
+  role?: string
+  title?: string
+  bio?: string
+  email?: string
+  linkedin?: string
+  linkedinUrl?: string
+  twitter?: string
+  twitterUrl?: string
+  imageUrl?: string
+  image?: string
+  avatar?: string
+  sortOrder?: number
+  isActive?: boolean
+  createdAt?: string
+  created_at?: string
+}
+
 export async function GET() {
   try {
     const token = await getBackendAuthToken()
@@ -26,7 +47,7 @@ export async function GET() {
 
     const memberList = Array.isArray(payload) ? payload : payload.members || payload.data || []
 
-    const transformed = memberList.map((m: any) => ({
+    const transformed = memberList.map((m: BackendMember) => ({
       id: m.id || m._id,
       name: m.name,
       role: m.role || m.title,

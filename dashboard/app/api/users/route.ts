@@ -1,6 +1,27 @@
 import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 import { users } from '@/lib/mock-data'
+import type { User } from '@/lib/types'
+
+interface BackendUser {
+  id?: number | string
+  _id?: number | string
+  email?: string
+  name?: string
+  fullName?: string
+  username?: string
+  role?: string
+  isActive?: boolean
+  status?: string
+  platform?: string
+  avatar?: string
+  profilePicture?: string
+  createdAt?: string
+  created_at?: string
+  lastLogin?: string
+  last_login?: string
+  lastActive?: string
+}
 
 export async function GET(request: Request) {
   try {
@@ -49,7 +70,7 @@ export async function GET(request: Request) {
       const userList = Array.isArray(payload) ? payload : payload.users || []
       
       // Transform backend user data to match your frontend User type
-      const transformedUsers = userList.map((user: any) => ({
+      const transformedUsers = userList.map((user: BackendUser) => ({
         id: user.id || user._id,
         email: user.email,
         name: user.name || user.fullName || user.username,
@@ -75,7 +96,7 @@ export async function GET(request: Request) {
 }
 
 // Helper function to transform mock users
-function transformMockUsers(mockUsers: any[]) {
+function transformMockUsers(mockUsers: User[]) {
   return mockUsers.map(user => ({
     id: user.id,
     email: user.email,

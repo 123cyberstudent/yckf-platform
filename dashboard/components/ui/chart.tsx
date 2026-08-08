@@ -122,14 +122,23 @@ function ChartTooltipContent({
   labelKey,
 }: {
   active?: boolean
-  payload?: any[]
+  payload?: RechartsPrimitive.TooltipPayload
   indicator?: 'line' | 'dot' | 'dashed'
   hideLabel?: boolean
   hideIndicator?: boolean
   label?: string | number
-  labelFormatter?: (value: React.ReactNode, payload?: Array<Record<string, unknown>>) => React.ReactNode
+  labelFormatter?: (
+    value: React.ReactNode,
+    payload?: RechartsPrimitive.TooltipPayload,
+  ) => React.ReactNode
   labelClassName?: string
-  formatter?: (value: any, name: any, ...args: any[]) => React.ReactNode
+  formatter?: (
+    value: RechartsPrimitive.TooltipValueType | undefined,
+    name: number | string | undefined,
+    item: RechartsPrimitive.TooltipPayloadEntry,
+    index: number,
+    payload: RechartsPrimitive.TooltipPayload,
+  ) => React.ReactNode
   color?: string
   nameKey?: string
   labelKey?: string

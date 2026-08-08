@@ -93,8 +93,8 @@ export function SpecialistsList() {
       setAddOpen(false);
       setAddForm({ name: '', email: '', phone: '', specialty: '', bio: '' });
       await fetchSpecialists();
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to create specialist');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to create specialist');
     } finally {
       setAddLoading(false);
     }
@@ -118,8 +118,8 @@ export function SpecialistsList() {
       setEditOpen(false);
       setEditTarget(null);
       await fetchSpecialists();
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to update');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to update');
     } finally {
       setEditLoading(false);
     }
@@ -135,8 +135,8 @@ export function SpecialistsList() {
       setSpecialists((prev) => prev.filter((s) => s.id !== deleteTarget.id));
       setDeleteTarget(null);
       setDeleteConfirm('');
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to deactivate');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to deactivate');
     } finally {
       setDeleteLoading(false);
     }

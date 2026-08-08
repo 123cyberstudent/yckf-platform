@@ -101,6 +101,53 @@ interface Assignee {
   role: string;
 }
 
+interface RawEmergencyReport {
+  id?: string | number;
+  ticketNumber?: string;
+  ticket_number?: string;
+  reporterName?: string;
+  reporter_name?: string;
+  reporter?: { fullName?: string; phone?: string };
+  reporterPhone?: string;
+  reporter_phone?: string;
+  reporterEmail?: string;
+  reporter_email?: string;
+  nearestStation?: string;
+  nearest_station?: string;
+  stationName?: string;
+  station_name?: string;
+  stationAddress?: string;
+  stationDistance?: number | null;
+  station_distance?: number | null;
+  incidentType?: string | null;
+  incident_type?: string | null;
+  mapsLink?: string | null;
+  maps_link?: string | null;
+  gpsLatitude?: number | null;
+  gps_latitude?: number | null;
+  gpsLongitude?: number | null;
+  gps_longitude?: number | null;
+  gpsAddress?: string | null;
+  gps_address?: string | null;
+  stationPhone?: string | null;
+  station_phone?: string | null;
+  audioFileUrl?: string | null;
+  audio_file_url?: string | null;
+  audioDuration?: number | null;
+  audio_duration?: number | null;
+  status?: string;
+  priority?: string;
+  submittedAt?: string;
+  submitted_at?: string;
+  createdAt?: string;
+  description?: string;
+  assignedVolunteerId?: number | null;
+  assignedAt?: string | null;
+  dueAt?: string | null;
+  assignedBy?: EmergencyReport['assignedBy'];
+  assignmentHistory?: EmergencyReport['assignmentHistory'];
+}
+
 export default function EmergenciesPage() {
   const [reports, setReports] = useState<EmergencyReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +186,7 @@ export default function EmergenciesPage() {
       const response = await fetch('/api/emergency-reports');
       if (!response.ok) throw new Error(`Failed to load emergency reports: ${response.status}`);
       const payload = await response.json();
-      const items = (payload.items ?? payload).map((r: any) => ({
+      const items = (payload.items ?? payload).map((r: RawEmergencyReport) => ({
         id: r.id?.toString() ?? 'unknown',
         ticketNumber: r.ticketNumber ?? r.ticket_number ?? `ER-${String(r.id).padStart(4, '0')}`,
         reporterName: r.reporterName ?? r.reporter_name ?? r.reporter?.fullName ?? 'Unknown',

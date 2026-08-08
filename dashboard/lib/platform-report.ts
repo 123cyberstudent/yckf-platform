@@ -226,7 +226,7 @@ function drawPage2_DetailedBreakdown(doc: jsPDF, data: PlatformReportData) {
     },
   })
 
-  y = (doc as any).lastAutoTable.finalY + 12
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
@@ -264,7 +264,7 @@ function drawPage2_DetailedBreakdown(doc: jsPDF, data: PlatformReportData) {
     },
   })
 
-  y = (doc as any).lastAutoTable.finalY + 12
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12
 
   const remainingSpace = h - y - 20
   if (remainingSpace > 80) {

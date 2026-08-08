@@ -56,8 +56,8 @@ interface Booking {
   preferredTime: string;
   status: string;
   message: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   assignedSpecialist: Specialist | null;
 }
 
@@ -89,7 +89,7 @@ export function BookingsList() {
         throw new Error(`Failed to load bookings: ${response.status}`);
       }
       const payload = await response.json();
-      const parsed = (payload.items ?? payload).map((booking: any) => ({
+      const parsed = (payload.items ?? payload).map((booking: Booking) => ({
         ...booking,
         createdAt: new Date(booking.createdAt),
         updatedAt: new Date(booking.updatedAt),

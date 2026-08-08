@@ -10,7 +10,7 @@ export async function PUT(
     const body = await request.json()
     const token = await getBackendAuthToken()
 
-    const payload: Record<string, any> = {}
+    const payload: Record<string, unknown> = {}
     if (body.status) payload.status = body.status
     if (body.adminNotes !== undefined) payload.adminNotes = body.adminNotes
     if (body.assignedVolunteerId !== undefined) payload.assignedVolunteerId = body.assignedVolunteerId

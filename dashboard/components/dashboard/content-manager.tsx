@@ -6,15 +6,58 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, Save, Plus, Trash2, FileText, ArrowLeft, Pencil } from 'lucide-react';
 
+interface SectionItem {
+  id?: string;
+  title?: string;
+  name?: string;
+  year?: string;
+  event?: string;
+  [key: string]: string | string[] | undefined;
+}
+
+interface HeroContent {
+  title?: string;
+  subtitle?: string;
+  description?: string;
+}
+
+interface PageContent {
+  hero?: HeroContent;
+  phone?: { numbers?: string[]; availability?: string };
+  email?: { general?: string; reporting?: string; media?: string };
+  address?: { organization?: string; poBox?: string; city?: string };
+  social?: { linkedin?: string; twitter?: string; facebook?: string; youtube?: string; instagram?: string };
+  [key: string]:
+    | string
+    | SectionItem
+    | SectionItem[]
+    | number
+    | boolean
+    | null
+    | undefined
+    | HeroContent
+    | { numbers?: string[]; availability?: string }
+    | { general?: string; reporting?: string; media?: string }
+    | { organization?: string; poBox?: string; city?: string }
+    | { linkedin?: string; twitter?: string; facebook?: string; youtube?: string; instagram?: string };
+}
+
 interface ContentPage {
   id: number;
   slug: string;
   title: string;
-  content: Record<string, any>;
+  content: PageContent;
   updatedAt: string;
 }
 
-const PAGE_CONFIGS: Record<string, { label: string; description: string; fields: string[]; sections: Record<string, { label: string; template: Record<string, any> }> }> = {
+interface PageSectionConfig {
+  label: string;
+  description: string;
+  fields: string[];
+  sections: Record<string, { label: string; template: Record<string, string | string[]> }>;
+}
+
+const PAGE_CONFIGS: Record<string, PageSectionConfig> = {
   about: {
     label: 'About', description: 'Mission, vision, values, and timeline',
     fields: ['mission', 'vision'],
@@ -83,10 +126,10 @@ export function ContentManager() {
   const [view, setView] = useState<View>('list');
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
-  const [editContent, setEditContent] = useState<Record<string, any>>({});
+  const [editContent, setEditContent] = useState<PageContent>({});
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [itemForm, setItemForm] = useState<Record<string, any>>({});
+  const [itemForm, setItemForm] = useState<Record<string, string | string[]>>({});
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const pendingDelete = useRef<{ section: string; index: number } | null>(null);
@@ -102,8 +145,8 @@ export function ContentManager() {
       const res = await fetch('/api/content');
       if (!res.ok) throw new Error('Failed to load pages');
       setPages(await res.json());
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to load content pages');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to load content pages');
     } finally {
       setLoading(false);
     }
@@ -120,8 +163,8 @@ export function ContentManager() {
       setEditTitle(data.title);
       setEditContent(typeof data.content === 'string' ? JSON.parse(data.content) : data.content);
       setView('page');
-    } catch (err: any) {
-      showFeedback('error', err.message);
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to load page');
     }
   };
 
@@ -140,14 +183,14 @@ export function ContentManager() {
       }
       showFeedback('success', 'Page saved successfully');
       await fetchPages();
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to save');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
-  const updateField = (key: string, value: any) => {
+  const updateField = (key: string, value: string | SectionItem) => {
     setEditContent((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -210,7 +253,7 @@ export function ContentManager() {
     setShowDeleteModal(false);
   };
 
-  const getItemTitle = (item: any): string => {
+  const getItemTitle = (item: SectionItem | string): string => {
     if (typeof item === 'string') return item;
     return item.title || item.name || item.year || item.event || 'Untitled';
   };
@@ -369,7 +412,7 @@ export function ContentManager() {
                 <label className="block text-sm font-semibold uppercase tracking-wider text-muted-foreground capitalize mb-1">{field}</label>
                 <textarea
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[100px]"
-                  value={editContent[field] || ''}
+                  value={(editContent[field] as string) || ''}
                   onChange={(e) => updateField(field, e.target.value)}
                 />
               </CardContent>
@@ -478,7 +521,7 @@ export function ContentManager() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {items.map((item: any, idx: number) => (
+                    {items.map((item: SectionItem, idx: number) => (
                       <div key={idx} className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors">
                         <div className="flex-1 min-w-0 mr-3">
                           <p className="text-sm font-medium truncate">{getItemTitle(item)}</p>

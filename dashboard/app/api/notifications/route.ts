@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 import { notifications } from '@/lib/mock-data'
+import type { Notification } from '@/lib/types'
+
+interface BackendNotification {
+  id?: number | string
+  type?: string
+  title?: string
+  body?: string
+  message?: string
+  priority?: string
+  createdAt?: string
+  isRead?: boolean
+  read?: boolean
+  targetRoles?: string[]
+}
 
 export async function GET() {
   try {
@@ -41,7 +55,7 @@ export async function GET() {
         : (Array.isArray(payload?.notifications) ? payload.notifications : [])
       
       // Transform backend data to match frontend format
-      return NextResponse.json(items.map((notification: any) => ({
+      return NextResponse.json(items.map((notification: BackendNotification) => ({
         id: notification.id?.toString() ?? `notif-${Date.now()}-${Math.random()}`,
         type: notification.type ?? 'alert',
         title: notification.title ?? 'Notification',
@@ -137,7 +151,7 @@ export async function POST(request: Request) {
 }
 
 // Helper function to transform mock notifications
-function transformMockNotifications(mockNotifications: any[]) {
+function transformMockNotifications(mockNotifications: Notification[]) {
   return mockNotifications.map(notification => ({
     id: notification.id,
     type: notification.type,

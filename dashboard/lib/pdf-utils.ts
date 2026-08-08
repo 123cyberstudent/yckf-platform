@@ -14,7 +14,7 @@ interface PDFExportOptions {
   title: string
   subtitle?: string
   columns: PDFColumn[]
-  rows: Record<string, any>[]
+  rows: Array<Record<string, unknown>>
   fileName: string
   summary?: { label: string; value: string | number }[]
 }
@@ -150,9 +150,9 @@ export function generatePlatformReport(data: {
   criticalIncidents?: number
   caseClosureRate?: number
   averageResolutionTime?: string
-  recentActivity?: any[]
-  monthlyData?: any[]
-  categoryData?: any[]
+  recentActivity?: unknown[]
+  monthlyData?: Array<{ month?: string; incidents?: number; resolved?: number; critical?: number }>
+  categoryData?: Array<{ name?: string; category?: string; value?: number | string; count?: number | string }>
 }) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
@@ -190,7 +190,7 @@ export function generatePlatformReport(data: {
     didDrawPage: () => addFooter(doc, doc.getNumberOfPages()),
   })
 
-  yPos = (doc as any).lastAutoTable.finalY + 12
+  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12
 
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
@@ -215,7 +215,7 @@ export function generatePlatformReport(data: {
     didDrawPage: () => addFooter(doc, doc.getNumberOfPages()),
   })
 
-  yPos = (doc as any).lastAutoTable.finalY + 12
+  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12
 
   if (data.totalEvidence !== undefined) {
     doc.setFontSize(12)
@@ -235,7 +235,7 @@ export function generatePlatformReport(data: {
       columnStyles: { 0: { fontStyle: 'bold', cellWidth: 80 }, 1: { halign: 'right' } },
       didDrawPage: () => addFooter(doc, doc.getNumberOfPages()),
     })
-    yPos = (doc as any).lastAutoTable.finalY + 12
+    yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12
   }
 
   if (data.categoryData && data.categoryData.length > 0) {
@@ -247,7 +247,7 @@ export function generatePlatformReport(data: {
     autoTable(doc, {
       startY: yPos,
       head: [['Category', 'Count']],
-      body: data.categoryData.map((c: any) => [c.name || c.category || '-', String(c.value || c.count || 0)]),
+      body: data.categoryData.map((c) => [c.name || c.category || '-', String(c.value || c.count || 0)]),
       theme: 'grid',
       styles: { fontSize: 9, cellPadding: 4, font: 'helvetica' },
       headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
@@ -255,7 +255,7 @@ export function generatePlatformReport(data: {
       margin: { left: 14, right: 14 },
       didDrawPage: () => addFooter(doc, doc.getNumberOfPages()),
     })
-    yPos = (doc as any).lastAutoTable.finalY + 12
+    yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12
   }
 
   if (data.monthlyData && data.monthlyData.length > 0) {
@@ -269,7 +269,7 @@ export function generatePlatformReport(data: {
       autoTable(doc, {
         startY: yPos,
         head: [['Month', 'Incidents', 'Resolved', 'Critical']],
-        body: data.monthlyData.map((m: any) => [
+        body: data.monthlyData.map((m) => [
           m.month || '-',
           String(m.incidents ?? 0),
           String(m.resolved ?? 0),

@@ -1,6 +1,45 @@
 import { NextResponse } from 'next/server'
 import { backendFetch, getBackendAuthToken } from '@/lib/backend'
 
+interface BackendIncidentNote {
+  id?: number | string
+  author?: { id?: number | string; fullName?: string }
+  authorName?: string
+  note?: string
+  content?: string
+  createdAt?: string
+}
+
+interface BackendIncident {
+  id?: number | string
+  report?: {
+    id?: number | string
+    title?: string
+    description?: string
+    incidentType?: string
+    priority?: string
+    userId?: number | string
+    reporterName?: string
+    user?: { fullName?: string }
+  }
+  title?: string
+  description?: string
+  type?: string
+  incidentType?: string
+  severity?: string
+  priority?: string
+  status?: string
+  assignedInvestigator?: { id?: number | string; fullName?: string }
+  assignedTo?: string
+  assignedToName?: string
+  reportedBy?: string
+  reportedByName?: string
+  createdAt?: string
+  updatedAt?: string
+  resolvedAt?: string | null
+  notes?: BackendIncidentNote[]
+}
+
 export async function GET() {
   try {
     const token = await getBackendAuthToken()
@@ -12,7 +51,7 @@ export async function GET() {
     }
 
     const items = Array.isArray(payload?.cases) ? payload.cases : payload?.items ?? []
-    const mapped = items.map((incident: any) => ({
+    const mapped = items.map((incident: BackendIncident) => ({
       id: incident.id?.toString() ?? 'unknown',
       reportId: incident.report?.id?.toString() ?? null,
       title: incident.report?.title ?? incident.title ?? 'Untitled incident',
@@ -29,7 +68,7 @@ export async function GET() {
       createdAt: incident.createdAt ?? new Date().toISOString(),
       updatedAt: incident.updatedAt ?? incident.createdAt ?? new Date().toISOString(),
       resolvedAt: incident.resolvedAt ?? null,
-      notes: (incident.notes ?? []).map((note: any) => ({
+      notes: (incident.notes ?? []).map((note: BackendIncidentNote) => ({
         id: note.id?.toString() ?? 'note',
         incidentId: incident.id?.toString() ?? 'unknown',
         authorId: note.author?.id?.toString() ?? 'unknown',

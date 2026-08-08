@@ -5,8 +5,38 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
+interface CmsHero {
+  title?: string;
+  subtitle?: string;
+}
+
+interface CmsBanner {
+  url?: string;
+  alt?: string;
+  caption?: string;
+}
+
+interface ResourceDownload {
+  title?: string;
+  description?: string;
+  format?: string;
+  imageUrl?: string;
+  downloadUrl?: string;
+}
+
+type ResourceVideo = string | { title?: string };
+
+interface ResourcesPageData {
+  content?: {
+    hero?: CmsHero;
+    downloads?: ResourceDownload[];
+    videos?: ResourceVideo[];
+    banners?: CmsBanner[];
+  };
+}
+
 export default function ResourcesPage() {
-  const [page, setPage] = useState<any>(null);
+  const [page, setPage] = useState<ResourcesPageData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,7 +47,7 @@ export default function ResourcesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDownload = (item: any) => {
+  const handleDownload = (item: ResourceDownload) => {
     const title = item.title || 'Resource';
     if (item.downloadUrl) {
       window.open(item.downloadUrl, '_blank', 'noopener,noreferrer');
@@ -82,7 +112,7 @@ export default function ResourcesPage() {
           <section className="rounded-3xl border border-border/70 bg-card/80 p-8">
             <h2 className="text-3xl font-semibold text-white">Free Downloads</h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {downloads.map((item: any, i: number) => (
+              {downloads.map((item: ResourceDownload, i: number) => (
                 <Card key={i} className="glass-card overflow-hidden">
                   {item.imageUrl && (
                     <div className="h-36 overflow-hidden bg-background/50">
@@ -111,7 +141,7 @@ export default function ResourcesPage() {
           <section className="rounded-3xl border border-border/70 bg-card/80 p-8">
             <h2 className="text-3xl font-semibold text-white">Watch and Learn</h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {videos.map((item: any, i: number) => (
+              {videos.map((item: ResourceVideo, i: number) => (
                 <Card key={i} className="glass-card">
                   <CardContent className="p-6">
                     <p className="text-base text-white">{typeof item === 'string' ? item : item.title || JSON.stringify(item)}</p>

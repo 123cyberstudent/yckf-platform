@@ -292,7 +292,7 @@ export default function ReportCybercrimePage() {
         throw new Error(data.error || 'Failed to submit report')
       }
       setSubmitted(true)
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)

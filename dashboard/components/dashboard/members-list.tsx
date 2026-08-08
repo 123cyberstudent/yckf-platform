@@ -22,6 +22,21 @@ interface Member {
   createdAt: string;
 }
 
+interface MemberPayload {
+  id?: string;
+  _id?: string;
+  name?: string;
+  role?: string;
+  bio?: string;
+  email?: string;
+  linkedin?: string;
+  twitter?: string;
+  imageUrl?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
 const emptyForm = {
   name: '',
   role: '',
@@ -67,7 +82,7 @@ export function MembersList() {
       const data = await res.json();
       const list = Array.isArray(data) ? data : data.members || data.data || [];
       const sorted = list
-        .map((m: any) => ({
+        .map((m: MemberPayload) => ({
           id: m.id || m._id || `mock-${Date.now()}`,
           name: m.name || '',
           role: m.role || '',
@@ -155,8 +170,8 @@ export function MembersList() {
       setAddForm(emptyForm);
       setAddErrors({});
       await fetchMembers();
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to create member');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to create member');
     } finally {
       setAddLoading(false);
     }
@@ -190,8 +205,8 @@ export function MembersList() {
       setEditOpen(false);
       setEditTarget(null);
       await fetchMembers();
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to update member');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to update member');
     } finally {
       setEditLoading(false);
     }
@@ -209,8 +224,8 @@ export function MembersList() {
       showFeedback('success', `Member "${deleteTarget.name}" removed`);
       setMembers((prev) => prev.filter((m) => m.id !== deleteTarget.id));
       setDeleteTarget(null);
-    } catch (err: any) {
-      showFeedback('error', err.message || 'Failed to delete member');
+    } catch (err: unknown) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to delete member');
     } finally {
       setDeleteLoading(false);
     }

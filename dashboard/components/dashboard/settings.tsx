@@ -158,8 +158,8 @@ export function Settings() {
 
       setAccountSuccess('Account updated successfully.');
       setTimeout(() => setAccountSuccess(''), 3000);
-    } catch (error: any) {
-      setAccountError(error.message || 'Failed to update account.');
+    } catch (error: unknown) {
+      setAccountError(error instanceof Error ? error.message : 'Failed to update account.');
     } finally {
       setAccountLoading(false);
     }
@@ -190,8 +190,8 @@ export function Settings() {
         setTwoFaSetup(data);
         setTwoFaVerifyCode('');
       }
-    } catch (error: any) {
-      setTwoFaError(error.message || 'Failed to toggle 2FA');
+    } catch (error: unknown) {
+      setTwoFaError(error instanceof Error ? error.message : 'Failed to toggle 2FA');
     } finally {
       setTwoFaLoading(false);
     }
@@ -211,8 +211,8 @@ export function Settings() {
       setTwoFaEnabled(true);
       setTwoFaSetup(null);
       setTwoFaVerifyCode('');
-    } catch (error: any) {
-      setTwoFaError(error.message || 'Failed to verify 2FA code');
+    } catch (error: unknown) {
+      setTwoFaError(error instanceof Error ? error.message : 'Failed to verify 2FA code');
     } finally {
       setTwoFaVerifyLoading(false);
     }

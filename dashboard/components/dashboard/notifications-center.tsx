@@ -29,7 +29,7 @@ export function NotificationsCenter() {
       const response = await fetch('/api/notifications');
       if (!response.ok) throw new Error(`Failed to load notifications: ${response.status}`);
       const data = await response.json();
-      const parsed = data.map((n: any) => ({
+      const parsed = data.map((n: Notification) => ({
         ...n,
         createdAt: new Date(n.createdAt),
       }));
@@ -95,8 +95,8 @@ export function NotificationsCenter() {
         setBroadcastOpen(false);
         setSendSuccess(false);
       }, 1500);
-    } catch (error: any) {
-      setSendError(error.message || 'Failed to send broadcast.');
+    } catch (error: unknown) {
+      setSendError(error instanceof Error ? error.message : 'Failed to send broadcast.');
     } finally {
       setSending(false);
     }
